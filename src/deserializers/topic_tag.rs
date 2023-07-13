@@ -3,8 +3,8 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Question {
-    topic_tags: Vec<crate::entities::topic_tag::Model>,
+pub struct Question {
+    pub topic_tags: Vec<crate::entities::topic_tag::Model>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -24,6 +24,12 @@ struct Data {
 #[serde(rename_all = "camelCase")]
 pub struct ProblemSetQuestionListRoot {
     data: Data,
+}
+
+impl ProblemSetQuestionListRoot {
+    pub fn get_questions_with_topics(&mut self) -> &mut Vec<Question> {
+        &mut self.data.problemset_question_list.questions
+    }
 }
 
 #[cfg(test)]

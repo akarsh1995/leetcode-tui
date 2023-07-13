@@ -1,2 +1,2 @@
 pub mod question;
-mod topic_tag;
+pub mod topic_tag;

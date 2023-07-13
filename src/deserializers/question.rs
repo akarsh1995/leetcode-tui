@@ -1,4 +1,3 @@
-use super::topic_tag;
 use serde;
 use serde::Deserialize;
 
@@ -19,6 +18,12 @@ struct Data {
 #[serde(rename_all = "camelCase")]
 pub struct ProblemSetQuestionListRoot {
     data: Data,
+}
+
+impl ProblemSetQuestionListRoot {
+    pub fn get_questions(&mut self) -> &mut Vec<crate::entities::question::Model> {
+        &mut self.data.problemset_question_list.questions
+    }
 }
 
 #[cfg(test)]
