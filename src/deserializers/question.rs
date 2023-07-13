@@ -1,30 +1,6 @@
+use super::topic_tag;
 use serde;
 use serde::Deserialize;
-
-// #[derive(Debug, Deserialize)]
-// #[serde(rename_all = "camelCase")]
-// struct TopicTag {
-//     name: String,
-//     id: String,
-//     slug: String,
-// }
-
-// #[derive(Debug, Deserialize)]
-// #[serde(rename_all = "camelCase")]
-// struct Question {
-//     ac_rate: f64,
-//     difficulty: String,
-//     freq_bar: Option<f64>,
-//     frontend_question_id: String,
-//     is_favor: bool,
-//     paid_only: bool,
-//     status: Option<String>,
-//     title: String,
-//     title_slug: String,
-//     topic_tags: Vec<TopicTag>,
-//     has_solution: Option<bool>,
-//     has_video_solution: Option<bool>,
-// }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

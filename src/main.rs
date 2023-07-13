@@ -1,6 +1,6 @@
-use leetcode_tui_rs::models::problem::ProblemSetQuestionListRoot;
+use leetcode_tui_rs::deserializers::question::ProblemSetQuestionListRoot;
 use reqwest::{self, cookie::Jar, Url};
-use sea_orm::{Database, DatabaseConnection};
+use sea_orm::Database;
 use serde_json::{json, Value};
 use tracing;
 use tracing_subscriber;
