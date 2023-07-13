@@ -1,41 +1,78 @@
-use serde;
+use crate::entities::{
+    question::ActiveModel as QuestionActiveModel, topic_tag::ActiveModel as TopicTagActiveModel,
+};
+use crate::entities::{question::Model as QuestionModel, topic_tag::Model as TopicTagModel};
+use sea_orm::IntoActiveModel;
 use serde::Deserialize;
+use serde::{self, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ProblemSetQuestionList {
-    total: i32,
-    questions: Vec<crate::entities::question::Model>,
+pub struct TopicTag {
+    pub name: Option<String>,
+    pub id: String,
+    pub slug: Option<String>,
+}
+
+// pub struct TopicTag(Value);
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Question {
+    pub ac_rate: Option<f64>,
+    pub difficulty: Option<String>,
+    pub freq_bar: Option<f64>,
+    pub frontend_question_id: String,
+    pub is_favor: Option<bool>,
+    pub paid_only: Option<bool>,
+    pub status: Option<String>,
+    pub title: Option<String>,
+    pub title_slug: Option<String>,
+    pub has_solution: Option<bool>,
+    pub has_video_solution: Option<bool>,
+    pub topic_tags: Option<Vec<TopicTag>>,
+}
+
+impl Question {
+    pub fn get_question_model(&self) -> QuestionActiveModel {
+        let p = serde_json::to_string(self).unwrap();
+        let j: QuestionModel = serde_json::from_str(p.as_str()).unwrap();
+        j.into_active_model()
+    }
+
+    pub fn get_topic_tags(&self) -> Vec<TopicTagActiveModel> {
+        let p = serde_json::to_string(&self.topic_tags).unwrap();
+        let j: Vec<TopicTagModel> = serde_json::from_str(p.as_str()).unwrap();
+        j.into_iter()
+            .map(|v| v.into_active_model())
+            .collect::<Vec<_>>()
+    }
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Data {
-    problemset_question_list: ProblemSetQuestionList,
+pub struct ProblemSetQuestionList {
+    pub total: i32,
+    pub questions: Vec<Question>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Data {
+    pub problemset_question_list: ProblemSetQuestionList,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProblemSetQuestionListRoot {
-    data: Data,
-}
-
-impl ProblemSetQuestionListRoot {
-    pub fn get_questions(&mut self) -> &mut Vec<crate::entities::question::Model> {
-        &mut self.data.problemset_question_list.questions
-    }
+    pub data: Data,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use serde_json;
 
-    #[test]
-    fn test_original() {
-        let s = r#"{"data":{"problemsetQuestionList":{"total":2777,"questions":[{"acRate":50.194408705463644,"difficulty":"Easy","freqBar":null,"frontendQuestionId":"1","isFavor":false,"paidOnly":false,"status":null,"title":"Two Sum","titleSlug":"two-sum","topicTags":[{"name":"Array","id":"VG9waWNUYWdOb2RlOjU=","slug":"array"},{"name":"Hash Table","id":"VG9waWNUYWdOb2RlOjY=","slug":"hash-table"}],"hasSolution":true,"hasVideoSolution":true}]}}}"#;
-        let root: ProblemSetQuestionListRoot = serde_json::from_str(s).unwrap();
-    }
+    use super::ProblemSetQuestionListRoot;
+    use serde_json;
 
     #[test]
     fn test_json_deserialization() {
@@ -80,19 +117,21 @@ mod tests {
         assert_eq!(question.difficulty, Some("Medium".to_string()));
         assert_eq!(question.freq_bar, None);
         assert_eq!(question.frontend_question_id, "6".to_string());
-        assert_eq!(question.is_favor, Some(0));
-        assert_eq!(question.paid_only, Some(0));
+        assert_eq!(question.is_favor, Some(false));
+        assert_eq!(question.paid_only, Some(false));
         assert_eq!(question.status, Some("ac".to_string()));
         assert_eq!(question.title, Some("Zigzag Conversion".to_string()));
         assert_eq!(question.title_slug, Some("zigzag-conversion".into()));
-        // assert_eq!(question.topic_tags.len(), 1);
 
-        // let topic_tag = &question.topic_tags[0];
-        // assert_eq!(topic_tag.name, "String");
-        // assert_eq!(topic_tag.id, "VG9waWNUYWdOb2RlOjEw");
-        // assert_eq!(topic_tag.slug, "string");
+        if let Some(topic_tags) = &question.topic_tags {
+            assert_eq!(topic_tags.len(), 1);
+            let topic_tag = &topic_tags[0];
+            assert_eq!(topic_tag.name, Some("String".into()));
+            assert_eq!(topic_tag.id, "VG9waWNUYWdOb2RlOjEw");
+            assert_eq!(topic_tag.slug, Some("string".into()));
+        }
 
-        assert_eq!(question.has_solution, Some(1));
-        assert_eq!(question.has_video_solution, Some(0));
+        assert_eq!(question.has_solution, Some(true));
+        assert_eq!(question.has_video_solution, Some(false));
     }
 }
