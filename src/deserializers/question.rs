@@ -1,8 +1,10 @@
 use crate::entities::{
-    question::ActiveModel as QuestionActiveModel, topic_tag::ActiveModel as TopicTagActiveModel,
+    question::ActiveModel as QuestionActiveModel,
+    question_topic_tag::ActiveModel as QuestionTopicActiveModel,
+    topic_tag::ActiveModel as TopicTagActiveModel,
 };
 use crate::entities::{question::Model as QuestionModel, topic_tag::Model as TopicTagModel};
-use sea_orm::IntoActiveModel;
+use sea_orm::{ActiveValue, IntoActiveModel};
 use serde::Deserialize;
 use serde::{self, Serialize};
 
@@ -34,18 +36,31 @@ pub struct Question {
 }
 
 impl Question {
-    pub fn get_question_model(&self) -> QuestionActiveModel {
+    pub fn get_question_active_model(&self) -> QuestionActiveModel {
         let p = serde_json::to_string(self).unwrap();
         let j: QuestionModel = serde_json::from_str(p.as_str()).unwrap();
         j.into_active_model()
     }
 
-    pub fn get_topic_tags(&self) -> Vec<TopicTagActiveModel> {
+    pub fn get_topic_tags_active_model(&self) -> Vec<TopicTagActiveModel> {
         let p = serde_json::to_string(&self.topic_tags).unwrap();
         let j: Vec<TopicTagModel> = serde_json::from_str(p.as_str()).unwrap();
         j.into_iter()
             .map(|v| v.into_active_model())
             .collect::<Vec<_>>()
+    }
+
+    pub fn get_question_topics_relation(&self) -> Vec<QuestionTopicActiveModel> {
+        let mut v = vec![];
+        if let Some(tts) = &self.topic_tags {
+            for topic_tag in tts {
+                v.push(QuestionTopicActiveModel {
+                    question_id: sea_orm::ActiveValue::Set(self.frontend_question_id.clone()),
+                    tag_id: ActiveValue::Set(topic_tag.id.clone()),
+                })
+            }
+        }
+        v
     }
 }
 
