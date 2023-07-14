@@ -79,14 +79,24 @@ pub struct Data {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ProblemSetQuestionListRoot {
-    pub data: Data,
+pub struct ProblemSetQuestionListQuery {
+    data: Data,
+}
+
+impl ProblemSetQuestionListQuery {
+    pub fn get_questions(&self) -> &Vec<Question> {
+        &self.data.problemset_question_list.questions
+    }
+
+    pub fn get_total_questions(&self) -> i32 {
+        self.data.problemset_question_list.total
+    }
 }
 
 #[cfg(test)]
 mod tests {
 
-    use super::ProblemSetQuestionListRoot;
+    use super::ProblemSetQuestionListQuery;
     use serde_json;
 
     #[test]
@@ -121,7 +131,7 @@ mod tests {
             }
         }"#;
 
-        let root: ProblemSetQuestionListRoot = serde_json::from_str(json).unwrap();
+        let root: ProblemSetQuestionListQuery = serde_json::from_str(json).unwrap();
 
         // Validate the deserialized struct fields
         assert_eq!(root.data.problemset_question_list.total, 2777);

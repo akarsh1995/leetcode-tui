@@ -1,5 +1,5 @@
 use leetcode_tui_rs::config::{self, Config};
-use leetcode_tui_rs::deserializers::question::ProblemSetQuestionListRoot;
+use leetcode_tui_rs::deserializers::question::ProblemSetQuestionListQuery;
 use reqwest::{self, cookie::Jar, Url};
 use sea_orm::Database;
 use serde_json::{json, Value};
@@ -84,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Check the response status
     if response.status().is_success() {
-        let response_body: ProblemSetQuestionListRoot = response.json().await?;
+        let response_body: ProblemSetQuestionListQuery = response.json().await?;
         println!("Response: {:?}", response_body);
     } else {
         println!("Request failed with status: {}", response.status());
