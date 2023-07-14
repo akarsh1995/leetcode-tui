@@ -1,5 +1,5 @@
 use crate::entities::{
-    question,
+    question, question_topic_tag,
     topic_tag::{self, Model as TopicTagModel},
 };
 
@@ -36,10 +36,6 @@ async fn get(db: &DatabaseConnection) {
         let j = QuestionTopicTag::insert_many(ques.get_question_topics_relation());
         j.exec(db).await.unwrap();
     }
-}
-
-async fn get_all_tags(db: &DatabaseConnection) -> Vec<TopicTagModel> {
-    TopicTag::find().all(db).await.unwrap()
 }
 
 #[cfg(test)]

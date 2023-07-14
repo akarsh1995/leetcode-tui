@@ -14,4 +14,5 @@ tokio ={ version = "1.29.1", features=["macros", "rt-multi-thread"]}
 sea-orm = { version = "^0", features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros", "with-json",  ] }
 tracing-subscriber = "0.3.17"
 tracing = "0.1.37"
+toml = "0.7.6"
 

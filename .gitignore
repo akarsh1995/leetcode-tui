@@ -1,3 +1,4 @@
 /target
 .env
 leetcode.sqlite
+config.toml
