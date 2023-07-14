@@ -28,13 +28,15 @@ async fn get(db: &DatabaseConnection) {
         c.exec(db).await.unwrap();
         let d = TopicTag::insert_many(ques.get_topic_tags_active_model()).on_conflict(
             OnConflict::column(topic_tag::Column::Id)
-                .update_columns([topic_tag::Column::Name, topic_tag::Column::Slug])
+                .do_nothing()
                 .to_owned(),
         );
         d.exec(db).await.unwrap();
 
         let j = QuestionTopicTag::insert_many(ques.get_question_topics_relation());
-        j.exec(db).await.unwrap();
+        if let Err(DbErr::RecordNotInserted) = j.exec(db).await {
+            println!("Some records not inserted because they are already present.")
+        };
     }
 }
 
@@ -43,6 +45,7 @@ mod tests {
     use sea_orm::Database;
 
     use super::*;
+    // refactor to create mock db tests
     #[tokio::test]
     async fn test() {
         let database_client = Database::connect("sqlite://leetcode.sqlite").await.unwrap();
