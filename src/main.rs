@@ -1,10 +1,10 @@
 use deserializers::question::ProblemSetQuestionList;
 use leetcode_tui_rs::config::{self, Config};
+use leetcode_tui_rs::db_ops::question::ModelUtils;
 use leetcode_tui_rs::deserializers;
 use leetcode_tui_rs::deserializers::question::Question;
 use leetcode_tui_rs::graphql::problemset_question_list::Query;
 use leetcode_tui_rs::graphql::GQLLeetcodeQuery;
-use leetcode_tui_rs::queries::question::ModelUtils;
 use reqwest::header::{HeaderMap, HeaderValue};
 use sea_orm::Database;
 use tracing;
