@@ -21,7 +21,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 #[async_trait]
-trait ModelUtils: Serialize + std::marker::Sized {
+pub trait ModelUtils: Serialize + std::marker::Sized {
     type ActiveModel: ActiveModelTrait<Entity = Self::Entity>
         + std::marker::Send
         + std::convert::From<Self::Model>;

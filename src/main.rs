@@ -1,5 +1,7 @@
 use leetcode_tui_rs::config::{self, Config};
-use leetcode_tui_rs::deserializers::question::ProblemSetQuestionListQuery;
+use leetcode_tui_rs::deserializers::question::{ProblemSetQuestionListQuery, Question};
+use leetcode_tui_rs::queries::question::ModelUtils;
+use reqwest::header::HeaderMap;
 use reqwest::{self, cookie::Jar, Url};
 use sea_orm::Database;
 use serde_json::{json, Value};
@@ -12,17 +14,7 @@ const LEETCODE_GRAPHQL_ENDPOINT: &'static str = "https://leetcode.com/graphql/";
 
 static CONFIG: Lazy<config::Config> = Lazy::new(|| Config::from_file("./leetcode.config"));
 
-static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
-    let csrf = CONFIG.leetcode.csrftoken.as_str();
-    let sess = CONFIG.leetcode.leetcode_session.as_str();
-    let cookie = format!("csrftoken={csrf}; LEETCODE_SESSION={sess}");
-    let url = LEETCODE_GRAPHQL_ENDPOINT.parse::<Url>().unwrap();
-    let jar = Jar::default();
-    jar.add_cookie_str(cookie.as_str(), &url);
-
-    let client = reqwest::ClientBuilder::new();
-    client.cookie_store(true).build().unwrap()
-});
+static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| reqwest::Client::new());
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Provide variable values here
     let category_slug: String = "".to_string();
-    let limit: Option<i32> = Some(1);
+    let limit: Option<i32> = Some(20);
     let skip: Option<i32> = Some(0);
     let filters: Value = json!({});
 
@@ -76,8 +68,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    let csrf = CONFIG.leetcode.csrftoken.as_str();
+    let sess = CONFIG.leetcode.leetcode_session.as_str();
+
     let response = CLIENT
         .post(LEETCODE_GRAPHQL_ENDPOINT)
+        .header(
+            "Cookie",
+            format!("LEETCODE_SESSION={sess}; csrftoken={csrf}"),
+        )
+        .header("Content-Type", "application/json")
         .json(&graphql_query)
         .send()
         .await?;
@@ -85,7 +85,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check the response status
     if response.status().is_success() {
         let response_body: ProblemSetQuestionListQuery = response.json().await?;
-        println!("Response: {:?}", response_body);
+        let questions = response_body.get_questions();
+        dbg!(&questions);
+        Question::multi_insert(&DATABASE_CLIENT, questions).await;
     } else {
         println!("Request failed with status: {}", response.status());
     }
