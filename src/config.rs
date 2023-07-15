@@ -1,6 +1,6 @@
 use std::{fs::File, io::read_to_string};
 
-use serde::{self, Deserialize, Deserializer};
+use serde::{self, Deserialize};
 use toml;
 
 #[derive(Deserialize)]
