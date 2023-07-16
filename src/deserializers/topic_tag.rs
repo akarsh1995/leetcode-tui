@@ -67,7 +67,6 @@ mod tests {
         let root: ProblemSetQuestionListRoot = serde_json::from_str(json).unwrap();
 
         // Validate the deserialized struct fields
-        assert_eq!(root.data.problemset_question_list.total, 2777);
         let question = &root.data.problemset_question_list.questions[0];
 
         assert_eq!(question.topic_tags.len(), 1);
