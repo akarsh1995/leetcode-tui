@@ -92,6 +92,43 @@ mod tests {
 
     #[test]
     fn test_json_deserialization() {
+        let json2 = r#"
+                    {
+                      "data": {
+                        "problemsetQuestionList": {
+                          "total": 2781,
+                          "questions": [
+                            {
+                              "acRate": 50.21369744908346,
+                              "difficulty": "Easy",
+                              "freqBar": null,
+                              "frontendQuestionId": "1",
+                              "isFavor": false,
+                              "paidOnly": false,
+                              "status": "ac",
+                              "title": "Two Sum",
+                              "titleSlug": "two-sum",
+                              "topicTags": [
+                                {
+                                  "name": "Array",
+                                  "id": "VG9waWNUYWdOb2RlOjU=",
+                                  "slug": "array"
+                                },
+                                {
+                                  "name": "Hash Table",
+                                  "id": "VG9waWNUYWdOb2RlOjY=",
+                                  "slug": "hash-table"
+                                }
+                              ],
+                              "hasSolution": true,
+                              "hasVideoSolution": true
+                            }
+                          ]
+                        }
+                      }
+                    }
+                "#;
+
         let json = r#"{
             "data": {
                 "problemsetQuestionList": {
@@ -123,6 +160,7 @@ mod tests {
         }"#;
 
         let root: ProblemSetQuestionListQuery = serde_json::from_str(json).unwrap();
+        let root2: ProblemSetQuestionListQuery = serde_json::from_str(json2).unwrap();
 
         // Validate the deserialized struct fields
         assert_eq!(root.data.problemset_question_list.total, 2777);

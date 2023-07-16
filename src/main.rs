@@ -1,9 +1,7 @@
-use deserializers::question::ProblemSetQuestionList;
 use leetcode_tui_rs::app_ui::list::StatefulList;
 use leetcode_tui_rs::config::{self, Config};
 use leetcode_tui_rs::db_ops::ModelUtils;
-use leetcode_tui_rs::deserializers;
-use leetcode_tui_rs::deserializers::question::Question;
+use leetcode_tui_rs::deserializers::question::{ProblemSetQuestionListQuery, Question};
 use leetcode_tui_rs::entities::QuestionModel;
 use leetcode_tui_rs::graphql::problemset_question_list::Query;
 use leetcode_tui_rs::graphql::GQLLeetcodeQuery;
@@ -50,8 +48,8 @@ async fn main() -> AppResult<()> {
     let DATABASE_CLIENT = Database::connect(CONFIG.db.url.as_str()).await.unwrap();
 
     let query = Query::default();
-    let questions: ProblemSetQuestionList = query.post(&CLIENT).await;
-    Question::multi_insert(&DATABASE_CLIENT, questions.questions).await;
+    let query_response: ProblemSetQuestionListQuery = query.post(&CLIENT).await;
+    Question::multi_insert(&DATABASE_CLIENT, query_response.get_questions()).await;
 
     // Create an application.
     let (send, recv) = tokio::sync::mpsc::channel(300);

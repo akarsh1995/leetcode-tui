@@ -1,4 +1,5 @@
 use serde::Serialize;
+use serde_json::{json, Value};
 
 use super::GQLLeetcodeQuery;
 
@@ -34,7 +35,7 @@ query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $fi
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct Filters;
+struct Filters(Value);
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,9 +59,9 @@ impl Default for Query {
             query: QUERY,
             variables: Variables {
                 category_slug: "".to_string(),
-                limit: 50,
+                limit: 1,
                 skip: 0,
-                filters: Filters,
+                filters: Filters(json!({})),
             },
         }
     }
