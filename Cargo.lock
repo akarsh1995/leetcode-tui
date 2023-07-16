@@ -1133,6 +1133,7 @@ name = "leetcode-tui-rs"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "crossbeam",
  "crossterm",
  "once_cell",
  "ratatui",

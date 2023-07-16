@@ -9,8 +9,8 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 pub type SS = (TopicTagModel, Vec<QuestionModel>);
 
-pub type TTReciever = tokio::sync::mpsc::Receiver<SS>;
-pub type TTSender = tokio::sync::mpsc::Sender<SS>;
+pub type TTReciever = crossbeam::channel::Receiver<SS>;
+pub type TTSender = crossbeam::channel::Sender<SS>;
 
 #[derive(Debug)]
 pub enum Widget<'a> {

@@ -47,12 +47,14 @@ async fn main() -> AppResult<()> {
 
     let database_client = Database::connect(CONFIG.db.url.as_str()).await.unwrap();
 
-    let query = Query::default();
-    let query_response: ProblemSetQuestionListQuery = query.post(&CLIENT).await;
-    Question::multi_insert(&database_client, query_response.get_questions()).await;
+    // let query = Query::default();
+    // let query_response: ProblemSetQuestionListQuery = query.post(&CLIENT).await;
+    // Question::multi_insert(&database_client, query_response.get_questions()).await;
 
     // Create an application.
-    let (send, recv) = tokio::sync::mpsc::channel(300);
+    use crossbeam;
+
+    let (send, recv) = crossbeam::channel::unbounded();
 
     let mut q =
         leetcode_tui_rs::db_ops::topic_tag::query::get_questions_by_topic(&database_client, "")
@@ -61,7 +63,7 @@ async fn main() -> AppResult<()> {
     while !q.is_empty() {
         let qp = q.pop();
         if let Some(qp) = qp {
-            send.send(qp).await.unwrap();
+            send.send(qp).unwrap();
         };
     }
 
@@ -70,11 +72,11 @@ async fn main() -> AppResult<()> {
     Ok(())
 }
 
-fn run_app(mut recv: TTReciever) -> AppResult<()> {
+fn run_app(recv: TTReciever) -> AppResult<()> {
     let mut ql: HashMap<String, Vec<QuestionModel>> = HashMap::new();
     let mut topic_tags = vec![];
 
-    while let Some((topic_tag, mut questions)) = recv.blocking_recv() {
+    while let Ok((topic_tag, mut questions)) = recv.recv() {
         if let Some(name) = &topic_tag.name {
             ql.entry(name.clone())
                 .or_insert(vec![])
