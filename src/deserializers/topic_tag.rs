@@ -38,12 +38,6 @@ mod tests {
     use serde_json;
 
     #[test]
-    fn test_original() {
-        let s = r#"{"data":{"problemsetQuestionList":{"total":2777,"questions":[{"acRate":50.194408705463644,"difficulty":"Easy","freqBar":null,"frontendQuestionId":"1","isFavor":false,"paidOnly":false,"status":null,"title":"Two Sum","titleSlug":"two-sum","topicTags":[{"name":"Array","id":"VG9waWNUYWdOb2RlOjU=","slug":"array"},{"name":"Hash Table","id":"VG9waWNUYWdOb2RlOjY=","slug":"hash-table"}],"hasSolution":true,"hasVideoSolution":true}]}}}"#;
-        let root: ProblemSetQuestionListRoot = serde_json::from_str(s).unwrap();
-    }
-
-    #[test]
     fn test_json_deserialization() {
         let json = r#"{
             "data": {
