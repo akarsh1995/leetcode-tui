@@ -1,0 +1,34 @@
+{
+  "data": {
+    "problemsetQuestionList": {
+      "total": 2781,
+      "questions": [
+        {
+          "acRate": 50.21369744908346,
+          "difficulty": "Easy",
+          "freqBar": null,
+          "frontendQuestionId": "1",
+          "isFavor": false,
+          "paidOnly": false,
+          "status": "ac",
+          "title": "Two Sum",
+          "titleSlug": "two-sum",
+          "topicTags": [
+            {
+              "name": "Array",
+              "id": "VG9waWNUYWdOb2RlOjU=",
+              "slug": "array"
+            },
+            {
+              "name": "Hash Table",
+              "id": "VG9waWNUYWdOb2RlOjY=",
+              "slug": "hash-table"
+            }
+          ],
+          "hasSolution": true,
+          "hasVideoSolution": true
+        }
+      ]
+    }
+  }
+}

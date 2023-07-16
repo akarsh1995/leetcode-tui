@@ -45,17 +45,17 @@ async fn main() -> AppResult<()> {
         .with_test_writer()
         .init();
 
-    let DATABASE_CLIENT = Database::connect(CONFIG.db.url.as_str()).await.unwrap();
+    let database_client = Database::connect(CONFIG.db.url.as_str()).await.unwrap();
 
     let query = Query::default();
     let query_response: ProblemSetQuestionListQuery = query.post(&CLIENT).await;
-    Question::multi_insert(&DATABASE_CLIENT, query_response.get_questions()).await;
+    Question::multi_insert(&database_client, query_response.get_questions()).await;
 
     // Create an application.
     let (send, recv) = tokio::sync::mpsc::channel(300);
 
     let mut q =
-        leetcode_tui_rs::db_ops::topic_tag::query::get_questions_by_topic(&DATABASE_CLIENT, "")
+        leetcode_tui_rs::db_ops::topic_tag::query::get_questions_by_topic(&database_client, "")
             .await;
 
     while !q.is_empty() {

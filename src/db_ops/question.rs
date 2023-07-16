@@ -78,6 +78,7 @@ impl ModelUtils for Question {
     }
 }
 
+#[cfg(test)]
 mod tests {
 
     use super::*;

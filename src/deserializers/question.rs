@@ -1,4 +1,3 @@
-use crate::entities::{question::Model as QuestionModel, topic_tag::Model as TopicTagModel};
 use serde::Deserialize;
 use serde::{self, Serialize};
 
@@ -26,34 +25,6 @@ pub struct Question {
     pub has_video_solution: Option<bool>,
     pub topic_tags: Option<Vec<TopicTag>>,
 }
-// impl Question {
-//     pub fn get_question_active_model(&self) -> QuestionActiveModel {
-//         let p = serde_json::to_string(self).unwrap();
-//         let j: QuestionModel = serde_json::from_str(p.as_str()).unwrap();
-//         j.into_active_model()
-//     }
-
-//     pub fn get_topic_tags_active_model(&self) -> Vec<TopicTagActiveModel> {
-//         let p = serde_json::to_string(&self.topic_tags).unwrap();
-//         let j: Vec<TopicTagModel> = serde_json::from_str(p.as_str()).unwrap();
-//         j.into_iter()
-//             .map(|v| v.into_active_model())
-//             .collect::<Vec<_>>()
-//     }
-
-//     pub fn get_question_topics_relation(&self) -> Vec<QuestionTopicActiveModel> {
-//         let mut v = vec![];
-//         if let Some(tts) = &self.topic_tags {
-//             for topic_tag in tts {
-//                 v.push(QuestionTopicActiveModel {
-//                     question_id: sea_orm::ActiveValue::Set(self.frontend_question_id.clone()),
-//                     tag_id: ActiveValue::Set(topic_tag.id.clone()),
-//                 })
-//             }
-//         }
-//         v
-//     }
-// }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -92,43 +63,6 @@ mod tests {
 
     #[test]
     fn test_json_deserialization() {
-        let json2 = r#"
-                    {
-                      "data": {
-                        "problemsetQuestionList": {
-                          "total": 2781,
-                          "questions": [
-                            {
-                              "acRate": 50.21369744908346,
-                              "difficulty": "Easy",
-                              "freqBar": null,
-                              "frontendQuestionId": "1",
-                              "isFavor": false,
-                              "paidOnly": false,
-                              "status": "ac",
-                              "title": "Two Sum",
-                              "titleSlug": "two-sum",
-                              "topicTags": [
-                                {
-                                  "name": "Array",
-                                  "id": "VG9waWNUYWdOb2RlOjU=",
-                                  "slug": "array"
-                                },
-                                {
-                                  "name": "Hash Table",
-                                  "id": "VG9waWNUYWdOb2RlOjY=",
-                                  "slug": "hash-table"
-                                }
-                              ],
-                              "hasSolution": true,
-                              "hasVideoSolution": true
-                            }
-                          ]
-                        }
-                      }
-                    }
-                "#;
-
         let json = r#"{
             "data": {
                 "problemsetQuestionList": {
@@ -160,7 +94,6 @@ mod tests {
         }"#;
 
         let root: ProblemSetQuestionListQuery = serde_json::from_str(json).unwrap();
-        let root2: ProblemSetQuestionListQuery = serde_json::from_str(json2).unwrap();
 
         // Validate the deserialized struct fields
         assert_eq!(root.data.problemset_question_list.total, 2777);

@@ -28,7 +28,7 @@ pub trait ModelUtils: Serialize + std::marker::Sized {
             .unwrap();
     }
 
-    async fn post_multi_insert(db: &DatabaseConnection, objects: Vec<Self>) {}
+    async fn post_multi_insert(_db: &DatabaseConnection, _objects: Vec<Self>) {}
 
     async fn multi_insert(db: &DatabaseConnection, objects: Vec<Self>) {
         let mut v = vec![];

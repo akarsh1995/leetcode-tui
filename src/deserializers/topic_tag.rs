@@ -10,7 +10,6 @@ pub struct Question {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ProblemSetQuestionList {
-    total: i32,
     questions: Vec<Question>,
 }
 

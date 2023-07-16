@@ -10,7 +10,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_file(path: &str) -> Self {
+    pub fn from_file(_path: &str) -> Self {
         let f = File::open("config.toml").unwrap();
         let contents = read_to_string(f).unwrap();
         toml::from_str(contents.as_str()).unwrap()
