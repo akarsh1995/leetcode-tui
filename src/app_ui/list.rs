@@ -7,16 +7,13 @@ pub struct StatefulList<T> {
 }
 
 impl<T> StatefulList<T> {
-
     pub fn add_item(&mut self, item: T) {
         self.items.push(item)
     }
 
     pub fn get_selected_item(&self) -> Option<&T> {
         match self.state.selected() {
-            Some(i) => {
-                Some(&self.items[i])
-            }
+            Some(i) => Some(&self.items[i]),
             None => None,
         }
     }
@@ -31,29 +28,25 @@ impl<T> StatefulList<T> {
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
+                let a = i as i32 + 1;
+                let b = self.items.len() as i32;
+                ((a % b) + b) % b
             }
             None => 0,
         };
-        self.state.select(Some(i));
+        self.state.select(Some(i as usize));
     }
 
     pub fn previous(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
+                let a = i as i32 - 1;
+                let b = self.items.len() as i32;
+                ((a % b) + b) % b
             }
             None => 0,
         };
-        self.state.select(Some(i));
+        self.state.select(Some(i as usize));
     }
 
     pub fn unselect(&mut self) {
