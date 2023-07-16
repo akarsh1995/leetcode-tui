@@ -60,9 +60,11 @@ async fn main() -> AppResult<()> {
     // Create an application.
     let (send, recv) = tokio::sync::mpsc::channel(300);
 
-    let mut q =
-        leetcode_tui_rs::db_ops::topic_tag::query::get_questions_by_topic(&DATABASE_CLIENT, "")
-            .await;
+    let mut q = leetcode_tui_rs::db_ops::topic_tag::query::get_questions_by_topic(
+        &DATABASE_CLIENT,
+        "",
+    )
+    .await;
     dbg!(&q);
 
     while !q.is_empty() {

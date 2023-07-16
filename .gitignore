@@ -2,3 +2,4 @@
 .env
 leetcode.sqlite
 config.toml
+src/.vscode

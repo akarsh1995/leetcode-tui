@@ -16,4 +16,8 @@ tracing-subscriber = "0.3.17"
 tracing = "0.1.37"
 toml = "0.7.6"
 async-trait = "0.1.71"
+skim = "0.10.4"
+ratatui = { version = "0.21.0", features = ["all-widgets"] }
+anyhow = "1.0.72"
+crossterm = "0.26.1"
 
