@@ -1,4 +1,5 @@
 pub mod question;
+pub mod topic_tag;
 
 use sea_orm::prelude::async_trait::async_trait;
 use sea_orm::{prelude::*, sea_query::OnConflict};
