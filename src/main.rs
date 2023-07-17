@@ -76,6 +76,12 @@ fn run_app(recv: TTReciever) -> AppResult<()> {
     let mut ql: HashMap<String, Vec<QuestionModel>> = HashMap::new();
     let mut topic_tags = vec![];
 
+    topic_tags.push(TopicTagModel {
+        name: Some("All".to_string()),
+        id: "all".to_string(),
+        slug: Some("all".to_string()),
+    });
+
     while let Ok((topic_tag, mut questions)) = recv.recv() {
         if let Some(name) = &topic_tag.name {
             ql.entry(name.clone())
@@ -89,6 +95,7 @@ fn run_app(recv: TTReciever) -> AppResult<()> {
 
     let mut qm: StatefulList<QuestionModel> = StatefulList::with_items(questions);
     let mut ttm: StatefulList<TopicTagModel> = StatefulList::with_items(topic_tags);
+    ttm.state.select(Some(0));
     let question_stateful = Widget::QuestionList(&mut qm);
     let topic_tag_stateful = Widget::TopicTagList(&mut ttm);
     let mut vw = vec![topic_tag_stateful, question_stateful];

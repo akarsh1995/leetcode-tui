@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::app::{App, AppResult};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::widgets::ListState;
@@ -30,28 +32,8 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // Other handlers you could add here.
         _ => {}
     }
+    app.update_list();
 
     // post key event update the question list
-    let mut name: Option<String> = None;
-
-    match &app.widgets[app.widget_switcher as usize] {
-        super::app::Widget::TopicTagList(ttl) => {
-            if let Some(selected_widget) = ttl.get_selected_item() {
-                if let Some(n) = &selected_widget.name {
-                    name = Some(n.clone());
-                }
-            }
-        }
-        _ => {}
-    }
-
-    for w in app.widgets.iter_mut() {
-        if let super::app::Widget::QuestionList(ql) = w {
-            if let Some(name) = &name {
-                ql.items = app.questions_list.get(name).unwrap().clone();
-                ql.state = ListState::default();
-            }
-        }
-    }
     Ok(())
 }

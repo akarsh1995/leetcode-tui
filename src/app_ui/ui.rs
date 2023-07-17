@@ -83,10 +83,13 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
                     .items
                     .iter()
                     .map(|question| {
-                        let lines = vec![Line::from(format!(
-                            "{}: {:?}",
-                            question.frontend_question_id, question.title
-                        ))];
+                        let mut lines = vec![];
+                        if let Some(title) = &question.title {
+                            lines.push(Line::from(format!(
+                                "{:0>4}: {}",
+                                question.frontend_question_id, title,
+                            )));
+                        }
                         ListItem::new(lines)
                     })
                     .collect();
@@ -123,15 +126,20 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
                 f.render_widget(block, left_chunks[1]);
 
                 let stats = Stats { qm: &ql.items };
-                let sl = |t: String, c| Line::from(Span::styled(t, Style::default().fg(c)));
 
                 let guage = |title: &'a str, val: usize, total: usize| {
                     let block_title = format!("{}: {}/{}", title, val, total);
                     let label = Span::styled(
-                        format!("{:.2}%", if val != 0 { val / total * 100 } else { 0 }),
+                        format!(
+                            "{:.2}%",
+                            if total != 0 {
+                                (val as f32 / total as f32) * 100 as f32
+                            } else {
+                                0 as f32
+                            }
+                        ),
                         Style::default()
                             .fg(Color::White)
-                            // .bg(Color::White)
                             .add_modifier(Modifier::ITALIC | Modifier::BOLD),
                     );
 
