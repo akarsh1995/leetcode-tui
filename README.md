@@ -6,9 +6,10 @@
 
 - [x] list questions related to the tag
     [ ] color by accepted
+    [ ] sort by likes dislikes ratio
 
-- [ ] summary of the selected tag
-    - [ ] 
+- [x] stats of the selected tag
+    - [x] 
         |              |              |              |
         |--------------|--------------|--------------|
         | Listed: 2719 | Locked: 525  | Starred: 0   |
