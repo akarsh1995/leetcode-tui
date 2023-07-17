@@ -1,5 +1,6 @@
 use super::app::{App, AppResult};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::widgets::ListState;
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -48,6 +49,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         if let super::app::Widget::QuestionList(ql) = w {
             if let Some(name) = &name {
                 ql.items = app.questions_list.get(name).unwrap().clone();
+                ql.state = ListState::default();
             }
         }
     }
