@@ -2,6 +2,9 @@ use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
 pub mod problemset_question_list;
+pub mod question_content;
+
+pub type QuestionContentQuery = question_content::Query;
 
 const LEETCODE_GRAPHQL_ENDPOINT: &'static str = "https://leetcode.com/graphql/";
 
