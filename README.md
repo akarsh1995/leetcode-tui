@@ -2,8 +2,10 @@
 ### Features
 
 - [x] list all tags
+    [ ] sort by least accepted 
 
 - [x] list questions related to the tag
+    [ ] color by accepted
 
 - [ ] summary of the selected tag
     - [ ] 
