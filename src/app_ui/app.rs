@@ -1,7 +1,7 @@
 use ratatui::widgets::ListState;
 
-use crate::entities::question::Model as QuestionModel;
 use crate::entities::topic_tag::Model as TopicTagModel;
+use crate::{entities::question::Model as QuestionModel, errors::AppResult};
 use std::collections::{HashMap, HashSet};
 
 use super::{
@@ -61,7 +61,7 @@ impl<'a> App<'a> {
             last_response: None,
             show_popup: false,
         };
-        app.update_list();
+        app.update_question_list();
         app
     }
 
@@ -81,7 +81,21 @@ impl<'a> App<'a> {
         &self.widgets[self.widget_switcher as usize]
     }
 
-    pub fn update_list(&mut self) {
+    pub fn update_question_in_popup(&self) -> AppResult<()> {
+        if self.show_popup {
+            if let Widget::QuestionList(s) = self.get_current_widget() {
+                if let Some(selected_item) = s.get_selected_item() {
+                    if let Some(slug) = &selected_item.title_slug {
+                        self.task_request_sender
+                            .send(super::channel::Request::QuestionDetail { slug: slug.clone() })?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn update_question_list(&mut self) {
         let mut name: Option<String> = None;
 
         match &self.widgets[self.widget_switcher as usize] {

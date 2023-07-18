@@ -11,21 +11,25 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
     let curr_widget = &mut app.widgets[app.widget_switcher as usize];
     match key_event.code {
         // Exit application on `ESC` or `q`
-        KeyCode::Esc | KeyCode::Char('q') => {
+        KeyCode::Char('q') => {
             app.quit();
+        }
+        KeyCode::Esc => {
+            if app.show_popup {
+                app.toggle_popup();
+            }
+        }
+
+        KeyCode::Enter => {
+            if let Widget::QuestionList(_) = app.get_current_widget() {
+                app.toggle_popup();
+                app.update_question_in_popup()?;
+            }
         }
         // Exit application on `Ctrl-C`
         KeyCode::Char('c') | KeyCode::Char('C') => {
             if key_event.modifiers == KeyModifiers::CONTROL {
                 app.quit();
-            } else if let Widget::QuestionList(s) = app.get_current_widget() {
-                if let Some(selected_item) = s.get_selected_item() {
-                    if let Some(slug) = &selected_item.title_slug {
-                        app.task_request_sender
-                            .send(channel::Request::QuestionDetail { slug: slug.clone() })?;
-                        app.toggle_popup();
-                    }
-                }
             }
         }
 
@@ -34,11 +38,17 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
         // Counter handlers
         KeyCode::Up => match curr_widget {
-            super::app::Widget::QuestionList(ql) => ql.previous(),
+            super::app::Widget::QuestionList(ql) => {
+                ql.previous();
+                app.update_question_in_popup()?;
+            }
             super::app::Widget::TopicTagList(tt) => tt.previous(),
         },
         KeyCode::Down => match curr_widget {
-            super::app::Widget::QuestionList(ql) => ql.next(),
+            super::app::Widget::QuestionList(ql) => {
+                ql.next();
+                app.update_question_in_popup()?;
+            }
             super::app::Widget::TopicTagList(tt) => tt.next(),
         },
         KeyCode::Left => app.prev_widget(),
@@ -46,7 +56,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         // Other handlers you could add here.
         _ => {}
     }
-    app.update_list();
+    app.update_question_list();
 
     // post key event update the question list
     Ok(())

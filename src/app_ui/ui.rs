@@ -7,6 +7,8 @@ use ratatui::{
     Frame,
 };
 
+use crate::entities::question_topic_tag;
+
 use super::{app::App, helpers::question::Stats};
 
 /// Renders the user interface widgets.
@@ -203,4 +205,104 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
             }
         }
     }
+
+    if app.show_popup {
+        let mut question_title = "".to_string();
+        let mut question_text = "".to_string();
+
+        if let Some(response) = &app.last_response {
+            match response {
+                super::channel::Response::QuestionDetail(qd) => {
+                    match app.get_current_widget() {
+                        super::app::Widget::QuestionList(ql) => {
+                            question_title = ql
+                                .get_selected_item()
+                                .as_ref()
+                                .unwrap()
+                                .title
+                                .as_ref()
+                                .unwrap()
+                                .as_str()
+                                .to_owned();
+                            question_text = qd.html_to_text();
+                        }
+                        _ => {}
+                    };
+                }
+            }
+        }
+        handle_popup(app, f, question_text.as_str(), question_title.as_str())
+    }
+}
+
+pub fn handle_popup<'a, B: Backend>(
+    app: &'a mut App,
+    f: &mut Frame<'_, B>,
+    popup_msg: &str,
+    question_title: &str,
+) {
+    let size = f.size();
+
+    let text = if app.show_popup {
+        "Press esc to close the question info"
+    } else {
+        "Press ↵  to show the question info"
+    };
+
+    // top message press p to close
+    let paragraph = Paragraph::new(text.slow_blink())
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(paragraph, size);
+
+    if app.show_popup {
+        let create_block = |title| {
+            Block::default()
+                .borders(Borders::ALL)
+                .style(Style::default().fg(Color::Gray))
+                .title(Span::styled(
+                    title,
+                    Style::default().add_modifier(Modifier::BOLD),
+                ))
+        };
+
+        let block = create_block(question_title);
+        let area = centered_rect(60, 100, size);
+        let inner = block.inner(area.clone());
+        f.render_widget(Clear, area); //this clears out the background
+                                      // f.render_widget(block.clone(), area);
+
+        let content = Paragraph::new(popup_msg)
+            .wrap(Wrap { trim: true })
+            .block(block);
+
+        f.render_widget(content, inner);
+    }
+}
+
+/// helper function to create a centered rect using up certain percentage of the available rect `r`
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }
