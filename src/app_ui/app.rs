@@ -2,18 +2,14 @@ use ratatui::widgets::ListState;
 
 use crate::entities::question::Model as QuestionModel;
 use crate::entities::topic_tag::Model as TopicTagModel;
-use std::{
-    collections::{HashMap, HashSet},
-    error,
-};
+use std::collections::{HashMap, HashSet};
 
 use super::{
-    channel::{ChannelRequestSender, ChannelResponseReceiver},
+    channel::{ChannelRequestSender, ChannelResponseReceiver, Response},
     list::StatefulList,
 };
 
 /// Application result type.
-pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 pub type SS = (TopicTagModel, Vec<QuestionModel>);
 
@@ -38,7 +34,12 @@ pub struct App<'a> {
 
     pub widget_switcher: i32,
 
+    pub last_response: Option<Response>,
+
+    pub show_popup: bool,
+
     pub task_request_sender: ChannelRequestSender,
+
     pub task_response_recv: ChannelResponseReceiver,
 }
 
@@ -57,6 +58,8 @@ impl<'a> App<'a> {
             widget_switcher: 0,
             task_request_sender,
             task_response_recv,
+            last_response: None,
+            show_popup: false,
         };
         app.update_list();
         app
@@ -114,8 +117,18 @@ impl<'a> App<'a> {
         }
     }
 
+    pub fn toggle_popup(&mut self) {
+        self.show_popup = !self.show_popup;
+    }
+
     /// Handles the tick event of the terminal.
-    pub fn tick(&mut self) {}
+    pub fn tick(&mut self) {
+        if let Ok(response) = self.task_response_recv.try_recv() {
+            if let Ok(valid_response) = response {
+                self.last_response = Some(valid_response);
+            }
+        }
+    }
 
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {

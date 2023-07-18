@@ -6,7 +6,7 @@ use futures_timer::Delay;
 
 use crossterm::event::EventStream;
 
-use super::app::AppResult;
+use crate::errors::AppResult;
 
 /// Terminal events.
 #[derive(Clone, Copy, Debug)]
@@ -50,15 +50,14 @@ pub async fn look_for_events(
             },
             maybe_event = event => {
                 match maybe_event {
-                    Some(Ok(event)) => {
-                        match event {
+                    Some(event) => {
+                        match event? {
                             CrosstermEvent::Key(e) => sender.send(Event::Key(e))?,
                             CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e))?,
                             CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h))?,
                             _ => unimplemented!()
                         }
                     }
-                    Some(Err(e)) => return Err(Box::new(e)),
                     None => break,
                 }
             }

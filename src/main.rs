@@ -16,6 +16,7 @@ use leetcode_tui_rs::deserializers;
 use leetcode_tui_rs::deserializers::question::{ProblemSetQuestionListQuery, Question};
 use leetcode_tui_rs::deserializers::question_content::{QueryQuestionContent, QuestionContent};
 use leetcode_tui_rs::entities::QuestionModel;
+use leetcode_tui_rs::errors::AppResult;
 use leetcode_tui_rs::graphql::problemset_question_list::Query;
 use leetcode_tui_rs::graphql::{question_content, GQLLeetcodeQuery};
 use reqwest::header::{HeaderMap, HeaderValue};
@@ -23,7 +24,7 @@ use sea_orm::Database;
 use tracing;
 use tracing_subscriber;
 
-use leetcode_tui_rs::app_ui::app::{App, AppResult, TTReciever, Widget};
+use leetcode_tui_rs::app_ui::app::{App, TTReciever, Widget};
 use leetcode_tui_rs::app_ui::event::{look_for_events, Event, EventHandler};
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
 // use leetcode_tui_rs::app_ui::tui::Tui;
@@ -95,7 +96,7 @@ async fn main() -> AppResult<()> {
                     let query: deserializers::question_content::Data =
                         question_content::Query::new(slug).post(&client).await;
                     tx_response
-                        .send(channel::Response::QuestionDetail(query.data.question))
+                        .send(Ok(channel::Response::QuestionDetail(query.data.question)))
                         .unwrap();
                 }
             }
@@ -119,7 +120,7 @@ async fn main() -> AppResult<()> {
 
     tokio::task::spawn_blocking(move || run_app(recv, tx_request, rx_response, tui).unwrap());
 
-    look_for_events(100, ev_sender).await;
+    look_for_events(100, ev_sender).await?;
 
     Ok(())
 }

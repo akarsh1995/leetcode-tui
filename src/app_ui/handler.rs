@@ -1,11 +1,10 @@
-use std::collections::HashSet;
-
 use super::{
-    app::{App, AppResult, Widget},
+    app::{App, Widget},
     channel,
 };
+use crate::errors::AppResult;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ratatui::widgets::ListState;
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -23,17 +22,15 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
                 if let Some(selected_item) = s.get_selected_item() {
                     if let Some(slug) = &selected_item.title_slug {
                         app.task_request_sender
-                            .send(channel::Request::QuestionDetail { slug: slug.clone() })
-                            .unwrap()
-                    }
-
-                    while let Ok(response) = app.task_response_recv.recv() {
-                        match response {
-                            channel::Response::QuestionDetail(detail) => println!("{:?}", detail),
-                        }
+                            .send(channel::Request::QuestionDetail { slug: slug.clone() })?;
+                        app.toggle_popup();
                     }
                 }
             }
+        }
+
+        KeyCode::Char('p') | KeyCode::Char('P') => {
+            app.toggle_popup();
         }
         // Counter handlers
         KeyCode::Up => match curr_widget {
