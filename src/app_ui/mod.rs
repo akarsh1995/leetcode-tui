@@ -15,4 +15,5 @@ pub mod handler;
 
 pub mod list;
 
+pub mod channel;
 pub mod helpers;

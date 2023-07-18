@@ -1,10 +1,23 @@
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
+use leetcode_tui_rs::app_ui::channel::{self, request_channel, response_channel};
+use leetcode_tui_rs::app_ui::channel::{
+    ChannelRequestSender, ChannelResponseReceiver, Request, Response,
+};
 use leetcode_tui_rs::app_ui::list::StatefulList;
+use leetcode_tui_rs::app_ui::tui::Tui;
+use leetcode_tui_rs::app_ui::ui::render;
 use leetcode_tui_rs::config::{self, Config};
 use leetcode_tui_rs::db_ops::ModelUtils;
+use leetcode_tui_rs::deserializers;
 use leetcode_tui_rs::deserializers::question::{ProblemSetQuestionListQuery, Question};
+use leetcode_tui_rs::deserializers::question_content::{QueryQuestionContent, QuestionContent};
 use leetcode_tui_rs::entities::QuestionModel;
 use leetcode_tui_rs::graphql::problemset_question_list::Query;
-use leetcode_tui_rs::graphql::GQLLeetcodeQuery;
+use leetcode_tui_rs::graphql::{question_content, GQLLeetcodeQuery};
 use reqwest::header::{HeaderMap, HeaderValue};
 use sea_orm::Database;
 use tracing;
@@ -13,12 +26,12 @@ use tracing_subscriber;
 use leetcode_tui_rs::app_ui::app::{App, AppResult, TTReciever, Widget};
 use leetcode_tui_rs::app_ui::event::{Event, EventHandler};
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
-use leetcode_tui_rs::app_ui::tui::Tui;
+// use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::entities::topic_tag::Model as TopicTagModel;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::collections::HashMap;
-use std::io;
+use std::io::{self, Stderr, Stdout};
 
 use once_cell::sync::Lazy;
 
@@ -67,12 +80,56 @@ async fn main() -> AppResult<()> {
         };
     }
 
-    tokio::task::spawn_blocking(|| run_app(recv).unwrap());
+    drop(send);
+
+    let (tx_request, rx_request) = request_channel();
+    let (tx_response, rx_response) = response_channel();
+    let client = CLIENT.clone();
+
+    tokio::spawn(async move {
+        let mut rx_request = rx_request;
+        let tx_response = tx_response;
+        while let Some(task) = rx_request.recv().await {
+            match task {
+                Request::QuestionDetail { slug } => {
+                    let query: deserializers::question_content::Data =
+                        question_content::Query::new(slug).post(&client).await;
+                    tx_response
+                        .send(channel::Response::QuestionDetail(query.data.question))
+                        .unwrap();
+                }
+            }
+        }
+    });
+
+    let backend = CrosstermBackend::new(io::stderr());
+    let terminal = Terminal::new(backend)?;
+
+    let (ev_sender, ev_receiver) = crossbeam::channel::unbounded();
+
+    let mut tui = Tui::new(
+        terminal,
+        EventHandler {
+            sender: ev_sender.clone(),
+            receiver: ev_receiver,
+        },
+    );
+
+    tui.init()?;
+
+    tokio::task::spawn_blocking(move || run_app(recv, tx_request, rx_response, tui).unwrap());
+
+    EventHandler::new(100, ev_sender).await;
 
     Ok(())
 }
 
-fn run_app(recv: TTReciever) -> AppResult<()> {
+fn run_app(
+    recv: TTReciever,
+    tx_request: ChannelRequestSender,
+    rx_response: ChannelResponseReceiver,
+    mut tui: Tui<CrosstermBackend<Stderr>>,
+) -> AppResult<()> {
     let mut ql: HashMap<String, Vec<QuestionModel>> = HashMap::new();
     let mut topic_tags = vec![];
 
@@ -100,14 +157,7 @@ fn run_app(recv: TTReciever) -> AppResult<()> {
     let topic_tag_stateful = Widget::TopicTagList(&mut ttm);
     let mut vw = vec![topic_tag_stateful, question_stateful];
 
-    let mut app = App::new(&mut vw, &ql);
-
-    // Initialize the terminal user interface.
-    let backend = CrosstermBackend::new(io::stderr());
-    let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(50);
-    let mut tui = Tui::new(terminal, events);
-    tui.init()?;
+    let mut app = App::new(&mut vw, &ql, tx_request, rx_response);
 
     // Start the main loop.
     while app.running {

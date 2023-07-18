@@ -7,7 +7,10 @@ use std::{
     error,
 };
 
-use super::list::StatefulList;
+use super::{
+    channel::{ChannelRequestSender, ChannelResponseReceiver},
+    list::StatefulList,
+};
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -34,6 +37,9 @@ pub struct App<'a> {
     pub questions_list: &'a HashMap<String, Vec<QuestionModel>>,
 
     pub widget_switcher: i32,
+
+    pub task_request_sender: ChannelRequestSender,
+    pub task_response_recv: ChannelResponseReceiver,
 }
 
 impl<'a> App<'a> {
@@ -41,12 +47,16 @@ impl<'a> App<'a> {
     pub fn new(
         wid: &'a mut Vec<Widget<'a>>,
         questions_list: &'a HashMap<String, Vec<QuestionModel>>,
+        task_request_sender: ChannelRequestSender,
+        task_response_recv: ChannelResponseReceiver,
     ) -> Self {
         let mut app = Self {
             running: true,
             questions_list,
             widgets: wid,
             widget_switcher: 0,
+            task_request_sender,
+            task_response_recv,
         };
         app.update_list();
         app

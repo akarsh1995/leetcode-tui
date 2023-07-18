@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 
-use super::app::{App, AppResult};
+use super::{
+    app::{App, AppResult, Widget},
+    channel,
+};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::widgets::ListState;
 
@@ -16,6 +19,20 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         KeyCode::Char('c') | KeyCode::Char('C') => {
             if key_event.modifiers == KeyModifiers::CONTROL {
                 app.quit();
+            } else if let Widget::QuestionList(s) = app.get_current_widget() {
+                if let Some(selected_item) = s.get_selected_item() {
+                    if let Some(slug) = &selected_item.title_slug {
+                        app.task_request_sender
+                            .send(channel::Request::QuestionDetail { slug: slug.clone() })
+                            .unwrap()
+                    }
+
+                    while let Ok(response) = app.task_response_recv.recv() {
+                        match response {
+                            channel::Response::QuestionDetail(detail) => println!("{:?}", detail),
+                        }
+                    }
+                }
             }
         }
         // Counter handlers
