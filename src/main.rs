@@ -24,7 +24,7 @@ use tracing;
 use tracing_subscriber;
 
 use leetcode_tui_rs::app_ui::app::{App, AppResult, TTReciever, Widget};
-use leetcode_tui_rs::app_ui::event::{Event, EventHandler};
+use leetcode_tui_rs::app_ui::event::{look_for_events, Event, EventHandler};
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
 // use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::entities::topic_tag::Model as TopicTagModel;
@@ -105,7 +105,7 @@ async fn main() -> AppResult<()> {
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
 
-    let (ev_sender, ev_receiver) = crossbeam::channel::unbounded();
+    let (ev_sender, ev_receiver) = std::sync::mpsc::channel();
 
     let mut tui = Tui::new(
         terminal,
@@ -119,7 +119,7 @@ async fn main() -> AppResult<()> {
 
     tokio::task::spawn_blocking(move || run_app(recv, tx_request, rx_response, tui).unwrap());
 
-    EventHandler::new(100, ev_sender).await;
+    look_for_events(100, ev_sender).await;
 
     Ok(())
 }

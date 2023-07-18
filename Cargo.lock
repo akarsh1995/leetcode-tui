@@ -1193,7 +1193,6 @@ dependencies = [
  "crossbeam",
  "crossterm",
  "futures",
- "futures-core",
  "futures-timer",
  "html2text",
  "once_cell",

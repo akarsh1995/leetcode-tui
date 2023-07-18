@@ -1,12 +1,12 @@
-use super::app::AppResult;
 use crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};
-// use std::sync::mpsc;
 use std::time::Duration;
 
-use futures::{future::FutureExt, select, StreamExt};
+use futures::{future::FutureExt, StreamExt};
 use futures_timer::Delay;
 
 use crossterm::event::EventStream;
+
+use super::app::AppResult;
 
 /// Terminal events.
 #[derive(Clone, Copy, Debug)]
@@ -26,48 +26,50 @@ pub enum Event {
 #[derive(Debug)]
 pub struct EventHandler {
     /// Event sender channel.
-    pub sender: crossbeam::channel::Sender<Event>,
+    pub sender: std::sync::mpsc::Sender<Event>,
     /// Event receiver channel.
-    pub receiver: crossbeam::channel::Receiver<Event>,
-    // /// Event handler thread.
-    // handler: tokio::task::JoinHandle<()>,
+    pub receiver: std::sync::mpsc::Receiver<Event>,
 }
 
-impl EventHandler {
-    /// Constructs a new instance of [`EventHandler`].
-    pub async fn new(tick_rate: u64, sender: crossbeam::channel::Sender<Event>) {
-        let tick_rate = Duration::from_millis(tick_rate);
+// should be in the main thread to funtion
+pub async fn look_for_events(
+    tick_rate: u64,
+    sender: std::sync::mpsc::Sender<Event>,
+) -> AppResult<()> {
+    let tick_rate = Duration::from_millis(tick_rate);
 
-        let mut reader = EventStream::new();
+    let mut reader = EventStream::new();
 
-        loop {
-            let mut delay = Delay::new(tick_rate).fuse();
-            let mut event = reader.next().fuse();
+    loop {
+        let delay = Delay::new(tick_rate).fuse();
+        let event = reader.next().fuse();
 
-            select! {
-                _ = delay => {
-                    sender.send(Event::Tick).expect("Some Error")
-                },
-                maybe_event = event => {
-                    match maybe_event {
-                        Some(Ok(event)) => {
-                            match event {
-                                CrosstermEvent::Key(e) => sender.send(Event::Key(e)).unwrap(),
-                                CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)).unwrap(),
-                                CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)).unwrap(),
-                                _ => unimplemented!()
-                            }
+        tokio::select! {
+            _ = delay => {
+                sender.send(Event::Tick)?
+            },
+            maybe_event = event => {
+                match maybe_event {
+                    Some(Ok(event)) => {
+                        match event {
+                            CrosstermEvent::Key(e) => sender.send(Event::Key(e))?,
+                            CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e))?,
+                            CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h))?,
+                            _ => unimplemented!()
                         }
-                        Some(Err(e)) => {println!("Error: {:?}\r", e);},
-                        None => break,
                     }
+                    Some(Err(e)) => return Err(Box::new(e)),
+                    None => break,
                 }
             }
         }
     }
+    Ok(())
+}
 
+impl EventHandler {
     /// Receive the next event from the handler thread.
-    ///
+
     /// This function will always block the current thread if
     /// there is no data available and it's possible for more data to be sent.
     pub fn next(&self) -> AppResult<Event> {
