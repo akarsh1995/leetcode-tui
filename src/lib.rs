@@ -5,3 +5,4 @@ pub mod deserializers;
 pub mod entities;
 pub mod errors;
 pub mod graphql;
+pub mod migrations;

@@ -1,3 +1,6 @@
+use sea_orm::error::DbErr;
+use sea_orm::sea_query::extension::sqlite;
+use sea_orm::Database;
 use thiserror::Error;
 
 use crate::app_ui::channel::*;
@@ -34,6 +37,18 @@ pub enum LcAppError {
 
     #[error("Crossterm Error {0}")]
     CrossTermError(String),
+
+    #[error("Database Error encountered {0}")]
+    DatabaseError(#[from] DbErr),
+
+    #[error("Maybe could not find xdg dirs {0}")]
+    XDGError(#[from] xdg::BaseDirectoriesError),
+
+    #[error("Toml parsing error")]
+    TOMLParseError(#[from] toml::de::Error),
+
+    #[error("Toml serialization error")]
+    TOMLSerializeError(#[from] toml::ser::Error),
 
     // #[error("Crossterm Error")]
     // CrossTermError(#[from] crossterm::ErrorKind),
