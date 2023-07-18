@@ -23,6 +23,12 @@ pub enum LcAppError {
     #[error("Task response receive error async to sync context: {0}")]
     ResponseReceiveError(#[from] ResponseReceiveError),
 
+    #[error("Deserialization/serialization failed: {0}")]
+    DeserializeError(#[from] serde_json::Error),
+
+    #[error("Network request error.")]
+    RequestError(#[from] reqwest::Error),
+
     #[error("IO Error")]
     IOError(#[from] std::io::Error),
 

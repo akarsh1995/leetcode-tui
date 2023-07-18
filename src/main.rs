@@ -21,6 +21,7 @@ use leetcode_tui_rs::graphql::problemset_question_list::Query;
 use leetcode_tui_rs::graphql::{question_content, GQLLeetcodeQuery};
 use reqwest::header::{HeaderMap, HeaderValue};
 use sea_orm::Database;
+use tokio::task::JoinHandle;
 use tracing;
 use tracing_subscriber;
 
@@ -54,10 +55,10 @@ static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .with_test_writer()
-        .init();
+    // tracing_subscriber::fmt()
+    //     .with_max_level(tracing::Level::DEBUG)
+    //     .with_test_writer()
+    //     .init();
 
     let database_client = Database::connect(CONFIG.db.url.as_str()).await.unwrap();
 
@@ -87,20 +88,25 @@ async fn main() -> AppResult<()> {
     let (tx_response, rx_response) = response_channel();
     let client = CLIENT.clone();
 
-    tokio::spawn(async move {
+    let jh: JoinHandle<AppResult<()>> = tokio::spawn(async move {
         let mut rx_request = rx_request;
         let tx_response = tx_response;
         while let Some(task) = rx_request.recv().await {
             match task {
                 Request::QuestionDetail { slug } => {
-                    let query: deserializers::question_content::Data =
-                        question_content::Query::new(slug).post(&client).await;
-                    tx_response
-                        .send(Ok(channel::Response::QuestionDetail(query.data.question)))
-                        .unwrap();
+                    match question_content::Query::new(slug).post(&client).await {
+                        Ok(resp) => {
+                            let query_response: deserializers::question_content::Data = resp;
+                            tx_response.send(channel::Response::QuestionDetail(
+                                query_response.data.question,
+                            ))?;
+                        }
+                        Err(e) => tx_response.send(channel::Response::Error(e.to_string()))?,
+                    }
                 }
             }
         }
+        Ok(())
     });
 
     let backend = CrosstermBackend::new(io::stderr());

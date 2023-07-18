@@ -3,6 +3,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
 pub mod problemset_question_list;
 pub mod question_content;
+use crate::errors::AppResult;
 
 pub type QuestionContentQuery = question_content::Query;
 
@@ -18,16 +19,14 @@ pub trait GQLLeetcodeQuery: Serialize {
         LEETCODE_GRAPHQL_ENDPOINT
     }
 
-    async fn post<T: DeserializeOwned>(&self, client: &reqwest::Client) -> T {
-        client
+    async fn post<T: DeserializeOwned>(&self, client: &reqwest::Client) -> AppResult<T> {
+        Ok(client
             .post(self.get_endpoint())
             .header("Content-Type", "application/json")
             .json(&self.get_body())
             .send()
-            .await
-            .unwrap()
+            .await?
             .json()
-            .await
-            .unwrap()
+            .await?)
     }
 }

@@ -229,6 +229,9 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
                         _ => {}
                     };
                 }
+                super::channel::Response::Error(e) => {
+                    panic!("{e}")
+                }
             }
         }
         handle_popup(app, f, question_text.as_str(), question_title.as_str())

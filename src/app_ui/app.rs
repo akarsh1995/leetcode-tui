@@ -138,9 +138,7 @@ impl<'a> App<'a> {
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         if let Ok(response) = self.task_response_recv.try_recv() {
-            if let Ok(valid_response) = response {
-                self.last_response = Some(valid_response);
-            }
+            self.last_response = Some(response);
         }
     }
 
