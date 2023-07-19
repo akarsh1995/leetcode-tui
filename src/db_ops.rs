@@ -36,8 +36,8 @@ pub trait ModelUtils: Serialize + std::marker::Sized {
 
     async fn multi_insert(db: &DatabaseConnection, objects: Vec<Self>) -> AppResult<()> {
         let mut v = vec![];
-        for obj in &objects {
-            let k: Self::ActiveModel = obj.clone().get_active_model()?;
+        for obj in objects.iter() {
+            let k: Self::ActiveModel = obj.get_active_model()?;
             v.push(k);
         }
         if !v.is_empty() {

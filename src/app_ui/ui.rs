@@ -209,20 +209,17 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
         if let Some(response) = &app.last_response {
             match response {
                 super::channel::TaskResponse::QuestionDetail(qd) => {
-                    match app.get_current_widget() {
-                        super::app::Widget::QuestionList(ql) => {
-                            popup_title = ql
-                                .get_selected_item()
-                                .as_ref()
-                                .unwrap()
-                                .title
-                                .as_ref()
-                                .unwrap()
-                                .as_str()
-                                .to_owned();
-                            popup_content = qd.html_to_text();
-                        }
-                        _ => {}
+                    if let super::app::Widget::QuestionList(ql) = app.get_current_widget() {
+                        popup_title = ql
+                            .get_selected_item()
+                            .as_ref()
+                            .unwrap()
+                            .title
+                            .as_ref()
+                            .unwrap()
+                            .as_str()
+                            .to_owned();
+                        popup_content = qd.html_to_text();
                     };
                 }
                 super::channel::TaskResponse::Error(e) => {

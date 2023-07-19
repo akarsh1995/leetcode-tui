@@ -101,13 +101,10 @@ impl<'a> App<'a> {
     pub fn update_question_list(&mut self) {
         let mut tt_model: Option<TopicTagModel> = None;
 
-        match &self.widgets[self.widget_switcher as usize] {
-            super::app::Widget::TopicTagList(ttl) => {
-                if let Some(selected_widget) = ttl.get_selected_item() {
-                    tt_model = Some(selected_widget.clone());
-                }
+        if let Widget::TopicTagList(ttl) = self.get_current_widget() {
+            if let Some(selected) = ttl.get_selected_item() {
+                tt_model = Some(selected.clone())
             }
-            _ => {}
         }
 
         for w in self.widgets.iter_mut() {
@@ -158,12 +155,9 @@ impl<'a> App<'a> {
                 }
                 TaskResponse::AllTopicTags(tts) => {
                     for w in self.widgets.iter_mut() {
-                        match w {
-                            Widget::TopicTagList(tt_list) => {
-                                tt_list.items.extend(tts);
-                                break;
-                            }
-                            _ => {}
+                        if let Widget::TopicTagList(tt_list) = w {
+                            tt_list.items.extend(tts);
+                            break;
                         }
                     }
                 }

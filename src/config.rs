@@ -10,18 +10,15 @@ use crate::errors::AppResult;
 
 pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
     let mut file = File::create(path).await?;
-    file.write(contents.as_bytes()).await?;
+    file.write_all(contents.as_bytes()).await?;
     Ok(())
 }
 
-#[derive(Deserialize, Serialize)]
-#[derive(Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct Config {
     pub db: Db,
     pub leetcode: Leetcode,
 }
-
-
 
 impl Config {
     pub fn get_base_directory() -> AppResult<BaseDirectories> {
