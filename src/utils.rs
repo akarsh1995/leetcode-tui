@@ -79,7 +79,7 @@ pub async fn get_config() -> AppResult<Option<Config>> {
     if !config_path.exists() {
         config = Config::default();
         config.write_config(Config::get_base_config()?).await?;
-        println!("\nConfig is created at config_path {}.\n Kindly set LEETCODE_SESSION and csrftoken in the config file. These can be obained from leetcode cookies in the browser.", config_path.display());
+        println!("\nConfig is created at config_path {}.\n\nKindly set LEETCODE_SESSION and csrftoken in the config file. These can be obained from leetcode cookies in the browser.", config_path.display());
         let db_data_path = Db::get_base_sqlite_data_path()?;
         if !db_data_path.exists() {
             Db::touch_default_db().await?;
