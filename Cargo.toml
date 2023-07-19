@@ -6,17 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-once_cell = "1.18.0"
 reqwest = {version="0.11.18", features=["json", "cookie_crate", "cookie_store", "cookies", ]}
 serde = {version = "1.0.171", features=["derive"]}
 serde_json = "1.0.102"
 tokio ={ version = "1.29.1", features=["macros", "rt-multi-thread"]}
 sea-orm = { version = "^0", features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros", "with-json"] }
-tracing-subscriber = "0.3.17"
-tracing = "0.1.37"
 toml = "0.7.6"
 async-trait = "0.1.71"
-skim = "0.10.4"
 ratatui = { version = "0.22.0", features = ["all-widgets"] }
 crossterm = { version = "0.26.1", features = ["event-stream"] }
 crossbeam = "0.8.2"
@@ -26,6 +22,10 @@ futures-timer = "3.0.2"
 thiserror = "1.0.43"
 xdg = "2.5.0"
 kdam = "0.3.0"
+
+[dev-dependencies]
+tracing-subscriber = "0.3.17"
+tracing = "0.1.37"
 
 [dependencies.sea-orm-migration]
 version = "^0"
