@@ -129,15 +129,13 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
 
                 let guage = |title: &'a str, val: usize, total: usize| {
                     let block_title = format!("{}: {}/{}", title, val, total);
+                    let percentage = if total != 0 {
+                        (val as f32 / total as f32) * 100 as f32
+                    } else {
+                        0 as f32
+                    };
                     let label = Span::styled(
-                        format!(
-                            "{:.2}%",
-                            if total != 0 {
-                                (val as f32 / total as f32) * 100 as f32
-                            } else {
-                                0 as f32
-                            }
-                        ),
+                        format!("{:.2}%", percentage),
                         Style::default()
                             .fg(Color::White)
                             .add_modifier(Modifier::ITALIC | Modifier::BOLD),
@@ -146,7 +144,7 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
                     Gauge::default()
                         .block(Block::default().title(block_title).borders(Borders::ALL))
                         .gauge_style(Style::default().fg(Color::Green).bg(Color::Black))
-                        .percent(val as u16)
+                        .percent(percentage as u16)
                         .label(label)
                 };
 
