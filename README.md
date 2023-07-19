@@ -1,29 +1,15 @@
 # Leetcode TUI
-### Features
 
-- [x] list all tags
-    [ ] sort by least accepted 
+# Use Leetcode in your terminal.
 
-- [x] list questions related to the tag
-    [ ] color by accepted
-    [ ] sort by likes dislikes ratio
+![Demo](demo.gif)
 
-- [x] stats of the selected tag
-    - [x] 
-        |              |              |              |
-        |--------------|--------------|--------------|
-        | Listed: 2719 | Locked: 525  | Starred: 0   |
-        | Accept: 71   | Not-Ac: 3    | Remain: 2645 |
-        | Easy: 669    | Medium: 1445 | Hard: 605    |
 
-- [ ] Error handling
+> **Warning**
+> This TUI is currently under active development. Please feel free to open an issue if you find errors.
 
-- [ ] select multiple tags
+## Installation
 
-- [ ] summary of the question 
-
-    - [ ] submission stats
-
-    - [ ] view question
-
-- [ ] invalidate questions cache through `userSessionProgress`
+```sh
+cargo install leetcode-tui-rs
+```
