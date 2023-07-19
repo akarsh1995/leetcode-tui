@@ -51,8 +51,8 @@ jobs:
       run: |
         cargo build
 
-    # - name: Run tests
-    #   run:  test
+    - name: Run tests
+      run:  test
 
     - name: Run clippy
       run: |
@@ -107,7 +107,7 @@ jobs:
 
     - name: Setup MUSL
       run: |
-        sudo apt-get -qq install musl-tools
+        sudo apt-get -qq install musl-tools libssl-dev
     - name: Build Debug
       run: |
         cargo build --target=x86_64-unknown-linux-musl
@@ -117,9 +117,9 @@ jobs:
         cargo build --release --target=x86_64-unknown-linux-musl
         ./target/x86_64-unknown-linux-musl/release/leetui --version
         ls -l ./target/x86_64-unknown-linux-musl/release/leetui
-    # - name: Test
-    #   run: |
-    #     make test-linux-musl
+    - name: Test
+      run: |
+        cargo test --workspace --target=x86_64-unknown-linux-musl
     - name: Test Install
       run: cargo install --path "." --force
 
