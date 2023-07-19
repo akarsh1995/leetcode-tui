@@ -1,6 +1,4 @@
-use super::{
-    app::{App, Widget},
-};
+use super::app::{App, Widget};
 use crate::errors::AppResult;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
