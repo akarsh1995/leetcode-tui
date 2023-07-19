@@ -1,8 +1,12 @@
-use super::app::AppResult;
-use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, MouseEvent};
-use std::sync::mpsc;
-use std::thread;
-use std::time::{Duration, Instant};
+use crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};
+use std::time::Duration;
+
+use futures::{future::FutureExt, StreamExt};
+use futures_timer::Delay;
+
+use crossterm::event::EventStream;
+
+use crate::errors::AppResult;
 
 /// Terminal events.
 #[derive(Clone, Copy, Debug)]
@@ -22,53 +26,49 @@ pub enum Event {
 #[derive(Debug)]
 pub struct EventHandler {
     /// Event sender channel.
-    sender: mpsc::Sender<Event>,
+    pub sender: std::sync::mpsc::Sender<Event>,
     /// Event receiver channel.
-    receiver: mpsc::Receiver<Event>,
-    /// Event handler thread.
-    handler: thread::JoinHandle<()>,
+    pub receiver: std::sync::mpsc::Receiver<Event>,
+}
+
+// should be in the main thread to funtion
+pub async fn look_for_events(
+    tick_rate: u64,
+    sender: std::sync::mpsc::Sender<Event>,
+) -> AppResult<()> {
+    let tick_rate = Duration::from_millis(tick_rate);
+
+    let mut reader = EventStream::new();
+
+    loop {
+        let delay = Delay::new(tick_rate).fuse();
+        let event = reader.next().fuse();
+
+        tokio::select! {
+            _ = delay => {
+                sender.send(Event::Tick)?
+            },
+            maybe_event = event => {
+                match maybe_event {
+                    Some(event) => {
+                        match event? {
+                            CrosstermEvent::Key(e) => sender.send(Event::Key(e))?,
+                            CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e))?,
+                            CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h))?,
+                            _ => unimplemented!()
+                        }
+                    }
+                    None => break,
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 impl EventHandler {
-    /// Constructs a new instance of [`EventHandler`].
-    pub fn new(tick_rate: u64) -> Self {
-        let tick_rate = Duration::from_millis(tick_rate);
-        let (sender, receiver) = mpsc::channel();
-        let handler = {
-            let sender = sender.clone();
-            thread::spawn(move || {
-                let mut last_tick = Instant::now();
-                loop {
-                    let timeout = tick_rate
-                        .checked_sub(last_tick.elapsed())
-                        .unwrap_or(tick_rate);
-
-                    if event::poll(timeout).expect("no events available") {
-                        match event::read().expect("unable to read event") {
-                            CrosstermEvent::Key(e) => sender.send(Event::Key(e)),
-                            CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e)),
-                            CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h)),
-                            _ => unimplemented!(),
-                        }
-                        .expect("failed to send terminal event")
-                    }
-
-                    if last_tick.elapsed() >= tick_rate {
-                        sender.send(Event::Tick).expect("failed to send tick event");
-                        last_tick = Instant::now();
-                    }
-                }
-            })
-        };
-        Self {
-            sender,
-            receiver,
-            handler,
-        }
-    }
-
     /// Receive the next event from the handler thread.
-    ///
+
     /// This function will always block the current thread if
     /// there is no data available and it's possible for more data to be sent.
     pub fn next(&self) -> AppResult<Event> {

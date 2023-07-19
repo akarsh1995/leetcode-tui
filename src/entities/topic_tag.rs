@@ -13,6 +13,14 @@ pub struct Model {
     pub slug: Option<String>,
 }
 
+use std::hash::Hash;
+
+impl Hash for Model {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {}
 

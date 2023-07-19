@@ -46,6 +46,27 @@ struct Variables {
     filters: Filters,
 }
 
+impl Default for Variables {
+    fn default() -> Self {
+        Self {
+            category_slug: "".to_string(),
+            limit: 1,
+            skip: 0,
+            filters: Filters(json!({})),
+        }
+    }
+}
+
+impl Variables {
+    pub fn new(limit: i32, skip: i32) -> Self {
+        Self {
+            limit,
+            skip,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Query {
@@ -53,18 +74,25 @@ pub struct Query {
     variables: Variables,
 }
 
-impl Default for Query {
-    fn default() -> Self {
+impl Query {
+    pub fn new(limit: i32, skip: i32) -> Self {
         Self {
-            query: QUERY,
-            variables: Variables {
-                category_slug: "".to_string(),
-                limit: 1,
-                skip: 0,
-                filters: Filters(json!({})),
-            },
+            variables: Variables::new(limit, skip),
+            ..Default::default()
         }
     }
 }
 
-impl GQLLeetcodeQuery for Query {}
+impl Default for Query {
+    fn default() -> Self {
+        Self {
+            query: QUERY,
+            variables: Variables::default(),
+        }
+    }
+}
+use crate::deserializers::question::ProblemSetQuestionListQuery;
+
+impl GQLLeetcodeQuery for Query {
+    type T = ProblemSetQuestionListQuery;
+}
