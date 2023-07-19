@@ -20,7 +20,7 @@ impl QuestionContent {
         let s: String = from_read(string, string.len());
         s.replace("\\n\\n", "\n\n")
             .lines()
-            .filter(|l| *l != "")
+            .filter(|l| !l.is_empty())
             .collect::<Vec<&str>>()
             .join("\n")
     }

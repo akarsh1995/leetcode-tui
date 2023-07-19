@@ -15,19 +15,13 @@ pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
 }
 
 #[derive(Deserialize, Serialize)]
+#[derive(Default)]
 pub struct Config {
     pub db: Db,
     pub leetcode: Leetcode,
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            db: Db::default(),
-            leetcode: Leetcode::default(),
-        }
-    }
-}
+
 
 impl Config {
     pub fn get_base_directory() -> AppResult<BaseDirectories> {

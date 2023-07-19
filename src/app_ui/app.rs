@@ -120,9 +120,9 @@ impl<'a> App<'a> {
                                 .values()
                                 .flat_map(|q| q.clone())
                                 .collect::<HashSet<_>>();
-                            items = set.into_iter().map(|c| c.clone()).collect::<Vec<_>>();
+                            items = set.into_iter().collect::<Vec<_>>();
                         } else {
-                            items = tt_ql_map.get(&selected_tt_model).unwrap().clone();
+                            items = tt_ql_map.get(selected_tt_model).unwrap().clone();
                         }
                         items.sort();
                         ql.items = items;

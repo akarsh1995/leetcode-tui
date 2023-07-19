@@ -55,7 +55,7 @@ impl PartialOrd for Model {
             .partial_cmp(&other.frontend_question_id.parse::<i32>().unwrap())
         {
             Some(core::cmp::Ordering::Equal) => Some(core::cmp::Ordering::Equal),
-            ord => return ord,
+            ord => ord,
         }
     }
 }

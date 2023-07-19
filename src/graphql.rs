@@ -7,7 +7,7 @@ use crate::errors::AppResult;
 
 pub type QuestionContentQuery = question_content::Query;
 
-const LEETCODE_GRAPHQL_ENDPOINT: &'static str = "https://leetcode.com/graphql";
+const LEETCODE_GRAPHQL_ENDPOINT: &str = "https://leetcode.com/graphql";
 
 #[async_trait]
 pub trait GQLLeetcodeQuery: Serialize {

@@ -130,7 +130,7 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
                 let guage = |title: &'a str, val: usize, total: usize| {
                     let block_title = format!("{}: {}/{}", title, val, total);
                     let percentage = if total != 0 {
-                        (val as f32 / total as f32) * 100 as f32
+                        (val as f32 / total as f32) * 100_f32
                     } else {
                         0 as f32
                     };
@@ -236,8 +236,8 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
     }
 }
 
-pub fn handle_popup<'a, B: Backend>(
-    app: &'a mut App,
+pub fn handle_popup<B: Backend>(
+    app: &mut App,
     f: &mut Frame<'_, B>,
     popup_msg: &str,
     question_title: &str,
@@ -269,7 +269,7 @@ pub fn handle_popup<'a, B: Backend>(
 
         let block = create_block(question_title);
         let area = centered_rect(60, 100, size);
-        let inner = block.inner(area.clone());
+        let inner = block.inner(area);
         f.render_widget(Clear, area); //this clears out the background
                                       // f.render_widget(block.clone(), area);
 

@@ -10,7 +10,7 @@ pub async fn update_database_questions(
     database_client: &DatabaseConnection,
 ) -> AppResult<()> {
     let query = QuestionDbQuery::default();
-    let query_response = query.post(&client).await?;
+    let query_response = query.post(client).await?;
     let total_questions = query_response.get_total_questions();
 
     let chunk_size = 100;
@@ -53,11 +53,11 @@ pub async fn get_reqwest_client(config: &Config) -> AppResult<reqwest::Client> {
             "Cookie",
             format!("LEETCODE_SESSION={sess}; csrftoken={csrf}"),
         ),
-        ("Content-Type", format!("application/json")),
-        ("x-csrftoken", format!("{csrf}")),
-        ("Origin", format!("https://leetcode.com")),
-        ("Referer", format!("https://leetcode.com")),
-        ("Connection", format!("keep-alive")),
+        ("Content-Type", "application/json".to_string()),
+        ("x-csrftoken", csrf.to_string()),
+        ("Origin", "https://leetcode.com".to_string()),
+        ("Referer", "https://leetcode.com".to_string()),
+        ("Connection", "keep-alive".to_string()),
     ];
 
     for (key, value) in header_k_v {
@@ -85,7 +85,7 @@ pub async fn get_config() -> AppResult<Option<Config>> {
             Db::touch_default_db().await?;
             println!("\nDatabase resides in {}", db_data_path.display());
         }
-        return Ok(None);
+        Ok(None)
     } else {
         println!("Config file found @ {}", &config_path.display());
         config = Config::read_config(config_path).await?;
