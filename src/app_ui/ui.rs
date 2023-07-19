@@ -208,7 +208,7 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
 
         if let Some(response) = &app.last_response {
             match response {
-                super::channel::Response::QuestionDetail(qd) => {
+                super::channel::TaskResponse::QuestionDetail(qd) => {
                     match app.get_current_widget() {
                         super::app::Widget::QuestionList(ql) => {
                             question_title = ql
@@ -225,7 +225,7 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
                         _ => {}
                     };
                 }
-                super::channel::Response::Error(e) => {
+                super::channel::TaskResponse::Error(e) => {
                     panic!("{e}")
                 }
             }

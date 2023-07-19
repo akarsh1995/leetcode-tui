@@ -5,7 +5,7 @@ use crate::{entities::question::Model as QuestionModel, errors::AppResult};
 use std::collections::{HashMap, HashSet};
 
 use super::{
-    channel::{ChannelRequestSender, ChannelResponseReceiver, Response},
+    channel::{ChannelRequestSender, ChannelResponseReceiver, TaskResponse},
     list::StatefulList,
 };
 
@@ -34,7 +34,7 @@ pub struct App<'a> {
 
     pub widget_switcher: i32,
 
-    pub last_response: Option<Response>,
+    pub last_response: Option<TaskResponse>,
 
     pub show_popup: bool,
 
@@ -86,8 +86,9 @@ impl<'a> App<'a> {
             if let Widget::QuestionList(s) = self.get_current_widget() {
                 if let Some(selected_item) = s.get_selected_item() {
                     if let Some(slug) = &selected_item.title_slug {
-                        self.task_request_sender
-                            .send(super::channel::Request::QuestionDetail { slug: slug.clone() })?;
+                        self.task_request_sender.send(
+                            super::channel::TaskRequest::QuestionDetail { slug: slug.clone() },
+                        )?;
                     }
                 }
             }

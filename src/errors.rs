@@ -4,7 +4,7 @@ use sea_orm::Database;
 use thiserror::Error;
 
 use crate::app_ui::channel::*;
-use crate::app_ui::{channel::Response, event::Event};
+use crate::app_ui::{channel::TaskResponse, event::Event};
 
 #[derive(Error, Debug)]
 pub enum LcAppError {
