@@ -50,6 +50,9 @@ pub enum LcAppError {
     #[error("Toml serialization error")]
     TOMLSerializeError(#[from] toml::ser::Error),
 
+    #[error("Error while building reqwest client: {0}")]
+    ClientBuildError(#[from] reqwest::header::InvalidHeaderValue),
+
     // #[error("Crossterm Error")]
     // CrossTermError(#[from] crossterm::ErrorKind),
 

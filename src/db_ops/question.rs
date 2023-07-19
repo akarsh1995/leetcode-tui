@@ -80,6 +80,12 @@ impl ModelUtils for Question {
     }
 }
 
+impl QuestionEntity {
+    pub async fn get_question_count(db: &DatabaseConnection) -> AppResult<u64> {
+        Ok(Self::find().count(db).await?)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

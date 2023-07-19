@@ -8,6 +8,12 @@ use xdg::{self, BaseDirectories};
 
 use crate::errors::AppResult;
 
+pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
+    let mut file = File::create(path).await?;
+    file.write(contents.as_bytes()).await?;
+    Ok(())
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct Config {
     pub db: Db,
@@ -44,12 +50,6 @@ impl Config {
         write_file(path, toml::to_string(self)?.as_str()).await?;
         Ok(())
     }
-}
-
-pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
-    let mut file = File::create(path).await?;
-    file.write(contents.as_bytes()).await?;
-    Ok(())
 }
 
 #[derive(Deserialize, Serialize)]

@@ -6,3 +6,4 @@ pub mod entities;
 pub mod errors;
 pub mod graphql;
 pub mod migrations;
+pub mod utils;
