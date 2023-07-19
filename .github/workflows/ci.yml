@@ -107,7 +107,7 @@ jobs:
 
     - name: Setup MUSL
       run: |
-        sudo apt-get -qq install musl-tools libssl-dev pkg-config
+        sudo apt-get -qq install musl-tools && sudo apt-get -qq install libssl-dev && sudo apt-get -qq install pkg-config
     - name: Build Debug
       run: |
         cargo build --target=x86_64-unknown-linux-musl
