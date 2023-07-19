@@ -25,3 +25,5 @@
     - [ ] submission stats
 
     - [ ] view question
+
+- [ ] invalidate questions cache through `userSessionProgress`
