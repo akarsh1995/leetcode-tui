@@ -131,8 +131,7 @@ async fn main() -> AppResult<()> {
             .filter(|q| !q.topic_tags.as_ref().unwrap().is_empty())
             .collect::<Vec<_>>();
 
-        dbg!(&questions);
-        Question::multi_insert(&db_client_copy, questions).await;
+        Question::multi_insert(&db_client_copy, questions).await?;
     }
 
     if total_questions % chunk_size != 0 {
@@ -141,7 +140,7 @@ async fn main() -> AppResult<()> {
         let client_copy = client.clone();
         let db_client_copy = database_client.clone();
         let resp = Query::new(take, skip).post(&client_copy).await?;
-        Question::multi_insert(&db_client_copy, resp.get_questions()).await;
+        Question::multi_insert(&db_client_copy, resp.get_questions()).await?;
     }
 
     // if total_questions % 20 == 0 {}

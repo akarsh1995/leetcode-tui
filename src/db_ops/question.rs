@@ -4,6 +4,7 @@ use crate::entities::{
     question_topic_tag::Model as QuestionTopicTagModel,
     topic_tag::ActiveModel as TopicTagActiveModel,
 };
+use crate::errors::AppResult;
 use crate::{
     deserializers::question::{Question, TopicTag},
     entities::{
@@ -50,7 +51,7 @@ impl ModelUtils for Question {
             .to_owned()
     }
 
-    async fn post_multi_insert(db: &DatabaseConnection, objects: Vec<Self>) {
+    async fn post_multi_insert(db: &DatabaseConnection, objects: Vec<Self>) -> AppResult<()> {
         let mut qtags: Vec<QuestionTopicActiveModel> = vec![];
 
         for quest in objects {
@@ -66,7 +67,7 @@ impl ModelUtils for Question {
                         .into(),
                     )
                 }
-                TopicTag::multi_insert(db, tts).await;
+                TopicTag::multi_insert(db, tts).await?;
             }
         }
 
@@ -75,6 +76,7 @@ impl ModelUtils for Question {
         if let Err(DbErr::RecordNotInserted) = qtt_insert_result {
             println!("Some records not inserted because they are already present.")
         };
+        Ok(())
     }
 }
 
@@ -91,6 +93,8 @@ mod tests {
         let json = r#"{ "data": { "problemsetQuestionList": { "total": 2777, "questions": [ { "acRate": 45.35065222510613, "difficulty": "Medium", "freqBar": null, "frontendQuestionId": "6", "isFavor": false, "paidOnly": false, "status": "ac", "title": "Zigzag Conversion", "titleSlug": "zigzag-conversion", "topicTags": [ { "name": "String", "id": "VG9waWNUYWdOb2RlOjEw", "slug": "string" } ], "hasSolution": true, "hasVideoSolution": false } ] } } }"#;
         let ppp: ProblemSetQuestionListQuery = serde_json::from_str(json).unwrap();
         let questions = ppp.get_questions();
-        Question::multi_insert(&database_client, questions).await;
+        Question::multi_insert(&database_client, questions)
+            .await
+            .unwrap();
     }
 }
