@@ -154,6 +154,7 @@ impl<'a> App<'a> {
                     } else {
                         self.questions_list = Some(map);
                     }
+                    self.update_question_list()
                 }
                 TaskResponse::AllTopicTags(tts) => {
                     for w in self.widgets.iter_mut() {
