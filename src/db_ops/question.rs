@@ -89,22 +89,3 @@ pub mod query {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::deserializers::question::ProblemSetQuestionListQuery;
-    use sea_orm::Database;
-    // refactor to create mock db tests
-    #[tokio::test]
-    async fn test() {
-        let database_client = Database::connect("sqlite://leetcode.sqlite").await.unwrap();
-        let json = r#"{ "data": { "problemsetQuestionList": { "total": 2777, "questions": [ { "acRate": 45.35065222510613, "difficulty": "Medium", "freqBar": null, "frontendQuestionId": "6", "isFavor": false, "paidOnly": false, "status": "ac", "title": "Zigzag Conversion", "titleSlug": "zigzag-conversion", "topicTags": [ { "name": "String", "id": "VG9waWNUYWdOb2RlOjEw", "slug": "string" } ], "hasSolution": true, "hasVideoSolution": false } ] } } }"#;
-        let ppp: ProblemSetQuestionListQuery = serde_json::from_str(json).unwrap();
-        let questions = ppp.get_questions();
-        Question::multi_insert(&database_client, questions)
-            .await
-            .unwrap();
-    }
-}

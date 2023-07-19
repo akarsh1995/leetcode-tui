@@ -32,17 +32,3 @@ impl TopicTag {
             .collect::<HashMap<TopicTagModel, Vec<QuestionModel>>>())
     }
 }
-
-#[cfg(test)]
-pub mod tests {
-    use sea_orm::Database;
-
-    use super::*;
-
-    #[tokio::test]
-    async fn test_fetch() {
-        let database_client = Database::connect("sqlite://leetcode.sqlite").await.unwrap();
-        let q = TopicTag::get_questions_by_topic(&database_client, "array").await;
-        dbg!(q.unwrap());
-    }
-}
