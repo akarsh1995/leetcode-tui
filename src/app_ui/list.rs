@@ -26,10 +26,13 @@ impl<T> StatefulList<T> {
     }
 
     pub fn next(&mut self) {
+        let mut b = self.items.len() as i32;
+        if b == 0 {
+            b = 1;
+        }
         let i = match self.state.selected() {
             Some(i) => {
                 let a = i as i32 + 1;
-                let b = self.items.len() as i32;
                 ((a % b) + b) % b
             }
             None => 0,
@@ -38,10 +41,13 @@ impl<T> StatefulList<T> {
     }
 
     pub fn previous(&mut self) {
+        let mut b = self.items.len() as i32;
+        if b == 0 {
+            b = 1;
+        }
         let i = match self.state.selected() {
             Some(i) => {
                 let a = i as i32 - 1;
-                let b = self.items.len() as i32;
                 ((a % b) + b) % b
             }
             None => 0,
