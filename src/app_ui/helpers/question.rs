@@ -9,23 +9,6 @@ impl<'a> Stats<'a> {
         self.qm.len()
     }
 
-    pub(crate) fn get_locked(&self) -> usize {
-        self.qm.iter().filter(|q| q.paid_only.unwrap() == 1).count()
-    }
-
-    pub(crate) fn get_starred(&self) -> usize {
-        self.qm
-            .iter()
-            .filter(|q| {
-                if let Some(starred) = &q.is_favor {
-                    starred == &1
-                } else {
-                    false
-                }
-            })
-            .count()
-    }
-
     pub(crate) fn get_accepted(&self) -> usize {
         self.get_status("ac")
     }
