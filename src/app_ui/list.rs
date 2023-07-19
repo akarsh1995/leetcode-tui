@@ -19,8 +19,12 @@ impl<T> StatefulList<T> {
     }
 
     pub fn with_items(items: Vec<T>) -> StatefulList<T> {
+        let mut list_state = ListState::default();
+        if !items.is_empty() {
+            list_state.select(Some(0))
+        }
         StatefulList {
-            state: ListState::default(),
+            state: list_state,
             items,
         }
     }

@@ -1,6 +1,6 @@
 use crate::deserializers::question::Question;
 use crate::errors::AppResult;
-use crate::graphql::problemset_question_list::Query as QuestionQuery;
+use crate::graphql::problemset_question_list::Query as QuestionDbQuery;
 use crate::graphql::GQLLeetcodeQuery;
 use crate::{config::Config, db_ops::ModelUtils};
 use sea_orm::DatabaseConnection;
@@ -9,7 +9,7 @@ pub async fn update_database_questions(
     client: &reqwest::Client,
     database_client: &DatabaseConnection,
 ) -> AppResult<()> {
-    let query = QuestionQuery::default();
+    let query = QuestionDbQuery::default();
     let query_response = query.post(&client).await?;
     let total_questions = query_response.get_total_questions();
 
@@ -20,7 +20,7 @@ pub async fn update_database_questions(
         let take = chunk_size;
         let client_copy = client.clone();
         let db_client_copy = database_client.clone();
-        let resp = QuestionQuery::new(take, skip).post(&client_copy).await?;
+        let resp = QuestionDbQuery::new(take, skip).post(&client_copy).await?;
         let questions = resp.get_questions();
         Question::multi_insert(&db_client_copy, questions).await?;
     }
@@ -30,7 +30,7 @@ pub async fn update_database_questions(
         let take = total_questions - skip;
         let client_copy = client.clone();
         let db_client_copy = database_client.clone();
-        let resp = QuestionQuery::new(take, skip).post(&client_copy).await?;
+        let resp = QuestionDbQuery::new(take, skip).post(&client_copy).await?;
         Question::multi_insert(&db_client_copy, resp.get_questions()).await?;
     }
     Ok(())
@@ -91,4 +91,30 @@ pub async fn get_config() -> AppResult<Option<Config>> {
         config = Config::read_config(config_path).await?;
         Ok(Some(config))
     }
+}
+
+use crate::app_ui::channel::{ChannelRequestReceiver, ChannelResponseSender, Request, Response};
+use crate::graphql::question_content::Query as QuestionGQLQuery;
+
+pub async fn tasks_executor(
+    mut rx_request: ChannelRequestReceiver,
+    tx_response: ChannelResponseSender,
+    client: &reqwest::Client,
+) -> AppResult<()> {
+    while let Some(task) = rx_request.recv().await {
+        match task {
+            Request::QuestionDetail { slug } => {
+                match QuestionGQLQuery::new(slug).post(&client).await {
+                    Ok(resp) => {
+                        let query_response = resp;
+                        tx_response.send(Response::QuestionDetail(query_response.data.question))?;
+                    }
+                    Err(e) => {
+                        tx_response.send(Response::Error(e.to_string()))?;
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }

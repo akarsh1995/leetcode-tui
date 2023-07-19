@@ -38,6 +38,14 @@ impl PartialEq for Model {
     }
 }
 
+use std::hash::Hash;
+
+impl Hash for Model {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.frontend_question_id.hash(state);
+    }
+}
+
 impl PartialOrd for Model {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match self

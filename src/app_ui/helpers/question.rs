@@ -1,15 +1,7 @@
-use std::hash::Hash;
-
 use crate::entities::QuestionModel;
 
 pub struct Stats<'a> {
     pub qm: &'a Vec<QuestionModel>,
-}
-
-impl Hash for QuestionModel {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.frontend_question_id.hash(state);
-    }
 }
 
 impl<'a> Stats<'a> {

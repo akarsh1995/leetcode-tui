@@ -30,7 +30,7 @@ pub struct App<'a> {
 
     pub widgets: &'a mut Vec<Widget<'a>>,
 
-    pub questions_list: &'a HashMap<String, Vec<QuestionModel>>,
+    pub questions_list: &'a HashMap<TopicTagModel, Vec<QuestionModel>>,
 
     pub widget_switcher: i32,
 
@@ -47,7 +47,7 @@ impl<'a> App<'a> {
     /// Constructs a new instance of [`App`].
     pub fn new(
         wid: &'a mut Vec<Widget<'a>>,
-        questions_list: &'a HashMap<String, Vec<QuestionModel>>,
+        questions_list: &'a HashMap<TopicTagModel, Vec<QuestionModel>>,
         task_request_sender: ChannelRequestSender,
         task_response_recv: ChannelResponseReceiver,
     ) -> Self {
@@ -96,14 +96,12 @@ impl<'a> App<'a> {
     }
 
     pub fn update_question_list(&mut self) {
-        let mut name: Option<String> = None;
+        let mut tt_model: Option<TopicTagModel> = None;
 
         match &self.widgets[self.widget_switcher as usize] {
             super::app::Widget::TopicTagList(ttl) => {
                 if let Some(selected_widget) = ttl.get_selected_item() {
-                    if let Some(n) = &selected_widget.name {
-                        name = Some(n.clone());
-                    }
+                    tt_model = Some(selected_widget.clone());
                 }
             }
             _ => {}
@@ -111,9 +109,9 @@ impl<'a> App<'a> {
 
         for w in self.widgets.iter_mut() {
             if let Widget::QuestionList(ql) = w {
-                if let Some(name) = &name {
+                if let Some(selected_tt_model) = &tt_model {
                     let mut items;
-                    if name.as_str() == "All" {
+                    if selected_tt_model.id.as_str() == "all" {
                         let set = self
                             .questions_list
                             .values()
@@ -121,7 +119,7 @@ impl<'a> App<'a> {
                             .collect::<HashSet<_>>();
                         items = set.into_iter().map(|c| c.clone()).collect::<Vec<_>>();
                     } else {
-                        items = self.questions_list.get(name).unwrap().clone();
+                        items = self.questions_list.get(&selected_tt_model).unwrap().clone();
                     }
                     items.sort();
                     ql.items = items;

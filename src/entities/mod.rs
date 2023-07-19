@@ -7,3 +7,5 @@ pub mod topic_tag;
 
 pub type QuestionModel = question::Model;
 pub type TopicTagModel = topic_tag::Model;
+pub type QuestionEntity = question::Entity;
+pub type TopicTagEntity = topic_tag::Entity;

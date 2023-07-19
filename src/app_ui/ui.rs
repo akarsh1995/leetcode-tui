@@ -7,8 +7,6 @@ use ratatui::{
     Frame,
 };
 
-use crate::entities::question_topic_tag;
-
 use super::{app::App, helpers::question::Stats};
 
 /// Renders the user interface widgets.
