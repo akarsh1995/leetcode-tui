@@ -3,7 +3,7 @@ use leetcode_tui_rs::app_ui::channel::{ChannelRequestSender, ChannelResponseRece
 use leetcode_tui_rs::app_ui::list::StatefulList;
 use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::config::Config;
-use leetcode_tui_rs::entities::{QuestionModel, TopicTagEntity};
+use leetcode_tui_rs::entities::{QuestionEntity, QuestionModel, TopicTagEntity};
 use leetcode_tui_rs::errors::AppResult;
 use sea_orm::Database;
 use tokio::task::JoinHandle;
@@ -17,7 +17,6 @@ use leetcode_tui_rs::utils::{
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use std::collections::HashMap;
 use std::io::{self, Stderr};
 
 #[tokio::main]
@@ -37,10 +36,10 @@ async fn main() -> AppResult<()> {
     let client_clone = client.clone();
     do_migrations(&database_client).await?;
 
-    let async_populate_db: JoinHandle<AppResult<()>> = tokio::spawn(async move {
+    if QuestionEntity::get_question_count(&database_client).await? == 0 {
+        println!("Updating database with leetcode questions as the database is empty.");
         update_database_questions(&client, &database_client).await?;
-        Ok(())
-    });
+    }
 
     let database_client = database_client_clone;
     let client = client_clone;
@@ -71,8 +70,14 @@ async fn main() -> AppResult<()> {
     tokio::task::spawn_blocking(move || run_app(tx_request, rx_response, tui).unwrap());
 
     // blog post does not work in separate thread
-    look_for_events(100, ev_sender).await?;
-    async_populate_db.await??;
+    match look_for_events(100, ev_sender).await {
+        Ok(_) => Ok(()),
+        Err(e) => match e {
+            leetcode_tui_rs::errors::LcAppError::SyncSendError(_) => Ok(()),
+            _ => Err(e),
+        },
+    }?;
+
     task_receiver_from_app.await??;
 
     Ok(())
