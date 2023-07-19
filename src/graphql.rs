@@ -7,10 +7,12 @@ use crate::errors::AppResult;
 
 pub type QuestionContentQuery = question_content::Query;
 
-const LEETCODE_GRAPHQL_ENDPOINT: &'static str = "https://leetcode.com/graphql/";
+const LEETCODE_GRAPHQL_ENDPOINT: &'static str = "https://leetcode.com/graphql";
 
 #[async_trait]
 pub trait GQLLeetcodeQuery: Serialize {
+    type T: DeserializeOwned;
+
     fn get_body(&self) -> Value {
         json!(self)
     }
@@ -19,7 +21,7 @@ pub trait GQLLeetcodeQuery: Serialize {
         LEETCODE_GRAPHQL_ENDPOINT
     }
 
-    async fn post<T: DeserializeOwned>(&self, client: &reqwest::Client) -> AppResult<T> {
+    async fn post(&self, client: &reqwest::Client) -> AppResult<Self::T> {
         Ok(client
             .post(self.get_endpoint())
             .header("Content-Type", "application/json")

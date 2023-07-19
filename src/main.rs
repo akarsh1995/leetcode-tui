@@ -3,6 +3,10 @@ use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
+use kdam;
+
+use leetcode_tui_rs::migrations::{Migrator, MigratorTrait};
+
 use leetcode_tui_rs::app_ui::channel::{self, request_channel, response_channel};
 use leetcode_tui_rs::app_ui::channel::{
     ChannelRequestSender, ChannelResponseReceiver, Request, Response,
@@ -10,17 +14,17 @@ use leetcode_tui_rs::app_ui::channel::{
 use leetcode_tui_rs::app_ui::list::StatefulList;
 use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::app_ui::ui::render;
-use leetcode_tui_rs::config::{self, Config};
+use leetcode_tui_rs::config::{self, Config, Db};
 use leetcode_tui_rs::db_ops::ModelUtils;
 use leetcode_tui_rs::deserializers;
-use leetcode_tui_rs::deserializers::question::{ProblemSetQuestionListQuery, Question};
+use leetcode_tui_rs::deserializers::question::Question;
 use leetcode_tui_rs::deserializers::question_content::{QueryQuestionContent, QuestionContent};
 use leetcode_tui_rs::entities::QuestionModel;
 use leetcode_tui_rs::errors::AppResult;
 use leetcode_tui_rs::graphql::problemset_question_list::Query;
 use leetcode_tui_rs::graphql::{question_content, GQLLeetcodeQuery};
 use reqwest::header::{HeaderMap, HeaderValue};
-use sea_orm::Database;
+use sea_orm::{ColIdx, Database};
 use tokio::task::JoinHandle;
 use tracing;
 use tracing_subscriber;
@@ -37,96 +41,174 @@ use std::io::{self, Stderr, Stdout};
 
 use once_cell::sync::Lazy;
 
-static CONFIG: Lazy<config::Config> = Lazy::new(|| Config::from_file("./leetcode.config"));
+// static CONFIG: Lazy<config::Config> = Lazy::new(|| ));
 
-static CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
-    let csrf = CONFIG.leetcode.csrftoken.as_str();
-    let sess = CONFIG.leetcode.leetcode_session.as_str();
-    let mut headers = HeaderMap::new();
-    headers.append(
-        "Cookie",
-        HeaderValue::from_str(&format!("LEETCODE_SESSION={sess}; csrftoken={csrf}")).unwrap(),
-    );
-    reqwest::ClientBuilder::new()
-        .default_headers(headers)
-        .build()
-        .unwrap()
-});
+use xdg;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
-    // tracing_subscriber::fmt()
-    //     .with_max_level(tracing::Level::DEBUG)
-    //     .with_test_writer()
-    //     .init();
+    // let config = Config::read_config("./leetcode.config").await?;
+    let config_path = Config::get_base_config()?;
+    let config: Config;
 
-    let database_client = Database::connect(CONFIG.db.url.as_str()).await.unwrap();
-
-    // let query = Query::default();
-    // let query_response: ProblemSetQuestionListQuery = query.post(&CLIENT).await;
-    // Question::multi_insert(&database_client, query_response.get_questions()).await;
-
-    // Create an application.
-    use crossbeam;
-
-    let (send, recv) = crossbeam::channel::unbounded();
-
-    let mut q =
-        leetcode_tui_rs::db_ops::topic_tag::query::get_questions_by_topic(&database_client, "")
-            .await;
-
-    while !q.is_empty() {
-        let qp = q.pop();
-        if let Some(qp) = qp {
-            send.send(qp).unwrap();
-        };
+    if !config_path.exists() {
+        config = Config::default();
+        config.write_config(Config::get_base_config()?).await?;
+        println!("\nConfig is created at config_path {}.\n Kindly set LEETCODE_SESSION and csrftoken in the config file. These can be obained from leetcode cookies in the browser.", config_path.display());
+        let db_data_path = Db::get_base_sqlite_data_path()?;
+        if !db_data_path.exists() {
+            Db::touch_default_db().await?;
+            println!("\nDatabase resides in {}", db_data_path.display());
+        }
+        return Ok(());
+    } else {
+        println!("Config file found @ {}", &config_path.display());
+        config = Config::read_config(config_path).await?;
     }
 
-    drop(send);
+    let client: reqwest::Client = {
+        let csrf = config.leetcode.csrftoken.as_str();
+        let sess = config.leetcode.leetcode_session.as_str();
+        let mut headers = HeaderMap::new();
+        headers.append(
+            "Cookie",
+            HeaderValue::from_str(&format!("LEETCODE_SESSION={sess}; csrftoken={csrf}")).unwrap(),
+        );
 
-    let (tx_request, rx_request) = request_channel();
-    let (tx_response, rx_response) = response_channel();
-    let client = CLIENT.clone();
+        headers.append(
+            "Content-Type",
+            HeaderValue::from_str("application/json").unwrap(),
+        );
 
-    let jh: JoinHandle<AppResult<()>> = tokio::spawn(async move {
-        let mut rx_request = rx_request;
-        let tx_response = tx_response;
-        while let Some(task) = rx_request.recv().await {
-            match task {
-                Request::QuestionDetail { slug } => {
-                    match question_content::Query::new(slug).post(&client).await {
-                        Ok(resp) => {
-                            let query_response: deserializers::question_content::Data = resp;
-                            tx_response.send(channel::Response::QuestionDetail(
-                                query_response.data.question,
-                            ))?;
-                        }
-                        Err(e) => tx_response.send(channel::Response::Error(e.to_string()))?,
-                    }
-                }
-            }
-        }
-        Ok(())
-    });
+        headers.append(
+            "x-csrftoken",
+            HeaderValue::from_str(csrf.as_str().unwrap()).unwrap(),
+        );
 
-    let backend = CrosstermBackend::new(io::stderr());
-    let terminal = Terminal::new(backend)?;
+        headers.append(
+            "Origin",
+            HeaderValue::from_str("https://leetcode.com").unwrap(),
+        );
 
-    let (ev_sender, ev_receiver) = std::sync::mpsc::channel();
+        headers.append(
+            "Referer",
+            HeaderValue::from_str("https://leetcode.com").unwrap(),
+        );
 
-    let mut tui = Tui::new(
-        terminal,
-        EventHandler {
-            sender: ev_sender.clone(),
-            receiver: ev_receiver,
-        },
-    );
+        headers.append("Connection", HeaderValue::from_str("keep-alive").unwrap());
 
-    tui.init()?;
+        reqwest::ClientBuilder::new()
+            .default_headers(headers)
+            .build()
+            .unwrap()
+    };
 
-    tokio::task::spawn_blocking(move || run_app(recv, tx_request, rx_response, tui).unwrap());
+    let database_client = Database::connect(format!("{}?mode=rwc", config.db.url.as_str())).await?;
 
-    look_for_events(100, ev_sender).await?;
+    Migrator::up(&database_client, None).await?;
+
+    let query = leetcode_tui_rs::graphql::problemset_question_list::Query::default();
+    let query_response: deserializers::question::ProblemSetQuestionListQuery =
+        query.post(&client).await?;
+    let total_questions = query_response.get_total_questions();
+    println!("Requesting {} questions from leetcode.", total_questions);
+
+    let chunk_size = 100;
+    let n_chunks = total_questions / chunk_size;
+    for i in kdam::tqdm!(26..n_chunks) {
+        let skip = i * chunk_size;
+        let take = chunk_size;
+        let client_copy = client.clone();
+        let db_client_copy = database_client.clone();
+        println!("{}, {}", &skip, &take);
+
+        // handle when topic tags are empty
+        let resp = Query::new(take, skip).post(&client_copy).await?;
+        let questions = resp
+            .get_questions()
+            .into_iter()
+            .map(|x| x)
+            .filter(|q| !q.topic_tags.as_ref().unwrap().is_empty())
+            .collect::<Vec<_>>();
+
+        dbg!(&questions);
+        Question::multi_insert(&db_client_copy, questions).await;
+    }
+
+    if total_questions % chunk_size != 0 {
+        let skip = n_chunks * chunk_size;
+        let take = total_questions - skip;
+        let client_copy = client.clone();
+        let db_client_copy = database_client.clone();
+        let resp = Query::new(take, skip).post(&client_copy).await?;
+        Question::multi_insert(&db_client_copy, resp.get_questions()).await;
+    }
+
+    // if total_questions % 20 == 0 {}
+
+    // Question::multi_insert(&database_client, query_response.get_questions()).await;
+
+    // // Create an application.
+    // use crossbeam;
+
+    // let (send, recv) = crossbeam::channel::unbounded();
+
+    // let mut q =
+    //     leetcode_tui_rs::db_ops::topic_tag::query::get_questions_by_topic(&database_client, "")
+    //         .await;
+
+    // while !q.is_empty() {
+    //     let qp = q.pop();
+    //     if let Some(qp) = qp {
+    //         send.send(qp).unwrap();
+    //     };
+    // }
+
+    // drop(send);
+
+    // let (tx_request, rx_request) = request_channel();
+    // let (tx_response, rx_response) = response_channel();
+    // let client = client.clone();
+
+    // let jh: JoinHandle<AppResult<()>> = tokio::spawn(async move {
+    //     let mut rx_request = rx_request;
+    //     let tx_response = tx_response;
+    //     while let Some(task) = rx_request.recv().await {
+    //         match task {
+    //             Request::QuestionDetail { slug } => {
+    //                 match question_content::Query::new(slug).post(&client).await {
+    //                     Ok(resp) => {
+    //                         let query_response: deserializers::question_content::Data = resp;
+    //                         tx_response.send(channel::Response::QuestionDetail(
+    //                             query_response.data.question,
+    //                         ))?;
+    //                     }
+    //                     Err(e) => tx_response.send(channel::Response::Error(e.to_string()))?,
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     Ok(())
+    // });
+
+    // let backend = CrosstermBackend::new(io::stderr());
+    // let terminal = Terminal::new(backend)?;
+
+    // let (ev_sender, ev_receiver) = std::sync::mpsc::channel();
+
+    // let mut tui = Tui::new(
+    //     terminal,
+    //     EventHandler {
+    //         sender: ev_sender.clone(),
+    //         receiver: ev_receiver,
+    //     },
+    // );
+
+    // tui.init()?;
+
+    // tokio::task::spawn_blocking(move || run_app(recv, tx_request, rx_response, tui).unwrap());
+
+    // look_for_events(100, ev_sender).await?;
 
     Ok(())
 }

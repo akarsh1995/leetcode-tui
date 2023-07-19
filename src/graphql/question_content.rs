@@ -31,4 +31,6 @@ impl Query {
     }
 }
 
-impl GQLLeetcodeQuery for Query {}
+impl GQLLeetcodeQuery for Query {
+    type T = crate::deserializers::question_content::Data;
+}
