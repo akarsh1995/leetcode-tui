@@ -203,15 +203,15 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
     }
 
     if app.show_popup {
-        let mut question_title = "".to_string();
-        let mut question_text = "".to_string();
+        let mut popup_title = "".to_string();
+        let mut popup_content = "".to_string();
 
         if let Some(response) = &app.last_response {
             match response {
                 super::channel::TaskResponse::QuestionDetail(qd) => {
                     match app.get_current_widget() {
                         super::app::Widget::QuestionList(ql) => {
-                            question_title = ql
+                            popup_title = ql
                                 .get_selected_item()
                                 .as_ref()
                                 .unwrap()
@@ -220,17 +220,19 @@ pub fn render<'a, B: Backend>(app: &'a mut App, f: &mut Frame<'_, B>) {
                                 .unwrap()
                                 .as_str()
                                 .to_owned();
-                            question_text = qd.html_to_text();
+                            popup_content = qd.html_to_text();
                         }
                         _ => {}
                     };
                 }
                 super::channel::TaskResponse::Error(e) => {
-                    panic!("{e}")
+                    popup_title = "Error".to_string();
+                    popup_content = e.to_owned();
                 }
+                _ => {}
             }
         }
-        handle_popup(app, f, question_text.as_str(), question_title.as_str())
+        handle_popup(app, f, popup_content.as_str(), popup_title.as_str())
     }
 }
 

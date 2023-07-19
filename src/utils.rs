@@ -93,31 +93,17 @@ pub async fn get_config() -> AppResult<Option<Config>> {
     }
 }
 
-use crate::app_ui::channel::{
-    ChannelRequestReceiver, ChannelResponseSender, TaskRequest, TaskResponse,
-};
-use crate::graphql::question_content::Query as QuestionGQLQuery;
+use crate::app_ui::channel::{ChannelRequestReceiver, ChannelResponseSender};
 
 pub async fn tasks_executor(
     mut rx_request: ChannelRequestReceiver,
     tx_response: ChannelResponseSender,
     client: &reqwest::Client,
+    conn: &DatabaseConnection,
 ) -> AppResult<()> {
     while let Some(task) = rx_request.recv().await {
-        match task {
-            TaskRequest::QuestionDetail { slug } => {
-                match QuestionGQLQuery::new(slug).post(&client).await {
-                    Ok(resp) => {
-                        let query_response = resp;
-                        tx_response
-                            .send(TaskResponse::QuestionDetail(query_response.data.question))?;
-                    }
-                    Err(e) => {
-                        tx_response.send(TaskResponse::Error(e.to_string()))?;
-                    }
-                }
-            }
-        }
+        let response = task.execute(client, conn).await;
+        tx_response.send(response)?;
     }
     Ok(())
 }

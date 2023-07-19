@@ -50,7 +50,7 @@ async fn main() -> AppResult<()> {
     let client = client.clone();
 
     let _task_receiver_from_app: JoinHandle<AppResult<()>> = tokio::spawn(async move {
-        tasks_executor(rx_request, tx_response, &client).await?;
+        tasks_executor(rx_request, tx_response, &client, &database_client).await?;
         Ok(())
     });
 
@@ -68,10 +68,7 @@ async fn main() -> AppResult<()> {
     );
 
     tui.init()?;
-    let topic_question_map = TopicTagEntity::get_all_topic_questions_map(&database_client).await?;
-    tokio::task::spawn_blocking(move || {
-        run_app(topic_question_map, tx_request, rx_response, tui).unwrap()
-    });
+    tokio::task::spawn_blocking(move || run_app(tx_request, rx_response, tui).unwrap());
 
     // blog post does not work in separate thread
     look_for_events(100, ev_sender).await?;
@@ -80,20 +77,15 @@ async fn main() -> AppResult<()> {
 }
 
 fn run_app(
-    ql: HashMap<TopicTagModel, Vec<QuestionModel>>,
     tx_request: ChannelRequestSender,
     rx_response: ChannelResponseReceiver,
     mut tui: Tui<CrosstermBackend<Stderr>>,
 ) -> AppResult<()> {
-    let mut topic_tags: Vec<TopicTagModel> = vec![TopicTagModel {
+    let topic_tags: Vec<TopicTagModel> = vec![TopicTagModel {
         name: Some("All".to_string()),
         id: "all".to_string(),
         slug: Some("all".to_string()),
     }];
-
-    for ele in ql.keys() {
-        topic_tags.push(ele.clone());
-    }
 
     let questions = vec![];
 
@@ -103,7 +95,7 @@ fn run_app(
     let topic_tag_stateful = Widget::TopicTagList(&mut ttm);
     let mut vw = vec![topic_tag_stateful, question_stateful];
 
-    let mut app = App::new(&mut vw, &ql, tx_request, rx_response);
+    let mut app = App::new(&mut vw, tx_request, rx_response)?;
 
     // Start the main loop.
     while app.running {

@@ -30,7 +30,7 @@ pub struct App<'a> {
 
     pub widgets: &'a mut Vec<Widget<'a>>,
 
-    pub questions_list: &'a HashMap<TopicTagModel, Vec<QuestionModel>>,
+    pub questions_list: Option<HashMap<TopicTagModel, Vec<QuestionModel>>>,
 
     pub widget_switcher: i32,
 
@@ -47,13 +47,15 @@ impl<'a> App<'a> {
     /// Constructs a new instance of [`App`].
     pub fn new(
         wid: &'a mut Vec<Widget<'a>>,
-        questions_list: &'a HashMap<TopicTagModel, Vec<QuestionModel>>,
         task_request_sender: ChannelRequestSender,
         task_response_recv: ChannelResponseReceiver,
-    ) -> Self {
+    ) -> AppResult<Self> {
+        task_request_sender.send(super::channel::TaskRequest::GetAllQuestionsMap)?;
+        task_request_sender.send(super::channel::TaskRequest::GetAllTopicTags)?;
+
         let mut app = Self {
             running: true,
-            questions_list,
+            questions_list: None,
             widgets: wid,
             widget_switcher: 0,
             task_request_sender,
@@ -62,7 +64,7 @@ impl<'a> App<'a> {
             show_popup: false,
         };
         app.update_question_list();
-        app
+        Ok(app)
     }
 
     pub fn next_widget(&mut self) {
@@ -112,23 +114,31 @@ impl<'a> App<'a> {
             if let Widget::QuestionList(ql) = w {
                 if let Some(selected_tt_model) = &tt_model {
                     let mut items;
-                    if selected_tt_model.id.as_str() == "all" {
-                        let set = self
-                            .questions_list
-                            .values()
-                            .flat_map(|q| q.clone())
-                            .collect::<HashSet<_>>();
-                        items = set.into_iter().map(|c| c.clone()).collect::<Vec<_>>();
-                    } else {
-                        items = self.questions_list.get(&selected_tt_model).unwrap().clone();
+                    if let Some(tt_ql_map) = &mut self.questions_list {
+                        if selected_tt_model.id.as_str() == "all" {
+                            let set = tt_ql_map
+                                .values()
+                                .flat_map(|q| q.clone())
+                                .collect::<HashSet<_>>();
+                            items = set.into_iter().map(|c| c.clone()).collect::<Vec<_>>();
+                        } else {
+                            items = tt_ql_map.get(&selected_tt_model).unwrap().clone();
+                        }
+                        items.sort();
+                        ql.items = items;
+                        ql.state = ListState::default();
                     }
-                    items.sort();
-                    ql.items = items;
-                    ql.state = ListState::default();
                 }
             }
         }
     }
+
+    // pub fn find_widget(&mut self, wid_type: Widget) -> &mut Widget {
+    //     for wid in self.widgets {
+    //         if wid == Widget::
+    //     }
+
+    // }
 
     pub fn toggle_popup(&mut self) {
         self.show_popup = !self.show_popup;
@@ -137,7 +147,27 @@ impl<'a> App<'a> {
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) {
         if let Ok(response) = self.task_response_recv.try_recv() {
-            self.last_response = Some(response);
+            match response {
+                TaskResponse::GetAllQuestionsMap(map) => {
+                    if let Some(ql) = &mut self.questions_list {
+                        ql.extend(map.into_iter())
+                    } else {
+                        self.questions_list = Some(map);
+                    }
+                }
+                TaskResponse::AllTopicTags(tts) => {
+                    for w in self.widgets.iter_mut() {
+                        match w {
+                            Widget::TopicTagList(tt_list) => {
+                                tt_list.items.extend(tts);
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                response => self.last_response = Some(response),
+            }
         }
     }
 
