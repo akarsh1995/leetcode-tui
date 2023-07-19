@@ -53,6 +53,9 @@ pub enum LcAppError {
     #[error("Error while building reqwest client: {0}")]
     ClientBuildError(#[from] reqwest::header::InvalidHeaderValue),
 
+    #[error("Tokio join handle error")]
+    TokioThreadJoinError(#[from] tokio::task::JoinError),
+
     // #[error("Crossterm Error")]
     // CrossTermError(#[from] crossterm::ErrorKind),
 

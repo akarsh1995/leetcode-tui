@@ -37,7 +37,7 @@ async fn main() -> AppResult<()> {
     let client_clone = client.clone();
     do_migrations(&database_client).await?;
 
-    let _async_populate_db: JoinHandle<AppResult<()>> = tokio::spawn(async move {
+    let async_populate_db: JoinHandle<AppResult<()>> = tokio::spawn(async move {
         update_database_questions(&client, &database_client).await?;
         Ok(())
     });
@@ -49,7 +49,7 @@ async fn main() -> AppResult<()> {
     let (tx_response, rx_response) = response_channel();
     let client = client.clone();
 
-    let _task_receiver_from_app: JoinHandle<AppResult<()>> = tokio::spawn(async move {
+    let task_receiver_from_app: JoinHandle<AppResult<()>> = tokio::spawn(async move {
         tasks_executor(rx_request, tx_response, &client, &database_client).await?;
         Ok(())
     });
@@ -72,6 +72,8 @@ async fn main() -> AppResult<()> {
 
     // blog post does not work in separate thread
     look_for_events(100, ev_sender).await?;
+    async_populate_db.await??;
+    task_receiver_from_app.await??;
 
     Ok(())
 }
