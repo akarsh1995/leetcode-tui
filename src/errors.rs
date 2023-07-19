@@ -1,10 +1,10 @@
 use sea_orm::error::DbErr;
-use sea_orm::sea_query::extension::sqlite;
-use sea_orm::Database;
+
+
 use thiserror::Error;
 
 use crate::app_ui::channel::*;
-use crate::app_ui::{channel::TaskResponse, event::Event};
+use crate::app_ui::{event::Event};
 
 #[derive(Error, Debug)]
 pub enum LcAppError {

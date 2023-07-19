@@ -1,6 +1,5 @@
 use super::{
     app::{App, Widget},
-    channel,
 };
 use crate::errors::AppResult;
 
