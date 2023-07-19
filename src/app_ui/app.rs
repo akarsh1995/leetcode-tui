@@ -147,7 +147,7 @@ impl<'a> App<'a> {
             match response {
                 TaskResponse::GetAllQuestionsMap(map) => {
                     if let Some(ql) = &mut self.questions_list {
-                        ql.extend(map.into_iter())
+                        ql.extend(map)
                     } else {
                         self.questions_list = Some(map);
                     }
