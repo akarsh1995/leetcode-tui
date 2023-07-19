@@ -3,7 +3,7 @@ use leetcode_tui_rs::app_ui::channel::{ChannelRequestSender, ChannelResponseRece
 use leetcode_tui_rs::app_ui::list::StatefulList;
 use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::config::Config;
-use leetcode_tui_rs::entities::{QuestionEntity, QuestionModel, TopicTagEntity};
+use leetcode_tui_rs::entities::{QuestionEntity, QuestionModel};
 use leetcode_tui_rs::errors::AppResult;
 use sea_orm::Database;
 use tokio::task::JoinHandle;
