@@ -1,10 +1,9 @@
-use std::rc::Rc;
-
-use crate::entities::TopicTagModel;
+use crate::entities::{QuestionModel, TopicTagModel};
 
 #[derive(Debug, Clone)]
 pub enum Notification {
     UpdateQuestions(Vec<TopicTagModel>),
+    UpdateStats(Vec<QuestionModel>),
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;

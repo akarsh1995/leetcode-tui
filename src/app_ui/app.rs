@@ -3,6 +3,7 @@ use crate::errors::AppResult;
 use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
 use super::widgets::notification::NotificationRequestReceiver;
 use super::widgets::question_list::QuestionListWidget;
+use super::widgets::stats::Stats;
 use super::widgets::topic_list::TopicTagListWidget;
 use super::widgets::{Widget, WidgetList};
 
@@ -36,16 +37,17 @@ impl App {
         let mut app = Self {
             running: true,
             widgets: vec![
-                Box::new(QuestionListWidget::new(
+                Box::new(TopicTagListWidget::new(
                     0,
                     task_request_sender.clone(),
                     tx.clone(),
                 )),
-                Box::new(TopicTagListWidget::new(
+                Box::new(QuestionListWidget::new(
                     1,
                     task_request_sender.clone(),
                     tx.clone(),
                 )),
+                Box::new(Stats::new(2, task_request_sender.clone(), tx.clone())),
             ],
             notification_receiver: rx,
             selected_wid_idx: 0,
@@ -113,16 +115,17 @@ impl App {
     }
 
     /// Handles the tick event of the terminal.
-    pub fn tick(&mut self) {
+    pub fn tick(&mut self) -> AppResult<()> {
         if let Ok(task_result) = self.task_response_recv.try_recv() {
             self.widgets[task_result.get_sender_id() as usize].process_task_response(task_result)
         }
 
         if let Ok(notification) = &self.notification_receiver.try_recv() {
             for wid in self.widgets() {
-                wid.process_notification(notification);
+                wid.process_notification(notification)?;
             }
         }
+        Ok(())
     }
 
     /// Set running to false to quit the application.

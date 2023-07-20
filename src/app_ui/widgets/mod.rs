@@ -1,5 +1,6 @@
 pub(crate) mod notification;
 pub mod question_list;
+pub mod stats;
 pub mod topic_list;
 
 use std::{fmt::Debug, io::Stderr};
@@ -28,7 +29,7 @@ pub trait Widget: Debug + StateManager {
         Ok(())
     }
     fn set_response(&mut self);
-    fn process_notification(&mut self, notification: &Notification);
+    fn process_notification(&mut self, notification: &Notification) -> AppResult<()>;
 }
 
 pub type WidgetList = Vec<Box<dyn Widget>>;

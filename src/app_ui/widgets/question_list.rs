@@ -166,19 +166,32 @@ impl super::Widget for QuestionListWidget {
         }
     }
 
-    fn process_notification(&mut self, notification: &Notification) {
+    fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
         match notification {
             Notification::UpdateQuestions(tags) => {
                 self.questions.items = vec![];
                 for tag in tags {
-                    if tag.name.as_ref().map_or("all", |v| v) == "all" {
+                    if tag.id == "all" {
                         let mut question_set = HashSet::new();
                         for val in self.all_questions.values().flatten() {
                             question_set.insert(val.clone());
                         }
+                        self.notification_sender.send(Notification::UpdateStats(
+                            question_set
+                                .clone()
+                                .into_iter()
+                                .map(|q| q.as_ref().clone())
+                                .collect::<Vec<_>>(),
+                        ))?;
                         self.questions.items.extend(question_set.into_iter());
                     } else {
                         let values = self.all_questions.get(tag).unwrap();
+                        self.notification_sender.send(Notification::UpdateStats(
+                            values
+                                .into_iter()
+                                .map(|x| x.as_ref().clone())
+                                .collect::<Vec<_>>(),
+                        ))?;
                         for val in values {
                             self.questions.items.push(val.clone());
                         }
@@ -188,6 +201,7 @@ impl super::Widget for QuestionListWidget {
             }
             _ => {}
         }
+        Ok(())
     }
 
     fn set_response(&mut self) {}
