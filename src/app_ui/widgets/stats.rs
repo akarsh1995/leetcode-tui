@@ -97,39 +97,36 @@ impl Widget for Stats {
         }
     }
 
-    fn handler(&mut self, event: KeyEvent) -> AppResult<()> {
+    fn handler(&mut self, _event: KeyEvent) -> AppResult<()> {
         Ok(())
     }
 
-    fn process_task_response(&mut self, response: TaskResponse) {}
+    fn process_task_response(&mut self, _response: TaskResponse) {}
 
     fn set_response(&mut self) {}
 
     fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        match notification {
-            Notification::UpdateStats(questions) => {
-                let stats = crate::app_ui::helpers::question::Stats { qm: &questions };
-                self.stat_state = Some(stats.into());
-            }
-            _ => {}
+        if let Notification::UpdateStats(questions) = notification {
+            let stats = crate::app_ui::helpers::question::Stats { qm: questions };
+            self.stat_state = Some(stats.into());
         }
         Ok(())
     }
 }
 
-impl<'a> Into<StatState> for question::Stats<'a> {
-    fn into(self) -> StatState {
+impl<'a> From<question::Stats<'a>> for StatState {
+    fn from(val: question::Stats<'a>) -> Self {
         StatState {
-            accepted: self.get_accepted(),
-            total: self.get_total_question(),
-            not_acepted: self.get_not_accepted(),
-            not_attempted: self.get_not_attempted(),
-            easy: self.get_easy_count(),
-            medium: self.get_medium_count(),
-            hard: self.get_hard_count(),
-            easy_accepted: self.get_easy_accepted(),
-            medium_accepted: self.get_medium_accepted(),
-            hard_accepted: self.get_hard_accepted(),
+            accepted: val.get_accepted(),
+            total: val.get_total_question(),
+            not_acepted: val.get_not_accepted(),
+            not_attempted: val.get_not_attempted(),
+            easy: val.get_easy_count(),
+            medium: val.get_medium_count(),
+            hard: val.get_hard_count(),
+            easy_accepted: val.get_easy_accepted(),
+            medium_accepted: val.get_medium_accepted(),
+            hard_accepted: val.get_hard_accepted(),
         }
     }
 }
@@ -170,32 +167,32 @@ impl StatState {
     }
 }
 
-impl<'a> Into<Vec<Gauge<'a>>> for &StatState {
-    fn into(self) -> Vec<Gauge<'a>> {
+impl<'a> From<&StatState> for Vec<Gauge<'a>> {
+    fn from(value: &StatState) -> Self {
         [
-            ("Total Accepted", self.accepted, self.total, Callout::Info),
+            ("Total Accepted", value.accepted, value.total, Callout::Info),
             (
                 "Total Attempted",
-                self.total - self.not_attempted,
-                self.total,
+                value.total - value.not_attempted,
+                value.total,
                 Callout::Info,
             ),
             (
                 "Easy Accepted",
-                self.easy_accepted,
-                self.easy,
+                value.easy_accepted,
+                value.easy,
                 Callout::Success,
             ),
             (
                 "Medium Accepted",
-                self.medium_accepted,
-                self.medium,
+                value.medium_accepted,
+                value.medium,
                 Callout::Warning,
             ),
             (
                 "Hard Accepted",
-                self.hard_accepted,
-                self.hard,
+                value.hard_accepted,
+                value.hard,
                 Callout::Error,
             ),
         ]

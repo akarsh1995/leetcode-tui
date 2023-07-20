@@ -79,12 +79,12 @@ impl App {
         self.get_current_widget_mut().set_active();
     }
 
-    pub fn get_current_widget(&self) -> &Box<dyn Widget> {
-        &self.widgets[self.selected_wid_idx as usize]
+    pub fn get_current_widget(&self) -> &dyn Widget {
+        &*self.widgets[self.selected_wid_idx as usize]
     }
 
-    pub fn get_current_widget_mut(&mut self) -> &mut Box<dyn Widget> {
-        &mut self.widgets[self.selected_wid_idx as usize]
+    pub fn get_current_widget_mut(&mut self) -> &mut dyn Widget {
+        &mut *self.widgets[self.selected_wid_idx as usize]
     }
 
     pub fn setup(&mut self) -> AppResult<()> {

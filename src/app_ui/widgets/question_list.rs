@@ -83,14 +83,13 @@ impl QuestionListWidget {
             title
         );
 
-        let combination: Style;
         let qs_diff = question
             .difficulty
             .as_ref()
             .unwrap_or(&"Disabled".to_string())
             .to_string();
 
-        combination = match qs_diff.as_str() {
+        let combination: Style = match qs_diff.as_str() {
             "Easy" => Callout::Success.get_pair().fg,
             "Medium" => Callout::Warning.get_pair().fg,
             "Hard" => Callout::Error.get_pair().fg,
@@ -149,57 +148,52 @@ impl super::Widget for QuestionListWidget {
     }
 
     fn process_task_response(&mut self, response: crate::app_ui::channel::TaskResponse) {
-        match response {
-            crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
-                content,
-                sender_id: _,
-            }) => {
-                let map_iter = content.into_iter().map(|v| {
-                    (
-                        Rc::new(v.0),
-                        (v.1.into_iter().map(|q| Rc::new(q))).collect::<Vec<_>>(),
-                    )
-                });
-                self.all_questions.extend(map_iter)
-            }
-            _ => {}
+        if let crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
+            content,
+            sender_id: _,
+        }) = response
+        {
+            let map_iter = content.into_iter().map(|v| {
+                (
+                    Rc::new(v.0),
+                    (v.1.into_iter().map(Rc::new)).collect::<Vec<_>>(),
+                )
+            });
+            self.all_questions.extend(map_iter)
         }
     }
 
     fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        match notification {
-            Notification::UpdateQuestions(tags) => {
-                self.questions.items = vec![];
-                for tag in tags {
-                    if tag.id == "all" {
-                        let mut question_set = HashSet::new();
-                        for val in self.all_questions.values().flatten() {
-                            question_set.insert(val.clone());
-                        }
-                        self.notification_sender.send(Notification::UpdateStats(
-                            question_set
-                                .clone()
-                                .into_iter()
-                                .map(|q| q.as_ref().clone())
-                                .collect::<Vec<_>>(),
-                        ))?;
-                        self.questions.items.extend(question_set.into_iter());
-                    } else {
-                        let values = self.all_questions.get(tag).unwrap();
-                        self.notification_sender.send(Notification::UpdateStats(
-                            values
-                                .into_iter()
-                                .map(|x| x.as_ref().clone())
-                                .collect::<Vec<_>>(),
-                        ))?;
-                        for val in values {
-                            self.questions.items.push(val.clone());
-                        }
-                    };
-                }
-                self.questions.items.sort();
+        if let Notification::UpdateQuestions(tags) = notification {
+            self.questions.items = vec![];
+            for tag in tags {
+                if tag.id == "all" {
+                    let mut question_set = HashSet::new();
+                    for val in self.all_questions.values().flatten() {
+                        question_set.insert(val.clone());
+                    }
+                    self.notification_sender.send(Notification::UpdateStats(
+                        question_set
+                            .clone()
+                            .into_iter()
+                            .map(|q| q.as_ref().clone())
+                            .collect::<Vec<_>>(),
+                    ))?;
+                    self.questions.items.extend(question_set.into_iter());
+                } else {
+                    let values = self.all_questions.get(tag).unwrap();
+                    self.notification_sender.send(Notification::UpdateStats(
+                        values
+                            .iter()
+                            .map(|x| x.as_ref().clone())
+                            .collect::<Vec<_>>(),
+                    ))?;
+                    for val in values {
+                        self.questions.items.push(val.clone());
+                    }
+                };
             }
-            _ => {}
+            self.questions.items.sort();
         }
         Ok(())
     }

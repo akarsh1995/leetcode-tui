@@ -58,7 +58,7 @@ impl TopicTagListWidget {
             let questions = vec![sel.as_ref().clone()];
             self.notification_sender
                 .send(Notification::UpdateQuestions(questions))
-                .map_err(|e| LcAppError::NotificationSendError(e))?;
+                .map_err(LcAppError::NotificationSendError)?;
         }
         Ok(())
     }
@@ -121,21 +121,19 @@ impl Widget for TopicTagListWidget {
     }
 
     fn process_task_response(&mut self, response: TaskResponse) {
-        match response {
-            TaskResponse::AllTopicTags(Response {
-                content,
-                sender_id: _,
-            }) => {
-                self.topics.add_item(TopicTagModel {
-                    name: Some("All".to_owned()),
-                    id: "all".to_owned(),
-                    slug: Some("all".to_owned()),
-                });
-                for tt in content {
-                    self.topics.add_item(tt)
-                }
+        if let TaskResponse::AllTopicTags(Response {
+            content,
+            sender_id: _,
+        }) = response
+        {
+            self.topics.add_item(TopicTagModel {
+                name: Some("All".to_owned()),
+                id: "all".to_owned(),
+                slug: Some("all".to_owned()),
+            });
+            for tt in content {
+                self.topics.add_item(tt)
             }
-            _ => {}
         }
     }
 

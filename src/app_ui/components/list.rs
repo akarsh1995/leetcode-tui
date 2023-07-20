@@ -18,7 +18,7 @@ impl<T> Default for StatefulList<T> {
 
 impl<T> StatefulList<T> {
     pub fn add_item(&mut self, item: T) {
-        if self.items.len() == 0 {
+        if self.items.is_empty() {
             self.state.select(Some(0))
         }
         self.items.push(Rc::new(item))

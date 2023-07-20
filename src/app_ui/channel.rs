@@ -53,7 +53,7 @@ pub enum TaskResponse {
 
 impl TaskResponse {
     pub fn get_sender_id(&self) -> i32 {
-        match self {
+        *match self {
             TaskResponse::QuestionDetail(Response {
                 sender_id,
                 content: _,
@@ -71,7 +71,6 @@ impl TaskResponse {
                 content: _,
             }) => sender_id,
         }
-        .clone()
     }
 }
 

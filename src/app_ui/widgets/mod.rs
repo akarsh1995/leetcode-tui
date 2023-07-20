@@ -41,10 +41,10 @@ pub struct Colour {
     b: u8,
 }
 
-impl Into<Style> for Colour {
+impl From<Colour> for Style {
     /// sets fg color and returns the style
-    fn into(self) -> Style {
-        let pair = self;
+    fn from(val: Colour) -> Self {
+        let pair = val;
         let Colour { r, g, b } = pair;
         Style::default().fg(style::Color::Rgb(r, g, b))
     }
@@ -105,10 +105,10 @@ impl Callout {
     }
 }
 
-impl Into<Style> for Callout {
+impl From<Callout> for Style {
     /// gets you the style object directly. sets bg and fg
-    fn into(self) -> Style {
-        let pair = self.get_pair();
+    fn from(val: Callout) -> Self {
+        let pair = val.get_pair();
         let style: Style = pair.fg.into();
         let Colour { r, g, b } = pair.bg;
         style.bg(style::Color::Rgb(r, g, b))

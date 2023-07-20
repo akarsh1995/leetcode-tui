@@ -48,7 +48,7 @@ pub fn render(app: &mut App, f: &mut CrosstermStderr) {
     ]);
 
     for (i, wid) in app.widgets().iter_mut().enumerate() {
-        wid.render(layout_map.get(&(i as i32)).unwrap().clone(), f)
+        wid.render(*layout_map.get(&(i as i32)).unwrap(), f)
     }
 }
 

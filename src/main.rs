@@ -9,15 +9,15 @@ use tokio::task::JoinHandle;
 
 use leetcode_tui_rs::app_ui::event::{look_for_events, Event, EventHandler};
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
-use leetcode_tui_rs::app_ui::{app::App, widgets::Widget};
-use leetcode_tui_rs::entities::topic_tag::Model as TopicTagModel;
+use leetcode_tui_rs::app_ui::{app::App};
+
 use leetcode_tui_rs::utils::{
     do_migrations, get_config, get_reqwest_client, tasks_executor, update_database_questions,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use std::io::{self, Stderr};
-use std::rc::Rc;
+use std::io::{self};
+
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
