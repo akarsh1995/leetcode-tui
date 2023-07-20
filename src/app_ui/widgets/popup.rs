@@ -1,21 +1,20 @@
 use crate::{
     app_ui::{
-        channel::{ChannelRequestSender, Response, TaskRequest, TaskResponse},
-        components::{list::StatefulList, rect::centered_rect},
+        channel::{ChannelRequestSender, TaskResponse},
+        components::rect::centered_rect,
     },
-    entities::TopicTagModel,
-    errors::{AppResult, LcAppError},
+    errors::AppResult,
 };
 
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::*,
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
 use super::{
     notification::{Notification, NotificationRequestSender},
-    Callout, CrosstermStderr, StateManager, Widget,
+    CrosstermStderr, StateManager, Widget,
 };
 
 #[derive(Debug)]
@@ -98,7 +97,7 @@ impl Widget for Popup {
             crossterm::event::KeyCode::Enter | crossterm::event::KeyCode::Esc => {
                 self.active = false
             }
-            KeyCode::Up => self.scroll_y = self.scroll_y.checked_sub(1).unwrap_or(0),
+            KeyCode::Up => self.scroll_y = self.scroll_y.saturating_sub(1),
             KeyCode::Down => self.scroll_y += 1,
             _ => (),
         }
@@ -116,7 +115,7 @@ impl Widget for Popup {
     fn set_response(&mut self) {}
 
     fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        if let Notification::UpdatePopup(pop_msg) = notification {
+        if let Notification::Popup(pop_msg) = notification {
             self.message = pop_msg.message.to_owned();
             self.title = pop_msg.title.to_owned();
             self.active = true;

@@ -108,7 +108,7 @@ impl Widget for Stats {
     fn set_response(&mut self) {}
 
     fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        if let Notification::UpdateStats(questions) = notification {
+        if let Notification::Stats(questions) = notification {
             let stats = crate::app_ui::helpers::question::Stats { qm: questions };
             self.stat_state = Some(stats.into());
         }

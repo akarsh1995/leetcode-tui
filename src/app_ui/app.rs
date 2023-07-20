@@ -7,7 +7,7 @@ use super::widgets::notification::{
 use super::widgets::question_list::QuestionListWidget;
 use super::widgets::stats::Stats;
 use super::widgets::topic_list::TopicTagListWidget;
-use super::widgets::{self, popup, Widget, WidgetList};
+use super::widgets::{self, Widget, WidgetList};
 
 /// Application.
 #[derive(Debug)]
@@ -139,7 +139,7 @@ impl App {
 
         if let Ok(notification) = &self.notification_receiver.try_recv() {
             match notification {
-                Notification::UpdatePopup(_) => {
+                Notification::Popup(_) => {
                     let mut popup = widgets::popup::Popup::new(
                         self.get_new_id(),
                         self.task_request_sender.clone(),

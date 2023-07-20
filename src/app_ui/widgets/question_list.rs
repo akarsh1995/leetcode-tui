@@ -184,7 +184,7 @@ impl super::Widget for QuestionListWidget {
                     let model = sel.clone();
                     if let Some(title_slug) = model.title_slug.as_ref() {
                         self.notification_sender
-                            .send(Notification::UpdatePopup(PopupMessage {
+                            .send(Notification::Popup(PopupMessage {
                                 message: qd.content.html_to_text(),
                                 title: title_slug.clone(),
                             }))?;
@@ -197,39 +197,36 @@ impl super::Widget for QuestionListWidget {
     }
 
     fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        match notification {
-            Notification::UpdateQuestions(tags) => {
-                self.questions.items = vec![];
-                for tag in tags {
-                    if tag.id == "all" {
-                        let mut question_set = HashSet::new();
-                        for val in self.all_questions.values().flatten() {
-                            question_set.insert(val.clone());
-                        }
-                        self.notification_sender.send(Notification::UpdateStats(
-                            question_set
-                                .clone()
-                                .into_iter()
-                                .map(|q| q.as_ref().clone())
-                                .collect::<Vec<_>>(),
-                        ))?;
-                        self.questions.items.extend(question_set.into_iter());
-                    } else {
-                        let values = self.all_questions.get(tag).unwrap();
-                        self.notification_sender.send(Notification::UpdateStats(
-                            values
-                                .iter()
-                                .map(|x| x.as_ref().clone())
-                                .collect::<Vec<_>>(),
-                        ))?;
-                        for val in values {
-                            self.questions.items.push(val.clone());
-                        }
-                    };
-                }
-                self.questions.items.sort();
+        if let Notification::Questions(tags) = notification {
+            self.questions.items = vec![];
+            for tag in tags {
+                if tag.id == "all" {
+                    let mut question_set = HashSet::new();
+                    for val in self.all_questions.values().flatten() {
+                        question_set.insert(val.clone());
+                    }
+                    self.notification_sender.send(Notification::Stats(
+                        question_set
+                            .clone()
+                            .into_iter()
+                            .map(|q| q.as_ref().clone())
+                            .collect::<Vec<_>>(),
+                    ))?;
+                    self.questions.items.extend(question_set.into_iter());
+                } else {
+                    let values = self.all_questions.get(tag).unwrap();
+                    self.notification_sender.send(Notification::Stats(
+                        values
+                            .iter()
+                            .map(|x| x.as_ref().clone())
+                            .collect::<Vec<_>>(),
+                    ))?;
+                    for val in values {
+                        self.questions.items.push(val.clone());
+                    }
+                };
             }
-            _ => (),
+            self.questions.items.sort();
         }
         Ok(())
     }

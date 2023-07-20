@@ -8,9 +8,9 @@ pub struct PopupMessage {
 
 #[derive(Debug, Clone)]
 pub enum Notification {
-    UpdateQuestions(Vec<TopicTagModel>),
-    UpdateStats(Vec<QuestionModel>),
-    UpdatePopup(PopupMessage),
+    Questions(Vec<TopicTagModel>),
+    Stats(Vec<QuestionModel>),
+    Popup(PopupMessage),
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;

@@ -1,12 +1,8 @@
 use std::collections::HashMap;
 
 use ratatui::{
-    backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style, Stylize},
-    text::Span,
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap},
-    Frame,
+    layout::{Alignment, Constraint, Direction, Layout},
+    widgets::{Block, BorderType, Borders},
 };
 
 use super::{app::App, widgets::CrosstermStderr};

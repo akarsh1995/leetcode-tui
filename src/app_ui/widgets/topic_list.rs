@@ -57,7 +57,7 @@ impl TopicTagListWidget {
         if let Some(sel) = self.topics.get_selected_item() {
             let questions = vec![sel.as_ref().clone()];
             self.notification_sender
-                .send(Notification::UpdateQuestions(questions))
+                .send(Notification::Questions(questions))
                 .map_err(LcAppError::NotificationSendError)?;
         }
         Ok(())
