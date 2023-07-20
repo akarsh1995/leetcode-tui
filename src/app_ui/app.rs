@@ -1,11 +1,13 @@
 use crate::errors::AppResult;
 
 use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
-use super::widgets::notification::NotificationRequestReceiver;
+use super::widgets::notification::{
+    Notification, NotificationRequestReceiver, NotificationRequestSender,
+};
 use super::widgets::question_list::QuestionListWidget;
 use super::widgets::stats::Stats;
 use super::widgets::topic_list::TopicTagListWidget;
-use super::widgets::{Widget, WidgetList};
+use super::widgets::{self, popup, Widget, WidgetList};
 
 /// Application.
 #[derive(Debug)]
@@ -17,13 +19,15 @@ pub struct App {
 
     selected_wid_idx: i32,
 
-    pub show_popup: bool,
+    pub popups: WidgetList,
 
     pub task_request_sender: ChannelRequestSender,
 
     pub task_response_recv: ChannelResponseReceiver,
 
     pub notification_receiver: NotificationRequestReceiver,
+
+    notification_sender: NotificationRequestSender,
 }
 
 impl App {
@@ -53,7 +57,8 @@ impl App {
             selected_wid_idx: 0,
             task_request_sender,
             task_response_recv,
-            show_popup: false,
+            popups: vec![],
+            notification_sender: tx.clone(),
         };
         app.setup()?;
         Ok(app)
@@ -63,7 +68,14 @@ impl App {
         &mut self.widgets
     }
 
+    pub fn has_popups(&self) -> bool {
+        !self.popups.is_empty()
+    }
+
     pub fn next_widget(&mut self) {
+        if self.has_popups() {
+            return;
+        }
         self.get_current_widget_mut().set_inactive();
         let a = self.selected_wid_idx + 1;
         let b = self.widgets.len() as i32;
@@ -72,6 +84,9 @@ impl App {
     }
 
     pub fn prev_widget(&mut self) {
+        if self.has_popups() {
+            return;
+        }
         self.get_current_widget_mut().set_inactive();
         let a = self.selected_wid_idx - 1;
         let b = self.widgets.len() as i32;
@@ -109,22 +124,42 @@ impl App {
     //     }
     //     Ok(())
     // }
-
-    pub fn toggle_popup(&mut self) {
-        self.show_popup = !self.show_popup;
+    pub fn get_new_id(&self) -> i32 {
+        (self.widgets.len() + self.popups.len()) as i32
     }
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) -> AppResult<()> {
-        if let Ok(task_result) = self.task_response_recv.try_recv() {
-            self.widgets[task_result.get_sender_id() as usize].process_task_response(task_result)
+        // pop the popup out of popup stack
+        if let Some(popup) = self.popups.last() {
+            if !popup.is_active() {
+                self.popups.pop();
+            }
         }
 
         if let Ok(notification) = &self.notification_receiver.try_recv() {
-            for wid in self.widgets() {
-                wid.process_notification(notification)?;
+            match notification {
+                Notification::UpdatePopup(_) => {
+                    let mut popup = widgets::popup::Popup::new(
+                        self.get_new_id(),
+                        self.task_request_sender.clone(),
+                        self.notification_sender.clone(),
+                    );
+                    popup.process_notification(notification)?;
+                    self.popups.push(Box::new(popup));
+                }
+                n => {
+                    for wid in self.widgets() {
+                        wid.process_notification(n)?;
+                    }
+                }
             }
         }
+
+        if let Ok(task_result) = self.task_response_recv.try_recv() {
+            self.widgets[task_result.get_sender_id() as usize].process_task_response(task_result)?
+        }
+
         Ok(())
     }
 

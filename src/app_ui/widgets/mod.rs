@@ -1,4 +1,5 @@
 pub(crate) mod notification;
+pub(crate) mod popup;
 pub mod question_list;
 pub mod stats;
 pub mod topic_list;
@@ -24,7 +25,7 @@ pub trait Widget: Debug + StateManager {
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);
     fn handler(&mut self, event: KeyEvent) -> AppResult<()>;
 
-    fn process_task_response(&mut self, response: TaskResponse);
+    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()>;
     fn setup(&mut self) -> AppResult<()> {
         Ok(())
     }

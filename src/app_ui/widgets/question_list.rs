@@ -12,7 +12,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
-use super::notification::{Notification, NotificationRequestSender};
+use super::notification::{Notification, NotificationRequestSender, PopupMessage};
 use super::{Callout, CrosstermStderr, StateManager, CHECK_MARK};
 
 #[derive(Debug)]
@@ -136,6 +136,20 @@ impl super::Widget for QuestionListWidget {
         match event.code {
             crossterm::event::KeyCode::Up => self.questions.previous(),
             crossterm::event::KeyCode::Down => self.questions.next(),
+            crossterm::event::KeyCode::Enter => {
+                let selected_question = self.questions.get_selected_item();
+                if let Some(sel) = selected_question {
+                    let model = sel.clone();
+                    if let Some(title_slug) = model.title_slug.as_ref() {
+                        self.task_sender.send(
+                            crate::app_ui::channel::TaskRequest::QuestionDetail {
+                                slug: title_slug.clone(),
+                                sender_id: self.id,
+                            },
+                        )?;
+                    };
+                }
+            }
             _ => {}
         };
         Ok(())
@@ -147,53 +161,75 @@ impl super::Widget for QuestionListWidget {
         Ok(())
     }
 
-    fn process_task_response(&mut self, response: crate::app_ui::channel::TaskResponse) {
-        if let crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
-            content,
-            sender_id: _,
-        }) = response
-        {
-            let map_iter = content.into_iter().map(|v| {
-                (
-                    Rc::new(v.0),
-                    (v.1.into_iter().map(Rc::new)).collect::<Vec<_>>(),
-                )
-            });
-            self.all_questions.extend(map_iter)
+    fn process_task_response(
+        &mut self,
+        response: crate::app_ui::channel::TaskResponse,
+    ) -> AppResult<()> {
+        match response {
+            crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
+                content,
+                sender_id: _,
+            }) => {
+                let map_iter = content.into_iter().map(|v| {
+                    (
+                        Rc::new(v.0),
+                        (v.1.into_iter().map(Rc::new)).collect::<Vec<_>>(),
+                    )
+                });
+                self.all_questions.extend(map_iter);
+            }
+            crate::app_ui::channel::TaskResponse::QuestionDetail(qd) => {
+                let selected_question = self.questions.get_selected_item();
+                if let Some(sel) = selected_question {
+                    let model = sel.clone();
+                    if let Some(title_slug) = model.title_slug.as_ref() {
+                        self.notification_sender
+                            .send(Notification::UpdatePopup(PopupMessage {
+                                message: qd.content.html_to_text(),
+                                title: title_slug.clone(),
+                            }))?;
+                    }
+                }
+            }
+            _ => {}
         }
+        Ok(())
     }
 
     fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        if let Notification::UpdateQuestions(tags) = notification {
-            self.questions.items = vec![];
-            for tag in tags {
-                if tag.id == "all" {
-                    let mut question_set = HashSet::new();
-                    for val in self.all_questions.values().flatten() {
-                        question_set.insert(val.clone());
-                    }
-                    self.notification_sender.send(Notification::UpdateStats(
-                        question_set
-                            .clone()
-                            .into_iter()
-                            .map(|q| q.as_ref().clone())
-                            .collect::<Vec<_>>(),
-                    ))?;
-                    self.questions.items.extend(question_set.into_iter());
-                } else {
-                    let values = self.all_questions.get(tag).unwrap();
-                    self.notification_sender.send(Notification::UpdateStats(
-                        values
-                            .iter()
-                            .map(|x| x.as_ref().clone())
-                            .collect::<Vec<_>>(),
-                    ))?;
-                    for val in values {
-                        self.questions.items.push(val.clone());
-                    }
-                };
+        match notification {
+            Notification::UpdateQuestions(tags) => {
+                self.questions.items = vec![];
+                for tag in tags {
+                    if tag.id == "all" {
+                        let mut question_set = HashSet::new();
+                        for val in self.all_questions.values().flatten() {
+                            question_set.insert(val.clone());
+                        }
+                        self.notification_sender.send(Notification::UpdateStats(
+                            question_set
+                                .clone()
+                                .into_iter()
+                                .map(|q| q.as_ref().clone())
+                                .collect::<Vec<_>>(),
+                        ))?;
+                        self.questions.items.extend(question_set.into_iter());
+                    } else {
+                        let values = self.all_questions.get(tag).unwrap();
+                        self.notification_sender.send(Notification::UpdateStats(
+                            values
+                                .iter()
+                                .map(|x| x.as_ref().clone())
+                                .collect::<Vec<_>>(),
+                        ))?;
+                        for val in values {
+                            self.questions.items.push(val.clone());
+                        }
+                    };
+                }
+                self.questions.items.sort();
             }
-            self.questions.items.sort();
+            _ => (),
         }
         Ok(())
     }

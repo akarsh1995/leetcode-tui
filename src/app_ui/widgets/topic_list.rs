@@ -120,7 +120,7 @@ impl Widget for TopicTagListWidget {
         Ok(())
     }
 
-    fn process_task_response(&mut self, response: TaskResponse) {
+    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()> {
         if let TaskResponse::AllTopicTags(Response {
             content,
             sender_id: _,
@@ -135,6 +135,7 @@ impl Widget for TopicTagListWidget {
                 self.topics.add_item(tt)
             }
         }
+        Ok(())
     }
 
     fn setup(&mut self) -> AppResult<()> {

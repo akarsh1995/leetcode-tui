@@ -101,7 +101,9 @@ impl Widget for Stats {
         Ok(())
     }
 
-    fn process_task_response(&mut self, _response: TaskResponse) {}
+    fn process_task_response(&mut self, _response: TaskResponse) -> AppResult<()> {
+        Ok(())
+    }
 
     fn set_response(&mut self) {}
 
