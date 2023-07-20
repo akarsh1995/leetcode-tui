@@ -7,6 +7,15 @@ pub struct StatefulList<T> {
     pub items: Vec<Rc<T>>,
 }
 
+impl<T> Default for StatefulList<T> {
+    fn default() -> Self {
+        Self {
+            state: ListState::default(),
+            items: vec![],
+        }
+    }
+}
+
 impl<T> StatefulList<T> {
     pub fn add_item(&mut self, item: T) {
         if self.items.len() == 0 {
@@ -15,7 +24,7 @@ impl<T> StatefulList<T> {
         self.items.push(Rc::new(item))
     }
 
-    pub fn get_selected_item(&self) -> Option<&T> {
+    pub fn get_selected_item(&self) -> Option<&Rc<T>> {
         match self.state.selected() {
             Some(i) => Some(&self.items[i]),
             None => None,

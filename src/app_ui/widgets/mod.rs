@@ -1,20 +1,38 @@
-use std::borrow::Borrow;
-
-use ratatui::{
-    prelude::*,
-    prelude::{Backend, Rect},
-    Frame,
-};
-
+pub(crate) mod notification;
 pub mod question_list;
+pub mod topic_list;
 
-struct State {
-    active: bool,
+use std::{fmt::Debug, io::Stderr};
+
+use crossterm::event::KeyEvent;
+use ratatui::{prelude::Rect, prelude::*, Frame};
+
+use crate::errors::AppResult;
+
+use self::notification::Notification;
+
+use super::channel::TaskResponse;
+
+pub trait StateManager {
+    fn set_active(&mut self);
+    fn set_inactive(&mut self);
+    fn is_active(&self) -> bool;
 }
 
-pub trait Widget {
-    fn render<'a, B: Backend>(&mut self, rect: Rect, frame: &mut Frame<B>) {}
+pub trait Widget: Debug + StateManager {
+    fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);
+    fn handler(&mut self, event: KeyEvent) -> AppResult<()>;
+
+    fn process_task_response(&mut self, response: TaskResponse);
+    fn setup(&mut self) -> AppResult<()> {
+        Ok(())
+    }
+    fn set_response(&mut self);
+    fn process_notification(&mut self, notification: &Notification);
 }
+
+pub type WidgetList = Vec<Box<dyn Widget>>;
+pub type CrosstermStderr<'a> = Frame<'a, CrosstermBackend<Stderr>>;
 
 pub struct Colour {
     r: u8,
@@ -71,12 +89,8 @@ impl Callout {
                 bg: Colour { r: 0, g: 0, b: 0 }, // Black background
             },
             Callout::Error => Pair {
-                fg: Colour {
-                    r: 255,
-                    g: 255,
-                    b: 255,
-                }, // White foreground
-                bg: Colour { r: 255, g: 0, b: 0 }, // Red background
+                fg: Colour { r: 255, g: 0, b: 0 }, // Red foreground
+                bg: Colour { r: 0, g: 0, b: 0 },   // Black background
             },
             Callout::Disabled => Pair {
                 fg: Colour {
