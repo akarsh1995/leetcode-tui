@@ -3,5 +3,3 @@
 leetcode.sqlite
 config.toml
 src/.vscode
-src/app_ui/components
-src/app_ui/widgets
