@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Scrollable list
+
 - Fix config directories setup for windows
 
 - Take input directly from the user lc session
