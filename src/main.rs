@@ -7,17 +7,16 @@ use leetcode_tui_rs::errors::AppResult;
 use sea_orm::Database;
 use tokio::task::JoinHandle;
 
+use leetcode_tui_rs::app_ui::app::App;
 use leetcode_tui_rs::app_ui::event::{look_for_events, Event, EventHandler};
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
-use leetcode_tui_rs::app_ui::{app::App};
 
 use leetcode_tui_rs::utils::{
     do_migrations, get_config, get_reqwest_client, tasks_executor, update_database_questions,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use std::io::{self};
-
+use std::io;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
@@ -88,20 +87,6 @@ fn run_app(
     rx_response: ChannelResponseReceiver,
     mut tui: Tui,
 ) -> AppResult<()> {
-    // let topic_tags: Vec<TopicTagModel> = vec![Rc::new(TopicTagModel {
-    //     name: Some("All".to_string()),
-    //     id: "all".to_string(),
-    //     slug: Some("all".to_string()),
-    // })];
-    // let mut vw = vec![topic_tag_stateful, question_stateful];
-
-    // let questions = vec![];
-
-    // let mut qm: StatefulList<QuestionModel> = StatefulList::with_items(questions);
-    // let mut ttm: StatefulList<TopicTagModel> = StatefulList::with_items(topic_tags);
-    // let question_stateful = Widget::QuestionList(&mut qm);
-    // let topic_tag_stateful = Widget::TopicTagList(&mut ttm);
-
     let mut app = App::new(tx_request, rx_response)?;
 
     // Start the main loop.
