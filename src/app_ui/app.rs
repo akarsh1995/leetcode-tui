@@ -72,26 +72,26 @@ impl App {
         !self.popups.is_empty()
     }
 
-    pub fn next_widget(&mut self) {
+    pub fn navigate(&mut self, val: i32) {
         if self.has_popups() {
             return;
         }
         self.get_current_widget_mut().set_inactive();
-        let a = self.selected_wid_idx + 1;
+        let a = self.selected_wid_idx + val;
         let b = self.widgets.len() as i32;
         self.selected_wid_idx = ((a % b) + b) % b;
         self.get_current_widget_mut().set_active();
+        if !self.get_current_widget().is_navigable() {
+            self.navigate(val)
+        }
+    }
+
+    pub fn next_widget(&mut self) {
+        self.navigate(1);
     }
 
     pub fn prev_widget(&mut self) {
-        if self.has_popups() {
-            return;
-        }
-        self.get_current_widget_mut().set_inactive();
-        let a = self.selected_wid_idx - 1;
-        let b = self.widgets.len() as i32;
-        self.selected_wid_idx = ((a % b) + b) % b;
-        self.get_current_widget_mut().set_active();
+        self.navigate(-1);
     }
 
     pub fn get_current_widget(&self) -> &dyn Widget {

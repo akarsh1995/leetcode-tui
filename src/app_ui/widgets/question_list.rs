@@ -24,7 +24,6 @@ pub struct QuestionListWidget {
     // pub notification_sender: NotificationRequestSender,
     pub questions: StatefulList<QuestionModel>,
     pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Rc<QuestionModel>>>,
-    pub active: bool,
 }
 
 impl QuestionListWidget {
@@ -36,7 +35,6 @@ impl QuestionListWidget {
         Self {
             common_state: CommonState::new(id, task_sender, notif_req_sender),
             all_questions: HashMap::new(),
-            active: false,
             questions: Default::default(),
         }
     }
@@ -99,7 +97,7 @@ impl super::Widget for QuestionListWidget {
             .collect::<Vec<_>>();
 
         let mut border_style = Style::default();
-        if self.active {
+        if self.is_active() {
             border_style = border_style.fg(Color::Cyan);
         }
 

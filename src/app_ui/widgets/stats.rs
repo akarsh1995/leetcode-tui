@@ -17,9 +17,11 @@ impl Stats {
         task_sender: ChannelRequestSender,
         notification_sender: NotificationRequestSender,
     ) -> Self {
+        let mut cs = CommonState::new(id, task_sender, notification_sender);
+        cs.is_navigable = false;
         Self {
             stat_state: None,
-            common_state: CommonState::new(id, task_sender, notification_sender),
+            common_state: cs,
         }
     }
 }

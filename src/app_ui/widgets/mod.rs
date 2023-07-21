@@ -21,6 +21,7 @@ pub struct CommonState {
     active: bool,
     pub task_sender: ChannelRequestSender,
     pub notification_sender: NotificationRequestSender,
+    pub is_navigable: bool,
 }
 
 impl CommonState {
@@ -34,6 +35,7 @@ impl CommonState {
             active: false,
             task_sender,
             notification_sender,
+            is_navigable: true,
         }
     }
 }
@@ -45,6 +47,11 @@ pub trait Widget: Debug {
     fn is_active(&self) -> bool {
         self.get_common_state().active
     }
+
+    fn is_navigable(&self) -> bool {
+        self.get_common_state().is_navigable
+    }
+
     fn set_inactive(&mut self) {
         self.get_common_state_mut().active = false;
     }
