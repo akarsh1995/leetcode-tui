@@ -181,10 +181,13 @@ impl super::Widget for QuestionListWidget {
                 if let Some(sel) = selected_question {
                     let model = sel.clone();
                     if let Some(title_slug) = model.title_slug.as_ref() {
-                        // return Ok(Some(Notification::Popup(PopupMessage {
-                        //     message: qd.content.html_to_text(),
-                        //     title: title_slug.clone(),
-                        // })));
+                        return Ok(Some(Notification::Popup(
+                            WidgetName::Popup,
+                            PopupMessage {
+                                message: qd.content.html_to_text(),
+                                title: title_slug.clone(),
+                            },
+                        )));
                     }
                 }
             }

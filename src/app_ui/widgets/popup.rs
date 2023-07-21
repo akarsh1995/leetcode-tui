@@ -13,7 +13,7 @@ use ratatui::{
 };
 
 use super::{
-    notification::{Notification, NotificationRequestSender},
+    notification::{Notification, NotificationRequestSender, WidgetName},
     CommonState, CrosstermStderr, Widget,
 };
 
@@ -27,13 +27,9 @@ pub struct Popup {
 }
 
 impl Popup {
-    pub fn new(
-        id: i32,
-        task_sender: ChannelRequestSender,
-        notif_req_sender: NotificationRequestSender,
-    ) -> Self {
+    pub fn new(widget_name: WidgetName, task_sender: ChannelRequestSender) -> Self {
         Self {
-            common_state: CommonState::new(id, task_sender, notif_req_sender),
+            common_state: CommonState::new(widget_name, task_sender),
             message: "No message so far".to_string(),
             title: "Popup".to_string(),
             scroll_x: 0,
@@ -72,7 +68,7 @@ impl Widget for Popup {
         }
     }
 
-    fn handler(&mut self, event: KeyEvent) -> AppResult<()> {
+    fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
         match event.code {
             crossterm::event::KeyCode::Enter | crossterm::event::KeyCode::Esc => {
                 self.set_inactive()
@@ -81,26 +77,32 @@ impl Widget for Popup {
             KeyCode::Down => self.scroll_y += 1,
             _ => (),
         }
-        Ok(())
+        Ok(None)
     }
 
-    fn process_task_response(&mut self, _response: TaskResponse) -> AppResult<()> {
-        Ok(())
+    fn process_task_response(
+        &mut self,
+        _response: TaskResponse,
+    ) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
-    fn setup(&mut self) -> AppResult<()> {
-        Ok(())
+    fn setup(&mut self) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
     fn set_response(&mut self) {}
 
-    fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        if let Notification::Popup(pop_msg) = notification {
+    fn process_notification(
+        &mut self,
+        notification: &Notification,
+    ) -> AppResult<Option<Notification>> {
+        if let Notification::Popup(WidgetName::Popup, pop_msg) = notification {
             self.message = pop_msg.message.to_owned();
             self.title = pop_msg.title.to_owned();
             self.set_active();
         }
-        Ok(())
+        Ok(None)
     }
 
     fn get_common_state(&self) -> &CommonState {

@@ -7,7 +7,7 @@ use ratatui::{
 
 use super::{
     app::App,
-    widgets::{notification::WidgetName, CrosstermStderr},
+    widgets::{notification::WidgetName, CrosstermStderr, Widget},
 };
 
 /// Renders the user interface widgets.
@@ -50,5 +50,11 @@ pub fn render(app: &mut App, f: &mut CrosstermStderr) {
     for (name, wid) in app.widget_map.iter_mut() {
         let rect = layout_map.get(name).unwrap();
         wid.render(*rect, f);
+    }
+
+    if let super::widgets::notification::WidgetVariant::Popup(active_pop) =
+        app.get_current_widget_mut()
+    {
+        active_pop.render(inner_size, f);
     }
 }

@@ -1,6 +1,6 @@
 // pub mod footer;
 pub(crate) mod notification;
-// pub(crate) mod popup;
+pub(crate) mod popup;
 pub mod question_list;
 pub mod stats;
 pub mod topic_list;
@@ -86,6 +86,7 @@ impl WidgetVariant {
             WidgetVariant::QuestionList(v) => v.set_active(),
             WidgetVariant::TopicList(v) => v.set_active(),
             WidgetVariant::Stats(v) => v.set_active(),
+            WidgetVariant::Popup(v) => v.set_active(),
         }
     }
 
@@ -94,6 +95,7 @@ impl WidgetVariant {
             WidgetVariant::QuestionList(v) => v.set_inactive(),
             WidgetVariant::TopicList(v) => v.set_inactive(),
             WidgetVariant::Stats(v) => v.set_inactive(),
+            WidgetVariant::Popup(v) => v.set_inactive(),
         }
     }
 
@@ -102,6 +104,7 @@ impl WidgetVariant {
             WidgetVariant::QuestionList(v) => v.is_navigable(),
             WidgetVariant::TopicList(v) => v.is_navigable(),
             WidgetVariant::Stats(v) => v.is_navigable(),
+            WidgetVariant::Popup(v) => v.is_navigable(),
         }
     }
 
@@ -110,6 +113,7 @@ impl WidgetVariant {
             WidgetVariant::QuestionList(v) => v.setup(),
             WidgetVariant::TopicList(v) => v.setup(),
             WidgetVariant::Stats(v) => v.setup(),
+            WidgetVariant::Popup(v) => v.setup(),
         }
     }
 
@@ -121,6 +125,7 @@ impl WidgetVariant {
             WidgetVariant::QuestionList(v) => v.process_task_response(response),
             WidgetVariant::TopicList(v) => v.process_task_response(response),
             WidgetVariant::Stats(v) => v.process_task_response(response),
+            WidgetVariant::Popup(v) => v.process_task_response(response),
         }
     }
 
@@ -129,6 +134,7 @@ impl WidgetVariant {
             WidgetVariant::QuestionList(v) => v.handler(event),
             WidgetVariant::TopicList(v) => v.handler(event),
             WidgetVariant::Stats(v) => v.handler(event),
+            WidgetVariant::Popup(v) => v.handler(event),
         }
     }
 
@@ -140,6 +146,7 @@ impl WidgetVariant {
             WidgetVariant::QuestionList(v) => v.process_notification(notification),
             WidgetVariant::TopicList(v) => v.process_notification(notification),
             WidgetVariant::Stats(v) => v.process_notification(notification),
+            WidgetVariant::Popup(v) => v.process_notification(notification),
         }
     }
 
@@ -148,6 +155,16 @@ impl WidgetVariant {
             WidgetVariant::QuestionList(v) => v.render(rect, frame),
             WidgetVariant::TopicList(v) => v.render(rect, frame),
             WidgetVariant::Stats(v) => v.render(rect, frame),
+            WidgetVariant::Popup(v) => v.render(rect, frame),
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        match self {
+            WidgetVariant::QuestionList(v) => v.is_active(),
+            WidgetVariant::TopicList(v) => v.is_active(),
+            WidgetVariant::Stats(v) => v.is_active(),
+            WidgetVariant::Popup(v) => v.is_active(),
         }
     }
 }
