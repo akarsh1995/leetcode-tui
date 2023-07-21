@@ -4,19 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Scrollable list
+- Show helps at the bottom/top
+
+- Create solution file in the preferred language
+
+- Run/test the solution against test cases
+    - show test case submission stats in the popup
+
+- Submit question file
+    - Update table question if solution accepted
+
+- Sort questions by:
+    - likes dislikes ratio.
+
+- Filter
+
+- Search feature.
+
+- Scroll bar visible list
 
 - Fix config directories setup for windows
 
 - Take input directly from the user lc session
 
-- Sort tags/questions by least accepted.
-
-- Sort by likes dislikes ratio.
-
 - Color question by accepted.
-
-- Search feature.
 
 - Select multiple tags.
 
@@ -27,6 +38,13 @@ All notable changes to this project will be documented in this file.
     - View more question details
 
 - Invalidate questions cache through `userSessionProgress`
+
+## [0.2.0] - 2023-07-19
+
+### Added
+
+- Read question view is scrollable using up and down keys.
+- Question line is colored by easy => green, medium => yellow, hard => red.
 
 
 ## [0.1.0] - 2023-07-19
