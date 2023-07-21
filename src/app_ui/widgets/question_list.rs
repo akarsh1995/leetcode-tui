@@ -177,6 +177,9 @@ impl super::Widget for QuestionListWidget {
                     )
                 });
                 self.all_questions.extend(map_iter);
+                for (_, ql) in &mut self.all_questions {
+                    ql.sort_unstable()
+                }
                 self.process_notification(&Notification::Questions(vec![TopicTagModel {
                     name: Some("All".to_owned()),
                     id: "all".to_owned(),
@@ -218,6 +221,7 @@ impl super::Widget for QuestionListWidget {
                             .collect::<Vec<_>>(),
                     ))?;
                     self.questions.items.extend(question_set.into_iter());
+                    self.questions.items.sort();
                 } else {
                     let values = self.all_questions.get(tag).unwrap();
                     self.notification_sender.send(Notification::Stats(
@@ -226,12 +230,11 @@ impl super::Widget for QuestionListWidget {
                             .map(|x| x.as_ref().clone())
                             .collect::<Vec<_>>(),
                     ))?;
-                    for val in values {
-                        self.questions.items.push(val.clone());
-                    }
+                    self.questions
+                        .items
+                        .extend(values.iter().map(|q| q.clone()));
                 };
             }
-            self.questions.items.sort();
         }
         Ok(())
     }
