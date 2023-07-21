@@ -103,10 +103,10 @@ impl App {
     }
 
     pub fn setup(&mut self) -> AppResult<()> {
+        self.get_current_widget_mut().set_active();
         for wid in self.widgets() {
             wid.setup()?;
         }
-        self.get_current_widget_mut().set_active();
         Ok(())
     }
 
@@ -136,7 +136,19 @@ impl App {
                 self.popups.pop();
             }
         }
+        self.check_for_notification()?;
+        self.check_for_task()?;
+        Ok(())
+    }
 
+    fn check_for_task(&mut self) -> AppResult<()> {
+        if let Ok(task_result) = self.task_response_recv.try_recv() {
+            self.widgets[task_result.get_sender_id() as usize].process_task_response(task_result)?
+        }
+        Ok(())
+    }
+
+    fn check_for_notification(&mut self) -> AppResult<()> {
         if let Ok(notification) = &self.notification_receiver.try_recv() {
             match notification {
                 Notification::Popup(_) => {
@@ -155,11 +167,6 @@ impl App {
                 }
             }
         }
-
-        if let Ok(task_result) = self.task_response_recv.try_recv() {
-            self.widgets[task_result.get_sender_id() as usize].process_task_response(task_result)?
-        }
-
         Ok(())
     }
 
