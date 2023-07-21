@@ -11,7 +11,6 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Borders, List, ListItem},
 };
-use sea_orm::strum::Display;
 
 use super::notification::{Notification, NotificationRequestSender, PopupMessage};
 use super::{Callout, CommonState, CrosstermStderr, CHECK_MARK};
@@ -19,9 +18,6 @@ use super::{Callout, CommonState, CrosstermStderr, CHECK_MARK};
 #[derive(Debug)]
 pub struct QuestionListWidget {
     pub common_state: CommonState,
-    // pub id: i32,
-    // pub task_sender: ChannelRequestSender,
-    // pub notification_sender: NotificationRequestSender,
     pub questions: StatefulList<QuestionModel>,
     pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Rc<QuestionModel>>>,
 }

@@ -110,20 +110,6 @@ impl App {
         Ok(())
     }
 
-    // pub fn update_question_in_popup(&self) -> AppResult<()> {
-    //     if self.show_popup {
-    //         if let Widget::QuestionList(wid) = self.get_current_widget() {
-    //             if let Some(selected_item) = wid.questions.get_selected_item() {
-    //                 if let Some(slug) = &selected_item.title_slug {
-    //                     self.task_request_sender.send(
-    //                         super::channel::TaskRequest::QuestionDetail { slug: slug.clone() },
-    //                     )?;
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     Ok(())
-    // }
     pub fn get_new_id(&self) -> i32 {
         (self.widgets.len() + self.popups.len()) as i32
     }

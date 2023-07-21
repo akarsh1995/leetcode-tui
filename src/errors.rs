@@ -59,13 +59,6 @@ pub enum LcAppError {
     #[error("Error while sending notification between widgets {0}")]
     NotificationSendError(#[from] NotificationRequestSendError),
 
-    // #[error("Crossterm Error")]
-    // CrossTermError(#[from] crossterm::ErrorKind),
-
-    // #[error("the data for key `{0}` is not available")]
-    // Redaction(String),
-    // #[error("invalid header (expected {expected:?}, found {found:?})")]
-    // InvalidHeader { expected: String, found: String },
     #[error("unknown lc app error")]
     Unknown,
 }
