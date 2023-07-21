@@ -69,7 +69,7 @@ async fn main() -> AppResult<()> {
     tokio::task::spawn_blocking(move || run_app(tx_request, rx_response, tui).unwrap());
 
     // blog post does not work in separate thread
-    match look_for_events(10, ev_sender).await {
+    match look_for_events(100, ev_sender).await {
         Ok(_) => Ok(()),
         Err(e) => match e {
             leetcode_tui_rs::errors::LcAppError::SyncSendError(_) => Ok(()),
@@ -96,7 +96,11 @@ fn run_app(
         // Handle events.
         match tui.events.next()? {
             Event::Tick => app.tick()?,
-            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
+            Event::Key(key_event) => {
+                let notif = handle_key_events(key_event, &mut app)?;
+                app.pending_notifications.push_back(notif);
+                app.process_pending_notification()?;
+            }
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
         }

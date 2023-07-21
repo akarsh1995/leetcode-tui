@@ -24,13 +24,9 @@ pub struct QuestionListWidget {
 }
 
 impl QuestionListWidget {
-    pub fn new(
-        id: i32,
-        task_sender: ChannelRequestSender,
-        notif_req_sender: NotificationRequestSender,
-    ) -> Self {
+    pub fn new(id: i32, task_sender: ChannelRequestSender) -> Self {
         Self {
-            common_state: CommonState::new(id, task_sender, notif_req_sender),
+            common_state: CommonState::new(id, task_sender),
             all_questions: HashMap::new(),
             questions: Default::default(),
         }
@@ -87,13 +83,6 @@ impl QuestionListWidget {
 impl super::Widget for QuestionListWidget {
     fn set_active(&mut self) {
         self.get_common_state_mut().active = true;
-        self.get_notification_sender()
-            .send(Notification::HelpText(vec![
-                HelpText::new("Switch Pane".to_string(), vec![KeyCode::Right]),
-                HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
-                HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
-            ]))
-            .unwrap();
     }
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self
@@ -123,7 +112,7 @@ impl super::Widget for QuestionListWidget {
         frame.render_stateful_widget(items, rect, &mut self.questions.state);
     }
 
-    fn handler(&mut self, event: KeyEvent) -> AppResult<()> {
+    fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
         match event.code {
             crossterm::event::KeyCode::Up => self.questions.previous(),
             crossterm::event::KeyCode::Down => self.questions.next(),
@@ -143,21 +132,26 @@ impl super::Widget for QuestionListWidget {
             }
             _ => {}
         };
-        Ok(())
+        Ok(None)
     }
 
-    fn setup(&mut self) -> AppResult<()> {
+    fn setup(&mut self) -> AppResult<Option<Notification>> {
         self.get_task_sender()
             .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap {
                 sender_id: self.get_id(),
             })?;
-        Ok(())
+        // Ok(Some(Notification::HelpText(WidgetName, vec![
+        //     HelpText::new("Switch Pane".to_string(), vec![KeyCode::Right]),
+        //     HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
+        //     HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
+        // ])))
+        Ok(None)
     }
 
     fn process_task_response(
         &mut self,
         response: crate::app_ui::channel::TaskResponse,
-    ) -> AppResult<()> {
+    ) -> AppResult<Option<Notification>> {
         match response {
             crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
                 content,
@@ -173,32 +167,37 @@ impl super::Widget for QuestionListWidget {
                 for (_, ql) in &mut self.all_questions {
                     ql.sort_unstable()
                 }
-                self.process_notification(&Notification::Questions(vec![TopicTagModel {
-                    name: Some("All".to_owned()),
-                    id: "all".to_owned(),
-                    slug: Some("all".to_owned()),
-                }]))?;
+                // return Ok(Some(Notification::Questions(
+                //     super::notification::WidgetName::QuestionList,
+                //     vec![TopicTagModel {
+                //         name: Some("All".to_owned()),
+                //         id: "all".to_owned(),
+                //         slug: Some("all".to_owned()),
+                //     }],
+                // )));
             }
             crate::app_ui::channel::TaskResponse::QuestionDetail(qd) => {
                 let selected_question = self.questions.get_selected_item();
                 if let Some(sel) = selected_question {
                     let model = sel.clone();
                     if let Some(title_slug) = model.title_slug.as_ref() {
-                        self.get_notification_sender()
-                            .send(Notification::Popup(PopupMessage {
-                                message: qd.content.html_to_text(),
-                                title: title_slug.clone(),
-                            }))?;
+                        // return Ok(Some(Notification::Popup(PopupMessage {
+                        //     message: qd.content.html_to_text(),
+                        //     title: title_slug.clone(),
+                        // })));
                     }
                 }
             }
             _ => {}
         }
-        Ok(())
+        Ok(None)
     }
 
-    fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        if let Notification::Questions(tags) = notification {
+    fn process_notification(
+        &mut self,
+        notification: &Notification,
+    ) -> AppResult<Option<Notification>> {
+        if let Notification::Questions(_w, tags) = notification {
             self.questions.items = vec![];
             for tag in tags {
                 if tag.id == "all" {
@@ -206,30 +205,32 @@ impl super::Widget for QuestionListWidget {
                     for val in self.all_questions.values().flatten() {
                         question_set.insert(val.clone());
                     }
-                    self.get_notification_sender().send(Notification::Stats(
-                        question_set
-                            .clone()
-                            .into_iter()
-                            .map(|q| q.as_ref().clone())
-                            .collect::<Vec<_>>(),
-                    ))?;
+                    // let notif = Notification::Stats(
+                    //     question_set
+                    //         .clone()
+                    //         .into_iter()
+                    //         .map(|q| q.as_ref().clone())
+                    //         .collect::<Vec<_>>(),
+                    // );
                     self.questions.items.extend(question_set.into_iter());
                     self.questions.items.sort();
+                    // return Ok(Some(notif));
                 } else {
                     let values = self.all_questions.get(tag).unwrap();
-                    self.get_notification_sender().send(Notification::Stats(
-                        values
-                            .iter()
-                            .map(|x| x.as_ref().clone())
-                            .collect::<Vec<_>>(),
-                    ))?;
+                    // let notif = Notification::Stats(
+                    //     values
+                    //         .iter()
+                    //         .map(|x| x.as_ref().clone())
+                    //         .collect::<Vec<_>>(),
+                    // );
                     self.questions
                         .items
                         .extend(values.iter().map(|q| q.clone()));
+                    // return Ok(Some(notif));
                 };
             }
         }
-        Ok(())
+        Ok(None)
     }
 
     fn set_response(&mut self) {}

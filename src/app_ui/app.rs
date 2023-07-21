@@ -1,14 +1,14 @@
+use std::collections::{HashMap, VecDeque};
+
 use crate::errors::AppResult;
 
 use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
-use super::widgets::footer::Footer;
-use super::widgets::notification::{
-    Notification, NotificationRequestReceiver, NotificationRequestSender,
-};
+// use super::widgets::footer::Footer;
+use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
 use super::widgets::question_list::QuestionListWidget;
-use super::widgets::stats::Stats;
+// use super::widgets::stats::Stats;
 use super::widgets::topic_list::TopicTagListWidget;
-use super::widgets::{self, Widget, WidgetList};
+use super::widgets::WidgetList;
 
 /// Application.
 #[derive(Debug)]
@@ -16,9 +16,11 @@ pub struct App {
     /// Is the application running?
     pub running: bool,
 
-    widgets: WidgetList,
+    widget_map: HashMap<WidgetName, WidgetVariant>,
 
     selected_wid_idx: i32,
+
+    widgets: Vec<WidgetName>,
 
     pub popups: WidgetList,
 
@@ -26,9 +28,7 @@ pub struct App {
 
     pub task_response_recv: ChannelResponseReceiver,
 
-    pub notification_receiver: NotificationRequestReceiver,
-
-    notification_sender: NotificationRequestSender,
+    pub pending_notifications: VecDeque<Option<Notification>>,
 }
 
 impl App {
@@ -37,37 +37,30 @@ impl App {
         task_request_sender: ChannelRequestSender,
         task_response_recv: ChannelResponseReceiver,
     ) -> AppResult<Self> {
-        let (tx, rx) = super::widgets::notification::notification_channel();
+        let w0 = WidgetVariant::TopicList(TopicTagListWidget::new(0, task_request_sender.clone()));
+        let w1 =
+            WidgetVariant::QuestionList(QuestionListWidget::new(1, task_request_sender.clone()));
+
+        let order = [(WidgetName::TopicList, w0), (WidgetName::QuestionList, w1)];
+
+        let widget_order = order.iter().map(|w| w.0.clone()).collect::<Vec<_>>();
 
         let mut app = Self {
             running: true,
-            widgets: vec![
-                Box::new(TopicTagListWidget::new(
-                    0,
-                    task_request_sender.clone(),
-                    tx.clone(),
-                )),
-                Box::new(QuestionListWidget::new(
-                    1,
-                    task_request_sender.clone(),
-                    tx.clone(),
-                )),
-                Box::new(Stats::new(2, task_request_sender.clone(), tx.clone())),
-                Box::new(Footer::new(3, task_request_sender.clone(), tx.clone())),
-            ],
-            notification_receiver: rx,
+            widget_map: HashMap::from(order),
             selected_wid_idx: 0,
             task_request_sender,
             task_response_recv,
             popups: vec![],
-            notification_sender: tx.clone(),
+            widgets: widget_order,
+            pending_notifications: vec![].into(),
         };
         app.setup()?;
         Ok(app)
     }
 
-    pub fn widgets(&mut self) -> &mut WidgetList {
-        &mut self.widgets
+    pub fn widgets(&self) -> &Vec<WidgetName> {
+        &self.widgets
     }
 
     pub fn has_popups(&self) -> bool {
@@ -88,6 +81,10 @@ impl App {
         }
     }
 
+    pub fn get_widget(&mut self, v: &WidgetName) -> &mut WidgetVariant {
+        self.widget_map.get_mut(v).unwrap()
+    }
+
     pub fn next_widget(&mut self) {
         self.navigate(1);
     }
@@ -96,19 +93,27 @@ impl App {
         self.navigate(-1);
     }
 
-    pub fn get_current_widget(&self) -> &dyn Widget {
-        &*self.widgets[self.selected_wid_idx as usize]
+    pub fn get_current_widget(&self) -> &WidgetVariant {
+        &self
+            .widget_map
+            .get(&self.widgets[self.selected_wid_idx as usize])
+            .unwrap()
     }
 
-    pub fn get_current_widget_mut(&mut self) -> &mut dyn Widget {
-        &mut *self.widgets[self.selected_wid_idx as usize]
+    pub fn get_current_widget_mut(&mut self) -> &mut WidgetVariant {
+        self.widget_map
+            .get_mut(&self.widgets[self.selected_wid_idx as usize])
+            .unwrap()
     }
 
     pub fn setup(&mut self) -> AppResult<()> {
         self.get_current_widget_mut().set_active();
-        for wid in self.widgets() {
-            wid.setup()?;
+        let mut v = vec![];
+        for wid in self.widgets().clone() {
+            let k = self.widget_map.get_mut(&wid).unwrap().setup()?;
+            v.push(k);
         }
+        self.pending_notifications.extend(v);
         Ok(())
     }
 
@@ -124,35 +129,31 @@ impl App {
                 self.popups.pop();
             }
         }
-        self.check_for_notification()?;
         self.check_for_task()?;
+        self.process_pending_notification()?;
         Ok(())
     }
 
     fn check_for_task(&mut self) -> AppResult<()> {
         if let Ok(task_result) = self.task_response_recv.try_recv() {
-            self.widgets[task_result.get_sender_id() as usize].process_task_response(task_result)?
+            let wid_name = self.widgets[task_result.get_sender_id() as usize].clone();
+            self.pending_notifications.push_back(
+                self.widget_map
+                    .get_mut(&wid_name)
+                    .unwrap()
+                    .process_task_response(task_result)?,
+            );
         }
         Ok(())
     }
 
-    fn check_for_notification(&mut self) -> AppResult<()> {
-        if let Ok(notification) = &self.notification_receiver.try_recv() {
-            match notification {
-                Notification::Popup(_) => {
-                    let mut popup = widgets::popup::Popup::new(
-                        self.get_new_id(),
-                        self.task_request_sender.clone(),
-                        self.notification_sender.clone(),
-                    );
-                    popup.process_notification(notification)?;
-                    self.popups.push(Box::new(popup));
-                }
-                n => {
-                    for wid in self.widgets() {
-                        wid.process_notification(n)?;
-                    }
-                }
+    pub fn process_pending_notification(&mut self) -> AppResult<()> {
+        while let Some(elem) = self.pending_notifications.pop_front() {
+            if let Some(notif) = elem {
+                let wid_name = notif.get_wid_name();
+                let widget_var = self.widget_map.get_mut(wid_name).unwrap();
+                let more_notif = widget_var.process_notification(&notif)?;
+                self.pending_notifications.push_back(more_notif);
             }
         }
         Ok(())

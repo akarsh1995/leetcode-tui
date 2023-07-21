@@ -4,7 +4,7 @@ use crate::{
         components::list::StatefulList,
     },
     entities::TopicTagModel,
-    errors::{AppResult, LcAppError},
+    errors::AppResult,
 };
 
 use crossterm::event::KeyEvent;
@@ -14,7 +14,7 @@ use ratatui::{
 };
 
 use super::{
-    notification::{Notification, NotificationRequestSender},
+    notification::{Notification, WidgetName::QuestionList},
     Callout, CommonState, CrosstermStderr, Widget,
 };
 
@@ -25,13 +25,9 @@ pub struct TopicTagListWidget {
 }
 
 impl TopicTagListWidget {
-    pub fn new(
-        id: i32,
-        task_sender: ChannelRequestSender,
-        notif_req_sender: NotificationRequestSender,
-    ) -> Self {
+    pub fn new(id: i32, task_sender: ChannelRequestSender) -> Self {
         Self {
-            common_state: CommonState::new(id, task_sender, notif_req_sender),
+            common_state: CommonState::new(id, task_sender),
             topics: Default::default(),
         }
     }
@@ -47,14 +43,13 @@ impl TopicTagListWidget {
         ))
     }
 
-    fn update_questions(&mut self) -> AppResult<()> {
+    fn update_questions(&mut self) -> AppResult<Option<Notification>> {
         if let Some(sel) = self.topics.get_selected_item() {
             let questions = vec![sel.as_ref().clone()];
-            self.get_notification_sender()
-                .send(Notification::Questions(questions))
-                .map_err(LcAppError::NotificationSendError)?;
+            let notif = Notification::Questions(QuestionList, questions);
+            return Ok(Some(notif));
         }
-        Ok(())
+        Ok(None)
     }
 }
 
@@ -85,22 +80,22 @@ impl Widget for TopicTagListWidget {
         frame.render_stateful_widget(items, rect, &mut self.topics.state);
     }
 
-    fn handler(&mut self, event: KeyEvent) -> AppResult<()> {
+    fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
         match event.code {
             crossterm::event::KeyCode::Up => {
                 self.topics.previous();
-                self.update_questions()?;
+                return Ok(self.update_questions()?);
             }
             crossterm::event::KeyCode::Down => {
                 self.topics.next();
-                self.update_questions()?;
+                return Ok(self.update_questions()?);
             }
             _ => {}
         };
-        Ok(())
+        Ok(None)
     }
 
-    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()> {
+    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<Option<Notification>> {
         if let TaskResponse::AllTopicTags(Response {
             content,
             sender_id: _,
@@ -115,20 +110,23 @@ impl Widget for TopicTagListWidget {
                 self.topics.add_item(tt)
             }
         }
-        Ok(())
+        Ok(None)
     }
 
-    fn setup(&mut self) -> AppResult<()> {
+    fn setup(&mut self) -> AppResult<Option<Notification>> {
         self.get_task_sender().send(TaskRequest::GetAllTopicTags {
             sender_id: self.get_id(),
         })?;
-        Ok(())
+        Ok(None)
     }
 
     fn set_response(&mut self) {}
 
-    fn process_notification(&mut self, _notification: &Notification) -> AppResult<()> {
-        Ok(())
+    fn process_notification(
+        &mut self,
+        _notification: &Notification,
+    ) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
     fn get_common_state(&self) -> &CommonState {
