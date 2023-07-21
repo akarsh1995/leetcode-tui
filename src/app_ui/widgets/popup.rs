@@ -14,17 +14,14 @@ use ratatui::{
 
 use super::{
     notification::{Notification, NotificationRequestSender},
-    CrosstermStderr, StateManager, Widget,
+    CommonState, CrosstermStderr, Widget,
 };
 
 #[derive(Debug)]
 pub struct Popup {
-    pub id: i32,
-    pub task_sender: ChannelRequestSender,
-    pub notification_sender: NotificationRequestSender,
+    pub common_state: CommonState,
     pub message: String,
     pub title: String,
-    pub active: bool,
     pub scroll_x: u16,
     pub scroll_y: u16,
 }
@@ -36,10 +33,7 @@ impl Popup {
         notif_req_sender: NotificationRequestSender,
     ) -> Self {
         Self {
-            id,
-            task_sender,
-            notification_sender: notif_req_sender,
-            active: false,
+            common_state: CommonState::new(id, task_sender, notif_req_sender),
             message: "No message so far".to_string(),
             title: "Popup".to_string(),
             scroll_x: 0,
@@ -60,23 +54,9 @@ impl Popup {
     }
 }
 
-impl StateManager for Popup {
-    fn set_active(&mut self) {
-        self.active = true;
-    }
-
-    fn is_active(&self) -> bool {
-        self.active
-    }
-
-    fn set_inactive(&mut self) {
-        self.active = false;
-    }
-}
-
 impl Widget for Popup {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
-        if self.active {
+        if self.is_active() {
             let size = rect;
 
             let size = centered_rect(60, 50, size);
@@ -95,7 +75,7 @@ impl Widget for Popup {
     fn handler(&mut self, event: KeyEvent) -> AppResult<()> {
         match event.code {
             crossterm::event::KeyCode::Enter | crossterm::event::KeyCode::Esc => {
-                self.active = false
+                self.set_inactive()
             }
             KeyCode::Up => self.scroll_y = self.scroll_y.saturating_sub(1),
             KeyCode::Down => self.scroll_y += 1,
@@ -118,8 +98,16 @@ impl Widget for Popup {
         if let Notification::Popup(pop_msg) = notification {
             self.message = pop_msg.message.to_owned();
             self.title = pop_msg.title.to_owned();
-            self.active = true;
+            self.set_active();
         }
         Ok(())
+    }
+
+    fn get_common_state(&self) -> &CommonState {
+        &self.common_state
+    }
+
+    fn get_common_state_mut(&mut self) -> &mut CommonState {
+        &mut self.common_state
     }
 }

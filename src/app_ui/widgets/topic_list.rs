@@ -15,16 +15,13 @@ use ratatui::{
 
 use super::{
     notification::{Notification, NotificationRequestSender},
-    Callout, CrosstermStderr, StateManager, Widget,
+    Callout, CommonState, CrosstermStderr, Widget,
 };
 
 #[derive(Debug)]
 pub struct TopicTagListWidget {
-    pub id: i32,
-    pub task_sender: ChannelRequestSender,
-    pub notification_sender: NotificationRequestSender,
+    common_state: CommonState,
     pub topics: StatefulList<TopicTagModel>,
-    pub active: bool,
 }
 
 impl TopicTagListWidget {
@@ -34,10 +31,7 @@ impl TopicTagListWidget {
         notif_req_sender: NotificationRequestSender,
     ) -> Self {
         Self {
-            id,
-            task_sender,
-            notification_sender: notif_req_sender,
-            active: false,
+            common_state: CommonState::new(id, task_sender, notif_req_sender),
             topics: Default::default(),
         }
     }
@@ -56,25 +50,11 @@ impl TopicTagListWidget {
     fn update_questions(&mut self) -> AppResult<()> {
         if let Some(sel) = self.topics.get_selected_item() {
             let questions = vec![sel.as_ref().clone()];
-            self.notification_sender
+            self.get_notification_sender()
                 .send(Notification::Questions(questions))
                 .map_err(LcAppError::NotificationSendError)?;
         }
         Ok(())
-    }
-}
-
-impl StateManager for TopicTagListWidget {
-    fn set_active(&mut self) {
-        self.active = true;
-    }
-
-    fn is_active(&self) -> bool {
-        self.active
-    }
-
-    fn set_inactive(&mut self) {
-        self.active = false;
     }
 }
 
@@ -89,7 +69,7 @@ impl Widget for TopicTagListWidget {
 
         let mut border_style = Style::default();
 
-        if self.active {
+        if self.is_active() {
             border_style = border_style.fg(Color::Cyan);
         }
 
@@ -139,8 +119,9 @@ impl Widget for TopicTagListWidget {
     }
 
     fn setup(&mut self) -> AppResult<()> {
-        self.task_sender
-            .send(TaskRequest::GetAllTopicTags { sender_id: self.id })?;
+        self.get_task_sender().send(TaskRequest::GetAllTopicTags {
+            sender_id: self.get_id(),
+        })?;
         Ok(())
     }
 
@@ -148,5 +129,13 @@ impl Widget for TopicTagListWidget {
 
     fn process_notification(&mut self, _notification: &Notification) -> AppResult<()> {
         Ok(())
+    }
+
+    fn get_common_state(&self) -> &CommonState {
+        &self.common_state
+    }
+
+    fn get_common_state_mut(&mut self) -> &mut CommonState {
+        &mut self.common_state
     }
 }

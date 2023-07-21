@@ -7,11 +7,8 @@ use ratatui::{
 
 #[derive(Debug)]
 pub struct Stats {
-    pub id: i32,
-    pub task_sender: ChannelRequestSender,
-    pub notification_sender: NotificationRequestSender,
+    common_state: CommonState,
     stat_state: Option<StatState>,
-    pub active: bool,
 }
 
 impl Stats {
@@ -21,26 +18,9 @@ impl Stats {
         notification_sender: NotificationRequestSender,
     ) -> Self {
         Self {
-            id,
-            task_sender,
-            notification_sender,
-            active: false,
             stat_state: None,
+            common_state: CommonState::new(id, task_sender, notification_sender),
         }
-    }
-}
-
-impl StateManager for Stats {
-    fn set_active(&mut self) {
-        self.active = true;
-    }
-
-    fn set_inactive(&mut self) {
-        self.active = false;
-    }
-
-    fn is_active(&self) -> bool {
-        self.active
     }
 }
 
@@ -113,6 +93,14 @@ impl Widget for Stats {
             self.stat_state = Some(stats.into());
         }
         Ok(())
+    }
+
+    fn get_common_state(&self) -> &CommonState {
+        &self.common_state
+    }
+
+    fn get_common_state_mut(&mut self) -> &mut CommonState {
+        &mut self.common_state
     }
 }
 

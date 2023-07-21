@@ -11,15 +11,17 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Borders, List, ListItem},
 };
+use sea_orm::strum::Display;
 
 use super::notification::{Notification, NotificationRequestSender, PopupMessage};
-use super::{Callout, CrosstermStderr, StateManager, CHECK_MARK};
+use super::{Callout, CommonState, CrosstermStderr, CHECK_MARK};
 
 #[derive(Debug)]
 pub struct QuestionListWidget {
-    pub id: i32,
-    pub task_sender: ChannelRequestSender,
-    pub notification_sender: NotificationRequestSender,
+    pub common_state: CommonState,
+    // pub id: i32,
+    // pub task_sender: ChannelRequestSender,
+    // pub notification_sender: NotificationRequestSender,
     pub questions: StatefulList<QuestionModel>,
     pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Rc<QuestionModel>>>,
     pub active: bool,
@@ -32,27 +34,11 @@ impl QuestionListWidget {
         notif_req_sender: NotificationRequestSender,
     ) -> Self {
         Self {
-            id,
-            task_sender,
-            notification_sender: notif_req_sender,
+            common_state: CommonState::new(id, task_sender, notif_req_sender),
             all_questions: HashMap::new(),
             active: false,
             questions: Default::default(),
         }
-    }
-}
-
-impl StateManager for QuestionListWidget {
-    fn set_active(&mut self) {
-        self.active = true;
-    }
-
-    fn is_active(&self) -> bool {
-        self.active
-    }
-
-    fn set_inactive(&mut self) {
-        self.active = false;
     }
 }
 
@@ -141,10 +127,10 @@ impl super::Widget for QuestionListWidget {
                 if let Some(sel) = selected_question {
                     let model = sel.clone();
                     if let Some(title_slug) = model.title_slug.as_ref() {
-                        self.task_sender.send(
+                        self.get_task_sender().send(
                             crate::app_ui::channel::TaskRequest::QuestionDetail {
                                 slug: title_slug.clone(),
-                                sender_id: self.id,
+                                sender_id: self.get_id(),
                             },
                         )?;
                     };
@@ -156,8 +142,10 @@ impl super::Widget for QuestionListWidget {
     }
 
     fn setup(&mut self) -> AppResult<()> {
-        self.task_sender
-            .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap { sender_id: self.id })?;
+        self.get_task_sender()
+            .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap {
+                sender_id: self.get_id(),
+            })?;
         Ok(())
     }
 
@@ -191,7 +179,7 @@ impl super::Widget for QuestionListWidget {
                 if let Some(sel) = selected_question {
                     let model = sel.clone();
                     if let Some(title_slug) = model.title_slug.as_ref() {
-                        self.notification_sender
+                        self.get_notification_sender()
                             .send(Notification::Popup(PopupMessage {
                                 message: qd.content.html_to_text(),
                                 title: title_slug.clone(),
@@ -213,7 +201,7 @@ impl super::Widget for QuestionListWidget {
                     for val in self.all_questions.values().flatten() {
                         question_set.insert(val.clone());
                     }
-                    self.notification_sender.send(Notification::Stats(
+                    self.get_notification_sender().send(Notification::Stats(
                         question_set
                             .clone()
                             .into_iter()
@@ -224,7 +212,7 @@ impl super::Widget for QuestionListWidget {
                     self.questions.items.sort();
                 } else {
                     let values = self.all_questions.get(tag).unwrap();
-                    self.notification_sender.send(Notification::Stats(
+                    self.get_notification_sender().send(Notification::Stats(
                         values
                             .iter()
                             .map(|x| x.as_ref().clone())
@@ -240,4 +228,12 @@ impl super::Widget for QuestionListWidget {
     }
 
     fn set_response(&mut self) {}
+
+    fn get_common_state(&self) -> &CommonState {
+        &self.common_state
+    }
+
+    fn get_common_state_mut(&mut self) -> &mut CommonState {
+        &mut self.common_state
+    }
 }

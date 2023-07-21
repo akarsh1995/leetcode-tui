@@ -11,17 +11,59 @@ use ratatui::{prelude::Rect, prelude::*, Frame};
 
 use crate::errors::AppResult;
 
-use self::notification::Notification;
+use self::notification::{Notification, NotificationRequestSender};
 
-use super::channel::TaskResponse;
+use super::channel::{ChannelRequestSender, TaskResponse};
 
-pub trait StateManager {
-    fn set_active(&mut self);
-    fn set_inactive(&mut self);
-    fn is_active(&self) -> bool;
+#[derive(Debug)]
+pub struct CommonState {
+    pub id: i32,
+    active: bool,
+    pub task_sender: ChannelRequestSender,
+    pub notification_sender: NotificationRequestSender,
 }
 
-pub trait Widget: Debug + StateManager {
+impl CommonState {
+    pub(crate) fn new(
+        id: i32,
+        task_sender: ChannelRequestSender,
+        notification_sender: NotificationRequestSender,
+    ) -> Self {
+        Self {
+            id,
+            active: false,
+            task_sender,
+            notification_sender,
+        }
+    }
+}
+
+pub trait Widget: Debug {
+    fn set_active(&mut self) {
+        self.get_common_state_mut().active = true;
+    }
+    fn is_active(&self) -> bool {
+        self.get_common_state().active
+    }
+    fn set_inactive(&mut self) {
+        self.get_common_state_mut().active = false;
+    }
+
+    fn get_id(&self) -> i32 {
+        self.get_common_state().id
+    }
+    fn get_task_sender(&self) -> &ChannelRequestSender {
+        &self.get_common_state().task_sender
+    }
+
+    fn get_notification_sender(&self) -> &NotificationRequestSender {
+        &self.get_common_state().notification_sender
+    }
+
+    fn get_common_state_mut(&mut self) -> &mut CommonState;
+
+    fn get_common_state(&self) -> &CommonState;
+
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);
     fn handler(&mut self, event: KeyEvent) -> AppResult<()>;
 
