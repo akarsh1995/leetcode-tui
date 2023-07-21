@@ -1,29 +1,28 @@
 # Leetcode TUI
-### Features
 
-- [x] list all tags
-    [ ] sort by least accepted 
+# Use Leetcode in your terminal.
 
-- [x] list questions related to the tag
-    [ ] color by accepted
-    [ ] sort by likes dislikes ratio
+![Demo](demo.gif)
 
-- [x] stats of the selected tag
-    - [x] 
-        |              |              |              |
-        |--------------|--------------|--------------|
-        | Listed: 2719 | Locked: 525  | Starred: 0   |
-        | Accept: 71   | Not-Ac: 3    | Remain: 2645 |
-        | Easy: 669    | Medium: 1445 | Hard: 605    |
 
-- [ ] Error handling
+> **Warning**
+> This TUI is currently under active development. Please feel free to open an issue if you find errors.
 
-- [ ] select multiple tags
+## Installation
 
-- [ ] summary of the question 
+```sh
+cargo install leetcode-tui-rs
+```
 
-    - [ ] submission stats
+Post installation
 
-    - [ ] view question
+```sh
+leetui
 
-- [ ] invalidate questions cache through `userSessionProgress`
+# This is going to create `~/.config/leetcode_tui/config.toml`.
+
+# Get the Cookies from the browser `LEETCODE_SESSION` and `csrftoken` and paste it in `~/.config/leetcode_tui/config.toml`
+
+# run the command again
+leetui
+```

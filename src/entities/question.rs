@@ -48,15 +48,7 @@ impl Hash for Model {
 
 impl PartialOrd for Model {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self
-            .frontend_question_id
-            .parse::<i32>()
-            .unwrap()
-            .partial_cmp(&other.frontend_question_id.parse::<i32>().unwrap())
-        {
-            Some(core::cmp::Ordering::Equal) => Some(core::cmp::Ordering::Equal),
-            ord => return ord,
-        }
+        Some(self.cmp(other))
     }
 }
 
@@ -82,3 +74,42 @@ impl Related<super::topic_tag::Entity> for Entity {
 }
 
 impl ActiveModelBehavior for ActiveModel {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test() {
+        let m1 = Model {
+            ac_rate: None,
+            difficulty: None,
+            freq_bar: None,
+            frontend_question_id: "1".to_string(),
+            is_favor: None,
+            paid_only: None,
+            status: None,
+            title: None,
+            title_slug: None,
+            has_solution: None,
+            has_video_solution: None,
+        };
+
+        let m2 = Model {
+            ac_rate: None,
+            difficulty: None,
+            freq_bar: None,
+            frontend_question_id: "2".to_string(),
+            is_favor: None,
+            paid_only: None,
+            status: None,
+            title: None,
+            title_slug: None,
+            has_solution: None,
+            has_video_solution: None,
+        };
+
+        assert!(m1 < m2);
+        assert!(m1 == m1);
+    }
+}

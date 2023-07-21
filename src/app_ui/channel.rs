@@ -7,10 +7,16 @@ use crate::{
 };
 
 #[derive(Debug)]
+pub struct Request<T> {
+    pub sender_id: i32,
+    pub message: T,
+}
+
+#[derive(Debug)]
 pub enum TaskRequest {
-    QuestionDetail { slug: String },
-    GetAllQuestionsMap,
-    GetAllTopicTags,
+    QuestionDetail { slug: String, sender_id: i32 },
+    GetAllQuestionsMap { sender_id: i32 },
+    GetAllTopicTags { sender_id: i32 },
 }
 
 impl TaskRequest {
@@ -20,19 +26,52 @@ impl TaskRequest {
         conn: &DatabaseConnection,
     ) -> TaskResponse {
         match self {
-            TaskRequest::QuestionDetail { slug } => get_question_details(slug, client).await,
-            TaskRequest::GetAllQuestionsMap => get_all_questions(conn).await,
-            TaskRequest::GetAllTopicTags => get_all_topic_tags(conn).await,
+            TaskRequest::QuestionDetail { slug, sender_id } => {
+                get_question_details(sender_id, slug, client).await
+            }
+            TaskRequest::GetAllQuestionsMap { sender_id } => {
+                get_all_questions(sender_id, conn).await
+            }
+            TaskRequest::GetAllTopicTags { sender_id } => get_all_topic_tags(sender_id, conn).await,
         }
     }
 }
 
 #[derive(Debug)]
+pub struct Response<T> {
+    pub(crate) content: T,
+    pub(crate) sender_id: i32,
+}
+
+#[derive(Debug)]
 pub enum TaskResponse {
-    QuestionDetail(deserializers::question_content::QuestionContent),
-    GetAllQuestionsMap(HashMap<TopicTagModel, Vec<QuestionModel>>),
-    AllTopicTags(Vec<TopicTagModel>),
-    Error(String),
+    QuestionDetail(Response<deserializers::question_content::QuestionContent>),
+    GetAllQuestionsMap(Response<HashMap<TopicTagModel, Vec<QuestionModel>>>),
+    AllTopicTags(Response<Vec<TopicTagModel>>),
+    Error(Response<String>),
+}
+
+impl TaskResponse {
+    pub fn get_sender_id(&self) -> i32 {
+        *match self {
+            TaskResponse::QuestionDetail(Response {
+                sender_id,
+                content: _,
+            }) => sender_id,
+            TaskResponse::GetAllQuestionsMap(Response {
+                sender_id,
+                content: _,
+            }) => sender_id,
+            TaskResponse::AllTopicTags(Response {
+                sender_id,
+                content: _,
+            }) => sender_id,
+            TaskResponse::Error(Response {
+                sender_id,
+                content: _,
+            }) => sender_id,
+        }
+    }
 }
 
 pub type ChannelRequestSender = tokio::sync::mpsc::UnboundedSender<TaskRequest>;

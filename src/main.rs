@@ -1,23 +1,23 @@
 use leetcode_tui_rs::app_ui::channel::{request_channel, response_channel};
 use leetcode_tui_rs::app_ui::channel::{ChannelRequestSender, ChannelResponseReceiver};
-use leetcode_tui_rs::app_ui::list::StatefulList;
 use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::config::Config;
-use leetcode_tui_rs::entities::{QuestionEntity, QuestionModel};
+use leetcode_tui_rs::entities::QuestionEntity;
 use leetcode_tui_rs::errors::AppResult;
 use sea_orm::Database;
 use tokio::task::JoinHandle;
 
-use leetcode_tui_rs::app_ui::app::{App, Widget};
 use leetcode_tui_rs::app_ui::event::{look_for_events, Event, EventHandler};
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
-use leetcode_tui_rs::entities::topic_tag::Model as TopicTagModel;
+use leetcode_tui_rs::app_ui::{app::App};
+
 use leetcode_tui_rs::utils::{
     do_migrations, get_config, get_reqwest_client, tasks_executor, update_database_questions,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use std::io::{self, Stderr};
+use std::io::{self};
+
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
@@ -70,7 +70,7 @@ async fn main() -> AppResult<()> {
     tokio::task::spawn_blocking(move || run_app(tx_request, rx_response, tui).unwrap());
 
     // blog post does not work in separate thread
-    match look_for_events(100, ev_sender).await {
+    match look_for_events(10, ev_sender).await {
         Ok(_) => Ok(()),
         Err(e) => match e {
             leetcode_tui_rs::errors::LcAppError::SyncSendError(_) => Ok(()),
@@ -86,23 +86,23 @@ async fn main() -> AppResult<()> {
 fn run_app(
     tx_request: ChannelRequestSender,
     rx_response: ChannelResponseReceiver,
-    mut tui: Tui<CrosstermBackend<Stderr>>,
+    mut tui: Tui,
 ) -> AppResult<()> {
-    let topic_tags: Vec<TopicTagModel> = vec![TopicTagModel {
-        name: Some("All".to_string()),
-        id: "all".to_string(),
-        slug: Some("all".to_string()),
-    }];
+    // let topic_tags: Vec<TopicTagModel> = vec![Rc::new(TopicTagModel {
+    //     name: Some("All".to_string()),
+    //     id: "all".to_string(),
+    //     slug: Some("all".to_string()),
+    // })];
+    // let mut vw = vec![topic_tag_stateful, question_stateful];
 
-    let questions = vec![];
+    // let questions = vec![];
 
-    let mut qm: StatefulList<QuestionModel> = StatefulList::with_items(questions);
-    let mut ttm: StatefulList<TopicTagModel> = StatefulList::with_items(topic_tags);
-    let question_stateful = Widget::QuestionList(&mut qm);
-    let topic_tag_stateful = Widget::TopicTagList(&mut ttm);
-    let mut vw = vec![topic_tag_stateful, question_stateful];
+    // let mut qm: StatefulList<QuestionModel> = StatefulList::with_items(questions);
+    // let mut ttm: StatefulList<TopicTagModel> = StatefulList::with_items(topic_tags);
+    // let question_stateful = Widget::QuestionList(&mut qm);
+    // let topic_tag_stateful = Widget::TopicTagList(&mut ttm);
 
-    let mut app = App::new(&mut vw, tx_request, rx_response)?;
+    let mut app = App::new(tx_request, rx_response)?;
 
     // Start the main loop.
     while app.running {
@@ -110,7 +110,7 @@ fn run_app(
         tui.draw(&mut app)?;
         // Handle events.
         match tui.events.next()? {
-            Event::Tick => app.tick(),
+            Event::Tick => app.tick()?,
             Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
