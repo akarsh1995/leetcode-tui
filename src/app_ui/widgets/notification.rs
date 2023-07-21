@@ -13,6 +13,7 @@ pub struct PopupMessage {
 pub enum WidgetName {
     QuestionList,
     TopicList,
+    Stats,
 }
 
 #[derive(Debug, Clone)]
@@ -38,11 +39,12 @@ impl Notification {
 pub enum WidgetVariant {
     QuestionList(QuestionListWidget),
     TopicList(TopicTagListWidget),
+    Stats(Stats),
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;
 
-use super::{question_list::QuestionListWidget, topic_list::TopicTagListWidget};
+use super::{question_list::QuestionListWidget, stats::Stats, topic_list::TopicTagListWidget};
 
 pub type NotificationRequestSender = crossbeam::channel::Sender<Notification>;
 pub type NotificationRequestReceiver = crossbeam::channel::Receiver<Notification>;

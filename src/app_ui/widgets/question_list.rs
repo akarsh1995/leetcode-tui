@@ -167,14 +167,14 @@ impl super::Widget for QuestionListWidget {
                 for (_, ql) in &mut self.all_questions {
                     ql.sort_unstable()
                 }
-                // return Ok(Some(Notification::Questions(
-                //     super::notification::WidgetName::QuestionList,
-                //     vec![TopicTagModel {
-                //         name: Some("All".to_owned()),
-                //         id: "all".to_owned(),
-                //         slug: Some("all".to_owned()),
-                //     }],
-                // )));
+                return Ok(Some(Notification::Questions(
+                    super::notification::WidgetName::QuestionList,
+                    vec![TopicTagModel {
+                        name: Some("All".to_owned()),
+                        id: "all".to_owned(),
+                        slug: Some("all".to_owned()),
+                    }],
+                )));
             }
             crate::app_ui::channel::TaskResponse::QuestionDetail(qd) => {
                 let selected_question = self.questions.get_selected_item();
@@ -205,28 +205,30 @@ impl super::Widget for QuestionListWidget {
                     for val in self.all_questions.values().flatten() {
                         question_set.insert(val.clone());
                     }
-                    // let notif = Notification::Stats(
-                    //     question_set
-                    //         .clone()
-                    //         .into_iter()
-                    //         .map(|q| q.as_ref().clone())
-                    //         .collect::<Vec<_>>(),
-                    // );
+                    let notif = Notification::Stats(
+                        WidgetName::Stats,
+                        question_set
+                            .clone()
+                            .into_iter()
+                            .map(|q| q.as_ref().clone())
+                            .collect::<Vec<_>>(),
+                    );
                     self.questions.items.extend(question_set.into_iter());
                     self.questions.items.sort();
-                    // return Ok(Some(notif));
+                    return Ok(Some(notif));
                 } else {
                     let values = self.all_questions.get(tag).unwrap();
-                    // let notif = Notification::Stats(
-                    //     values
-                    //         .iter()
-                    //         .map(|x| x.as_ref().clone())
-                    //         .collect::<Vec<_>>(),
-                    // );
+                    let notif = Notification::Stats(
+                        WidgetName::Stats,
+                        values
+                            .iter()
+                            .map(|x| x.as_ref().clone())
+                            .collect::<Vec<_>>(),
+                    );
                     self.questions
                         .items
                         .extend(values.iter().map(|q| q.clone()));
-                    // return Ok(Some(notif));
+                    return Ok(Some(notif));
                 };
             }
         }

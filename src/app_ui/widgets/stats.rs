@@ -12,12 +12,8 @@ pub struct Stats {
 }
 
 impl Stats {
-    pub(crate) fn new(
-        id: i32,
-        task_sender: ChannelRequestSender,
-        notification_sender: NotificationRequestSender,
-    ) -> Self {
-        let mut cs = CommonState::new(id, task_sender, notification_sender);
+    pub(crate) fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
+        let mut cs = CommonState::new(id, task_sender);
         cs.is_navigable = false;
         Self {
             stat_state: None,
@@ -79,22 +75,28 @@ impl Widget for Stats {
         }
     }
 
-    fn handler(&mut self, _event: KeyEvent) -> AppResult<()> {
-        Ok(())
+    fn handler(&mut self, _event: KeyEvent) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
-    fn process_task_response(&mut self, _response: TaskResponse) -> AppResult<()> {
-        Ok(())
+    fn process_task_response(
+        &mut self,
+        _response: TaskResponse,
+    ) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
     fn set_response(&mut self) {}
 
-    fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        if let Notification::Stats(questions) = notification {
+    fn process_notification(
+        &mut self,
+        notification: &Notification,
+    ) -> AppResult<Option<Notification>> {
+        if let Notification::Stats(_, questions) = notification {
             let stats = crate::app_ui::helpers::question::Stats { qm: questions };
             self.stat_state = Some(stats.into());
         }
-        Ok(())
+        Ok(None)
     }
 
     fn get_common_state(&self) -> &CommonState {

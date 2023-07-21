@@ -42,9 +42,9 @@ pub fn render(app: &mut App, f: &mut CrosstermStderr) {
 
     let layout_map = HashMap::from([
         (WidgetName::TopicList, left_chunks[0]), // tags
-        // (1, right_chunk[0]), // stats
+        (WidgetName::Stats, left_chunks[1]),     // stats
         (WidgetName::QuestionList, right_chunk[0]), // question
-                                                    // (3, size),
+                                                 // (3, size),
     ]);
 
     for (name, wid) in app.widget_map.iter_mut() {

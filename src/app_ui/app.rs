@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
 use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
 use super::widgets::question_list::QuestionListWidget;
+use super::widgets::stats::Stats;
 use super::widgets::topic_list::TopicTagListWidget;
 use crate::errors::AppResult;
 use indexmap::IndexMap;
@@ -39,7 +40,13 @@ impl App {
             task_request_sender.clone(),
         ));
 
-        let order = [(WidgetName::TopicList, w0), (WidgetName::QuestionList, w1)];
+        let w2 = WidgetVariant::Stats(Stats::new(WidgetName::Stats, task_request_sender.clone()));
+
+        let order = [
+            (WidgetName::TopicList, w0),
+            (WidgetName::QuestionList, w1),
+            (WidgetName::Stats, w2),
+        ];
 
         let mut app = Self {
             running: true,

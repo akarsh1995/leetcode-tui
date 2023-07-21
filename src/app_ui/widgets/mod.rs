@@ -2,7 +2,7 @@
 pub(crate) mod notification;
 // pub(crate) mod popup;
 pub mod question_list;
-// pub mod stats;
+pub mod stats;
 pub mod topic_list;
 
 use std::{collections::HashMap, fmt::Debug, io::Stderr};
@@ -85,6 +85,7 @@ impl WidgetVariant {
         match self {
             WidgetVariant::QuestionList(v) => v.set_active(),
             WidgetVariant::TopicList(v) => v.set_active(),
+            WidgetVariant::Stats(v) => v.set_active(),
         }
     }
 
@@ -92,6 +93,7 @@ impl WidgetVariant {
         match self {
             WidgetVariant::QuestionList(v) => v.set_inactive(),
             WidgetVariant::TopicList(v) => v.set_inactive(),
+            WidgetVariant::Stats(v) => v.set_inactive(),
         }
     }
 
@@ -99,6 +101,7 @@ impl WidgetVariant {
         match self {
             WidgetVariant::QuestionList(v) => v.is_navigable(),
             WidgetVariant::TopicList(v) => v.is_navigable(),
+            WidgetVariant::Stats(v) => v.is_navigable(),
         }
     }
 
@@ -106,6 +109,7 @@ impl WidgetVariant {
         match self {
             WidgetVariant::QuestionList(v) => v.setup(),
             WidgetVariant::TopicList(v) => v.setup(),
+            WidgetVariant::Stats(v) => v.setup(),
         }
     }
 
@@ -116,6 +120,7 @@ impl WidgetVariant {
         match self {
             WidgetVariant::QuestionList(v) => v.process_task_response(response),
             WidgetVariant::TopicList(v) => v.process_task_response(response),
+            WidgetVariant::Stats(v) => v.process_task_response(response),
         }
     }
 
@@ -123,6 +128,7 @@ impl WidgetVariant {
         match self {
             WidgetVariant::QuestionList(v) => v.handler(event),
             WidgetVariant::TopicList(v) => v.handler(event),
+            WidgetVariant::Stats(v) => v.handler(event),
         }
     }
 
@@ -133,6 +139,7 @@ impl WidgetVariant {
         match self {
             WidgetVariant::QuestionList(v) => v.process_notification(notification),
             WidgetVariant::TopicList(v) => v.process_notification(notification),
+            WidgetVariant::Stats(v) => v.process_notification(notification),
         }
     }
 
@@ -140,6 +147,7 @@ impl WidgetVariant {
         match self {
             WidgetVariant::QuestionList(v) => v.render(rect, frame),
             WidgetVariant::TopicList(v) => v.render(rect, frame),
+            WidgetVariant::Stats(v) => v.render(rect, frame),
         }
     }
 }
