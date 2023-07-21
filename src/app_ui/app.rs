@@ -1,14 +1,11 @@
-use std::collections::{HashMap, VecDeque};
-
-use crate::errors::AppResult;
+use std::collections::VecDeque;
 
 use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
-// use super::widgets::footer::Footer;
 use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
 use super::widgets::question_list::QuestionListWidget;
-// use super::widgets::stats::Stats;
 use super::widgets::topic_list::TopicTagListWidget;
-use super::widgets::WidgetList;
+use crate::errors::AppResult;
+use indexmap::IndexMap;
 
 /// Application.
 #[derive(Debug)]
@@ -16,13 +13,9 @@ pub struct App {
     /// Is the application running?
     pub running: bool,
 
-    widget_map: HashMap<WidgetName, WidgetVariant>,
+    pub widget_map: indexmap::IndexMap<WidgetName, WidgetVariant>,
 
     selected_wid_idx: i32,
-
-    widgets: Vec<WidgetName>,
-
-    pub popups: WidgetList,
 
     pub task_request_sender: ChannelRequestSender,
 
@@ -37,43 +30,37 @@ impl App {
         task_request_sender: ChannelRequestSender,
         task_response_recv: ChannelResponseReceiver,
     ) -> AppResult<Self> {
-        let w0 = WidgetVariant::TopicList(TopicTagListWidget::new(0, task_request_sender.clone()));
-        let w1 =
-            WidgetVariant::QuestionList(QuestionListWidget::new(1, task_request_sender.clone()));
+        let w0 = WidgetVariant::TopicList(TopicTagListWidget::new(
+            WidgetName::TopicList,
+            task_request_sender.clone(),
+        ));
+        let w1 = WidgetVariant::QuestionList(QuestionListWidget::new(
+            WidgetName::QuestionList,
+            task_request_sender.clone(),
+        ));
 
         let order = [(WidgetName::TopicList, w0), (WidgetName::QuestionList, w1)];
 
-        let widget_order = order.iter().map(|w| w.0.clone()).collect::<Vec<_>>();
-
         let mut app = Self {
             running: true,
-            widget_map: HashMap::from(order),
+            widget_map: IndexMap::from(order),
             selected_wid_idx: 0,
             task_request_sender,
             task_response_recv,
-            popups: vec![],
-            widgets: widget_order,
             pending_notifications: vec![].into(),
         };
         app.setup()?;
         Ok(app)
     }
 
-    pub fn widgets(&self) -> &Vec<WidgetName> {
-        &self.widgets
-    }
-
-    pub fn has_popups(&self) -> bool {
-        !self.popups.is_empty()
+    pub fn total_widgets_count(&self) -> usize {
+        self.widget_map.len()
     }
 
     pub fn navigate(&mut self, val: i32) {
-        if self.has_popups() {
-            return;
-        }
         self.get_current_widget_mut().set_inactive();
         let a = self.selected_wid_idx + val;
-        let b = self.widgets.len() as i32;
+        let b = self.total_widgets_count() as i32;
         self.selected_wid_idx = ((a % b) + b) % b;
         self.get_current_widget_mut().set_active();
         if !self.get_current_widget().is_navigable() {
@@ -94,41 +81,33 @@ impl App {
     }
 
     pub fn get_current_widget(&self) -> &WidgetVariant {
-        &self
+        let (_, v) = self
             .widget_map
-            .get(&self.widgets[self.selected_wid_idx as usize])
-            .unwrap()
+            .get_index(self.selected_wid_idx as usize)
+            .unwrap();
+        v
     }
 
     pub fn get_current_widget_mut(&mut self) -> &mut WidgetVariant {
-        self.widget_map
-            .get_mut(&self.widgets[self.selected_wid_idx as usize])
-            .unwrap()
+        let (_, v) = self
+            .widget_map
+            .get_index_mut(self.selected_wid_idx as usize)
+            .unwrap();
+        v
     }
 
     pub fn setup(&mut self) -> AppResult<()> {
         self.get_current_widget_mut().set_active();
         let mut v = vec![];
-        for wid in self.widgets().clone() {
-            let k = self.widget_map.get_mut(&wid).unwrap().setup()?;
-            v.push(k);
+        for (_, widget) in self.widget_map.iter_mut() {
+            v.push(widget.setup()?);
         }
         self.pending_notifications.extend(v);
         Ok(())
     }
 
-    pub fn get_new_id(&self) -> i32 {
-        (self.widgets.len() + self.popups.len()) as i32
-    }
-
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) -> AppResult<()> {
-        // pop the popup out of popup stack
-        if let Some(popup) = self.popups.last() {
-            if !popup.is_active() {
-                self.popups.pop();
-            }
-        }
         self.check_for_task()?;
         self.process_pending_notification()?;
         Ok(())
@@ -136,10 +115,9 @@ impl App {
 
     fn check_for_task(&mut self) -> AppResult<()> {
         if let Ok(task_result) = self.task_response_recv.try_recv() {
-            let wid_name = self.widgets[task_result.get_sender_id() as usize].clone();
             self.pending_notifications.push_back(
                 self.widget_map
-                    .get_mut(&wid_name)
+                    .get_mut(&task_result.get_widget_name())
                     .unwrap()
                     .process_task_response(task_result)?,
             );

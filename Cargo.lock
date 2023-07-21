@@ -1077,6 +1077,7 @@ dependencies = [
  "futures",
  "futures-timer",
  "html2text",
+ "indexmap 2.0.0",
  "kdam",
  "ratatui",
  "reqwest",

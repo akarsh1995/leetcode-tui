@@ -5,7 +5,10 @@ use ratatui::{
     widgets::{Block, BorderType, Borders},
 };
 
-use super::{app::App, widgets::CrosstermStderr};
+use super::{
+    app::App,
+    widgets::{notification::WidgetName, CrosstermStderr},
+};
 
 /// Renders the user interface widgets.
 pub fn render(app: &mut App, f: &mut CrosstermStderr) {
@@ -38,27 +41,14 @@ pub fn render(app: &mut App, f: &mut CrosstermStderr) {
         .split(chunks[1]);
 
     let layout_map = HashMap::from([
-        (0, left_chunks[0]), // tags
+        (WidgetName::TopicList, left_chunks[0]), // tags
         // (1, right_chunk[0]), // stats
-        (1, left_chunks[1]), // question
-                             // (3, size),
+        (WidgetName::QuestionList, right_chunk[0]), // question
+                                                    // (3, size),
     ]);
 
-    // if app.has_popups() {
-    //     if let Some(top_popup) = app.popups.last_mut() {
-    //         top_popup.render(inner_size, f);
-    //         return;
-    //     }
-    // }
-    let to_collect = app
-        .widgets()
-        .iter()
-        .map(|v| v.clone())
-        .enumerate()
-        .collect::<Vec<(_, _)>>();
-
-    for (i, wid_name) in to_collect {
-        app.get_widget(&wid_name)
-            .render(layout_map.get(&(i as i32)).unwrap().clone(), f);
+    for (name, wid) in app.widget_map.iter_mut() {
+        let rect = layout_map.get(name).unwrap();
+        wid.render(*rect, f);
     }
 }

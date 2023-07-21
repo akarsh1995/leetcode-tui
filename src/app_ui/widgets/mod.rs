@@ -18,16 +18,16 @@ use super::channel::{ChannelRequestSender, TaskResponse};
 
 #[derive(Debug)]
 pub struct CommonState {
-    pub id: i32,
+    pub widget_name: WidgetName,
     active: bool,
     pub task_sender: ChannelRequestSender,
     pub is_navigable: bool,
 }
 
 impl CommonState {
-    pub(crate) fn new(id: i32, task_sender: ChannelRequestSender) -> Self {
+    pub(crate) fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
         Self {
-            id,
+            widget_name: id,
             active: false,
             task_sender,
             is_navigable: true,
@@ -51,8 +51,8 @@ pub trait Widget: Debug {
         self.get_common_state_mut().active = false;
     }
 
-    fn get_id(&self) -> i32 {
-        self.get_common_state().id
+    fn get_widget_name(&self) -> WidgetName {
+        self.get_common_state().widget_name.clone()
     }
     fn get_task_sender(&self) -> &ChannelRequestSender {
         &self.get_common_state().task_sender

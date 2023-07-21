@@ -7,16 +7,17 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct Request<T> {
-    pub sender_id: i32,
-    pub message: T,
-}
-
-#[derive(Debug)]
 pub enum TaskRequest {
-    QuestionDetail { slug: String, sender_id: i32 },
-    GetAllQuestionsMap { sender_id: i32 },
-    GetAllTopicTags { sender_id: i32 },
+    QuestionDetail {
+        slug: String,
+        widget_name: WidgetName,
+    },
+    GetAllQuestionsMap {
+        widget_name: WidgetName,
+    },
+    GetAllTopicTags {
+        widget_name: WidgetName,
+    },
 }
 
 impl TaskRequest {
@@ -26,13 +27,15 @@ impl TaskRequest {
         conn: &DatabaseConnection,
     ) -> TaskResponse {
         match self {
-            TaskRequest::QuestionDetail { slug, sender_id } => {
-                get_question_details(sender_id, slug, client).await
+            TaskRequest::QuestionDetail { slug, widget_name } => {
+                get_question_details(widget_name, slug, client).await
             }
-            TaskRequest::GetAllQuestionsMap { sender_id } => {
-                get_all_questions(sender_id, conn).await
+            TaskRequest::GetAllQuestionsMap { widget_name } => {
+                get_all_questions(widget_name, conn).await
             }
-            TaskRequest::GetAllTopicTags { sender_id } => get_all_topic_tags(sender_id, conn).await,
+            TaskRequest::GetAllTopicTags { widget_name } => {
+                get_all_topic_tags(widget_name, conn).await
+            }
         }
     }
 }
@@ -40,7 +43,7 @@ impl TaskRequest {
 #[derive(Debug)]
 pub struct Response<T> {
     pub(crate) content: T,
-    pub(crate) sender_id: i32,
+    pub(crate) widget_name: WidgetName,
 }
 
 #[derive(Debug)]
@@ -52,25 +55,26 @@ pub enum TaskResponse {
 }
 
 impl TaskResponse {
-    pub fn get_sender_id(&self) -> i32 {
-        *match self {
+    pub fn get_widget_name(&self) -> WidgetName {
+        match self {
             TaskResponse::QuestionDetail(Response {
-                sender_id,
+                widget_name,
                 content: _,
-            }) => sender_id,
+            }) => widget_name,
             TaskResponse::GetAllQuestionsMap(Response {
-                sender_id,
+                widget_name,
                 content: _,
-            }) => sender_id,
+            }) => widget_name,
             TaskResponse::AllTopicTags(Response {
-                sender_id,
                 content: _,
-            }) => sender_id,
+                widget_name,
+            }) => widget_name,
             TaskResponse::Error(Response {
-                sender_id,
+                widget_name,
                 content: _,
-            }) => sender_id,
+            }) => widget_name,
         }
+        .clone()
     }
 }
 
@@ -84,6 +88,8 @@ pub type ChannelResponseSender = crossbeam::channel::Sender<TaskResponse>;
 pub type ChannelResponseReceiver = crossbeam::channel::Receiver<TaskResponse>;
 
 pub use crossbeam::channel::unbounded as response_channel;
+
+use super::widgets::notification::WidgetName;
 
 pub type RequestSendError = tokio::sync::mpsc::error::SendError<TaskRequest>;
 pub type RequestRecvError = tokio::sync::mpsc::error::TryRecvError;

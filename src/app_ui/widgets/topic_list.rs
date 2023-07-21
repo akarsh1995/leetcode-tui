@@ -14,7 +14,10 @@ use ratatui::{
 };
 
 use super::{
-    notification::{Notification, WidgetName::QuestionList},
+    notification::{
+        Notification,
+        WidgetName::{self, QuestionList},
+    },
     Callout, CommonState, CrosstermStderr, Widget,
 };
 
@@ -25,7 +28,7 @@ pub struct TopicTagListWidget {
 }
 
 impl TopicTagListWidget {
-    pub fn new(id: i32, task_sender: ChannelRequestSender) -> Self {
+    pub fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
         Self {
             common_state: CommonState::new(id, task_sender),
             topics: Default::default(),
@@ -98,7 +101,7 @@ impl Widget for TopicTagListWidget {
     fn process_task_response(&mut self, response: TaskResponse) -> AppResult<Option<Notification>> {
         if let TaskResponse::AllTopicTags(Response {
             content,
-            sender_id: _,
+            widget_name: _,
         }) = response
         {
             self.topics.add_item(TopicTagModel {
@@ -110,12 +113,12 @@ impl Widget for TopicTagListWidget {
                 self.topics.add_item(tt)
             }
         }
-        Ok(None)
+        self.update_questions()
     }
 
     fn setup(&mut self) -> AppResult<Option<Notification>> {
         self.get_task_sender().send(TaskRequest::GetAllTopicTags {
-            sender_id: self.get_id(),
+            widget_name: self.get_widget_name(),
         })?;
         Ok(None)
     }

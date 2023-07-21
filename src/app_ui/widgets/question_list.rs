@@ -13,7 +13,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
-use super::notification::{Notification, NotificationRequestSender, PopupMessage};
+use super::notification::{Notification, NotificationRequestSender, PopupMessage, WidgetName};
 use super::{Callout, CommonState, CrosstermStderr, CHECK_MARK};
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ pub struct QuestionListWidget {
 }
 
 impl QuestionListWidget {
-    pub fn new(id: i32, task_sender: ChannelRequestSender) -> Self {
+    pub fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
         Self {
             common_state: CommonState::new(id, task_sender),
             all_questions: HashMap::new(),
@@ -124,7 +124,7 @@ impl super::Widget for QuestionListWidget {
                         self.get_task_sender().send(
                             crate::app_ui::channel::TaskRequest::QuestionDetail {
                                 slug: title_slug.clone(),
-                                sender_id: self.get_id(),
+                                widget_name: self.get_widget_name(),
                             },
                         )?;
                     };
@@ -138,7 +138,7 @@ impl super::Widget for QuestionListWidget {
     fn setup(&mut self) -> AppResult<Option<Notification>> {
         self.get_task_sender()
             .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap {
-                sender_id: self.get_id(),
+                widget_name: self.get_widget_name(),
             })?;
         // Ok(Some(Notification::HelpText(WidgetName, vec![
         //     HelpText::new("Switch Pane".to_string(), vec![KeyCode::Right]),
@@ -155,7 +155,7 @@ impl super::Widget for QuestionListWidget {
         match response {
             crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
                 content,
-                sender_id: _,
+                widget_name: _,
             }) => {
                 let map_iter = content.into_iter().map(|v| {
                     (

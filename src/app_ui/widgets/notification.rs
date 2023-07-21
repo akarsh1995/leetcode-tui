@@ -9,6 +9,12 @@ pub struct PopupMessage {
     pub(crate) message: String,
 }
 
+#[derive(Debug, Hash, Eq, Clone, PartialEq)]
+pub enum WidgetName {
+    QuestionList,
+    TopicList,
+}
+
 #[derive(Debug, Clone)]
 pub enum Notification {
     Questions(WidgetName, Vec<TopicTagModel>),
@@ -32,12 +38,6 @@ impl Notification {
 pub enum WidgetVariant {
     QuestionList(QuestionListWidget),
     TopicList(TopicTagListWidget),
-}
-
-#[derive(Debug, Hash, Eq, Clone, PartialEq)]
-pub enum WidgetName {
-    QuestionList,
-    TopicList,
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;
