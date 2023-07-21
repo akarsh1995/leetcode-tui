@@ -2,11 +2,12 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::app_ui::channel::Response;
+use crate::app_ui::components::help_text::HelpText;
 use crate::app_ui::{channel::ChannelRequestSender, components::list::StatefulList};
 use crate::entities::{QuestionModel, TopicTagModel};
 use crate::errors::AppResult;
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, List, ListItem},
@@ -84,6 +85,16 @@ impl QuestionListWidget {
 }
 
 impl super::Widget for QuestionListWidget {
+    fn set_active(&mut self) {
+        self.get_common_state_mut().active = true;
+        self.get_notification_sender()
+            .send(Notification::HelpText(vec![
+                HelpText::new("Switch Pane".to_string(), vec![KeyCode::Right]),
+                HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
+                HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
+            ]))
+            .unwrap();
+    }
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self
             .questions

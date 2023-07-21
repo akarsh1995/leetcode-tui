@@ -41,6 +41,7 @@ pub fn render(app: &mut App, f: &mut CrosstermStderr) {
         (0, left_chunks[0]), // tags
         (1, right_chunk[0]), // stats
         (2, left_chunks[1]), // question
+        (3, size),
     ]);
 
     if app.has_popups() {

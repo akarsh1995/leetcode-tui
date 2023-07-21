@@ -1,6 +1,7 @@
 use crate::errors::AppResult;
 
 use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
+use super::widgets::footer::Footer;
 use super::widgets::notification::{
     Notification, NotificationRequestReceiver, NotificationRequestSender,
 };
@@ -52,6 +53,7 @@ impl App {
                     tx.clone(),
                 )),
                 Box::new(Stats::new(2, task_request_sender.clone(), tx.clone())),
+                Box::new(Footer::new(3, task_request_sender.clone(), tx.clone())),
             ],
             notification_receiver: rx,
             selected_wid_idx: 0,

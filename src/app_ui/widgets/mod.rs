@@ -1,3 +1,4 @@
+pub mod footer;
 pub(crate) mod notification;
 pub(crate) mod popup;
 pub mod question_list;

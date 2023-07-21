@@ -1,4 +1,7 @@
-use crate::entities::{QuestionModel, TopicTagModel};
+use crate::{
+    app_ui::components::help_text::HelpText,
+    entities::{QuestionModel, TopicTagModel},
+};
 
 #[derive(Debug, Clone)]
 pub struct PopupMessage {
@@ -11,6 +14,7 @@ pub enum Notification {
     Questions(Vec<TopicTagModel>),
     Stats(Vec<QuestionModel>),
     Popup(PopupMessage),
+    HelpText(Vec<HelpText>),
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;
