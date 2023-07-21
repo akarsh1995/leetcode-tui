@@ -177,6 +177,11 @@ impl super::Widget for QuestionListWidget {
                     )
                 });
                 self.all_questions.extend(map_iter);
+                self.process_notification(&Notification::Questions(vec![TopicTagModel {
+                    name: Some("All".to_owned()),
+                    id: "all".to_owned(),
+                    slug: Some("all".to_owned()),
+                }]))?;
             }
             crate::app_ui::channel::TaskResponse::QuestionDetail(qd) => {
                 let selected_question = self.questions.get_selected_item();
