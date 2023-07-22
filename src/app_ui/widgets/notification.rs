@@ -7,7 +7,7 @@ use crate::{
 pub struct PopupMessage {
     pub(crate) title: String,
     pub(crate) message: String,
-    pub(crate) help_texts: Vec<HelpText>,
+    pub(crate) help_texts: IndexSet<HelpText>,
 }
 
 #[derive(Debug, Hash, Eq, Clone, PartialEq)]
@@ -41,7 +41,8 @@ pub enum Notification {
     Questions(NotifContent<Vec<TopicTagModel>>),
     Stats(NotifContent<Vec<QuestionModel>>),
     Popup(NotifContent<PopupMessage>),
-    HelpText(NotifContent<Vec<HelpText>>),
+    HelpText(NotifContent<IndexSet<HelpText>>),
+    Event(NotifContent<KeyEvent>),
 }
 
 impl Notification {
@@ -67,6 +68,11 @@ impl Notification {
                 dest_wid,
                 content: _,
             }) => dest_wid,
+            Notification::Event(NotifContent {
+                src_wid: _,
+                dest_wid,
+                content: _,
+            }) => dest_wid,
         }
     }
 }
@@ -81,7 +87,8 @@ pub enum WidgetVariant {
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;
-use crossterm::event::KeyCode;
+use crossterm::event::KeyEvent;
+use indexmap::IndexSet;
 
 use super::{
     footer::Footer, popup::Popup, question_list::QuestionListWidget, stats::Stats,

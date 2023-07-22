@@ -1,8 +1,10 @@
+use std::collections::HashSet;
+
 use crate::app_ui::channel::ChannelRequestSender;
 use crate::app_ui::components::help_text::HelpText;
 use crate::errors::AppResult;
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::block::Position;
 use ratatui::{prelude::*, widgets::Block};
 
@@ -12,27 +14,23 @@ use super::{CommonState, CrosstermStderr};
 #[derive(Debug)]
 pub struct Footer {
     pub common_state: CommonState,
-    pub helptexts: Vec<HelpText>,
 }
 
 impl Footer {
     pub fn new(widget_name: WidgetName, task_sender: ChannelRequestSender) -> Self {
-        let mut cs = CommonState::new(widget_name, task_sender);
+        let mut cs = CommonState::new(widget_name, task_sender, vec![]);
         cs.is_navigable = false;
-        Self {
-            common_state: cs,
-            helptexts: vec![],
-        }
+        Self { common_state: cs }
     }
 }
 
 impl super::Widget for Footer {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let mut spans = vec![];
-        for (i, ht) in self.helptexts.iter().enumerate() {
+        for (i, ht) in self.get_help_texts().iter().enumerate() {
             let help_string: String = ht.into();
             spans.push(Span::from(help_string).white().on_cyan());
-            if i < self.helptexts.len() - 1 {
+            if i < self.get_help_texts().len() - 1 {
                 spans.push(Span::from(" "))
             }
         }
@@ -72,7 +70,7 @@ impl super::Widget for Footer {
             content,
         }) = notification
         {
-            self.helptexts = content.clone()
+            *self.get_help_texts_mut() = content.clone();
         }
         Ok(None)
     }

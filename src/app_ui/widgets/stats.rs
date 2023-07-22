@@ -13,7 +13,7 @@ pub struct Stats {
 
 impl Stats {
     pub(crate) fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
-        let mut cs = CommonState::new(id, task_sender);
+        let mut cs = CommonState::new(id, task_sender, vec![]);
         cs.is_navigable = false;
         Self {
             stat_state: None,

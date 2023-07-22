@@ -1,9 +1,10 @@
-use std::collections::HashSet;
-
 use crate::{
     app_ui::{
         channel::{ChannelRequestSender, TaskResponse},
-        components::{help_text::HelpText, rect::centered_rect},
+        components::{
+            help_text::{CommonHelpText, HelpText},
+            rect::centered_rect,
+        },
     },
     errors::AppResult,
 };
@@ -26,23 +27,22 @@ pub struct Popup {
     pub title: String,
     pub scroll_x: u16,
     pub scroll_y: u16,
-    pub can_handle_keys: HashSet<KeyCode>,
-    pub default_help_text: Vec<HelpText>,
+    pub callee_wid: Option<WidgetName>,
 }
 
 impl Popup {
     pub fn new(widget_name: WidgetName, task_sender: ChannelRequestSender) -> Self {
         Self {
-            common_state: CommonState::new(widget_name, task_sender),
+            common_state: CommonState::new(
+                widget_name,
+                task_sender,
+                vec![CommonHelpText::Close.into()],
+            ),
             message: "No message so far".to_string(),
             title: "Popup".to_string(),
             scroll_x: 0,
+            callee_wid: None,
             scroll_y: 0,
-            can_handle_keys: HashSet::from_iter(vec![KeyCode::Enter, KeyCode::Esc]),
-            default_help_text: vec![
-                HelpText::new("Close".to_string(), vec![KeyCode::Enter]),
-                HelpText::new("Close".to_string(), vec![KeyCode::Esc]),
-            ],
         }
     }
 }
@@ -84,7 +84,15 @@ impl Widget for Popup {
             }
             KeyCode::Up => self.scroll_y = self.scroll_y.saturating_sub(1),
             KeyCode::Down => self.scroll_y += 1,
-            _ => (),
+            _ => {
+                // in case popup has helptext to take the event but does not have associated key in
+                // the handler mapping pass it to the popup callee
+                return Ok(Some(Notification::Event(NotifContent {
+                    src_wid: self.get_widget_name(),
+                    dest_wid: self.callee_wid.as_ref().unwrap().clone(),
+                    content: event,
+                })));
+            }
         }
         Ok(None)
     }
@@ -107,21 +115,19 @@ impl Widget for Popup {
         notification: &Notification,
     ) -> AppResult<Option<Notification>> {
         if let Notification::Popup(NotifContent {
-            src_wid: _,
+            src_wid,
             dest_wid: _,
             content,
         }) = notification
         {
             self.message = content.message.to_owned();
             self.title = content.title.to_owned();
-            self.can_handle_keys
-                .extend(content.help_texts.iter().map(|ht| ht.get_keys()).flatten());
-            self.default_help_text
-                .append(&mut content.help_texts.clone());
+            self.callee_wid = Some(src_wid.clone());
+            self.get_help_texts_mut().extend(content.help_texts.clone());
             return Ok(Some(Notification::HelpText(NotifContent {
                 src_wid: self.common_state.widget_name.clone(),
                 dest_wid: WidgetName::HelpLine,
-                content: self.default_help_text.clone(),
+                content: self.get_help_texts().clone(),
             })));
         }
         Ok(None)

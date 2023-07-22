@@ -1,9 +1,19 @@
+use std::hash::Hash;
+
 use crossterm::event::{KeyCode, ModifierKeyCode};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct HelpText {
     button: Vec<KeyCode>,
     title: String,
+}
+
+impl Eq for HelpText {}
+
+impl PartialEq for HelpText {
+    fn eq(&self, other: &Self) -> bool {
+        self.title == other.title
+    }
 }
 
 impl HelpText {
@@ -71,6 +81,32 @@ impl From<&HelpText> for String {
             .iter()
             .map(|k| HelpText::get_symbol_by_keycode(k))
             .collect::<String>();
-        format!("{}{}", symbols, value.title)
+        format!("{}[{}]", value.title, symbols,)
+    }
+}
+
+pub(crate) enum CommonHelpText {
+    ScrollUp,
+    ScrollDown,
+    SwitchPane,
+    Solve,
+    ReadContent,
+    Close,
+}
+
+impl Into<HelpText> for CommonHelpText {
+    fn into(self) -> HelpText {
+        let (k, t) = match self {
+            CommonHelpText::ScrollUp => (vec![KeyCode::Up], "Up"),
+            CommonHelpText::ScrollDown => (vec![KeyCode::Down], "Down"),
+            CommonHelpText::SwitchPane => (vec![KeyCode::Left, KeyCode::Right], "Switch Pane"),
+            CommonHelpText::Solve => (vec![KeyCode::Char('S'), KeyCode::Char('s')], "Solve"),
+            CommonHelpText::ReadContent => (vec![KeyCode::Enter], "Read Content"),
+            CommonHelpText::Close => (vec![KeyCode::Esc, KeyCode::Enter], "Close"),
+        };
+        HelpText {
+            button: k,
+            title: t.to_string(),
+        }
     }
 }

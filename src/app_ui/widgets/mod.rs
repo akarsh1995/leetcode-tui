@@ -7,14 +7,18 @@ pub mod topic_list;
 
 use std::{collections::HashMap, fmt::Debug, io::Stderr};
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
+use indexmap::IndexSet;
 use ratatui::{prelude::Rect, prelude::*, Frame};
 
 use crate::errors::AppResult;
 
 use self::notification::{Notification, WidgetName, WidgetVariant};
 
-use super::channel::{ChannelRequestSender, TaskResponse};
+use super::{
+    channel::{ChannelRequestSender, TaskResponse},
+    components::help_text::HelpText,
+};
 
 #[derive(Debug)]
 pub struct CommonState {
@@ -22,26 +26,52 @@ pub struct CommonState {
     active: bool,
     pub task_sender: ChannelRequestSender,
     pub is_navigable: bool,
+    help_texts: IndexSet<HelpText>,
 }
 
 impl CommonState {
-    pub(crate) fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
+    pub(crate) fn new(
+        id: WidgetName,
+        task_sender: ChannelRequestSender,
+        help_texts: Vec<HelpText>,
+    ) -> Self {
         Self {
             widget_name: id,
             active: false,
             task_sender,
             is_navigable: true,
+            help_texts: IndexSet::from_iter(help_texts),
         }
+    }
+
+    pub(crate) fn get_key_set(&self) -> IndexSet<&KeyCode> {
+        self.help_texts
+            .iter()
+            .map(|ht| ht.get_keys())
+            .flatten()
+            .collect::<IndexSet<_>>()
     }
 }
 
 pub trait Widget: Debug {
+    fn get_key_set(&self) -> IndexSet<&KeyCode> {
+        self.get_common_state().get_key_set()
+    }
+
     fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.get_common_state_mut().active = true;
         Ok(None)
     }
     fn is_active(&self) -> bool {
         self.get_common_state().active
+    }
+
+    fn get_help_texts(&self) -> &IndexSet<HelpText> {
+        &self.get_common_state().help_texts
+    }
+
+    fn get_help_texts_mut(&mut self) -> &mut IndexSet<HelpText> {
+        &mut self.get_common_state_mut().help_texts
     }
 
     fn is_navigable(&self) -> bool {

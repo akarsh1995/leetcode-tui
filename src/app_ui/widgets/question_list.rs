@@ -2,12 +2,13 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::app_ui::channel::Response;
-use crate::app_ui::components::help_text::HelpText;
+use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
 use crate::app_ui::{channel::ChannelRequestSender, components::list::StatefulList};
 use crate::entities::{QuestionModel, TopicTagModel};
 use crate::errors::AppResult;
 
 use crossterm::event::{KeyCode, KeyEvent};
+use indexmap::IndexSet;
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, List, ListItem},
@@ -21,12 +22,29 @@ pub struct QuestionListWidget {
     pub common_state: CommonState,
     pub questions: StatefulList<QuestionModel>,
     pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Rc<QuestionModel>>>,
+    popup_events: IndexSet<HelpText>,
 }
 
 impl QuestionListWidget {
     pub fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
         Self {
-            common_state: CommonState::new(id, task_sender),
+            popup_events: IndexSet::from_iter([
+                // since the popup will be the question detail
+                CommonHelpText::ScrollUp.into(),
+                CommonHelpText::ScrollDown.into(),
+                CommonHelpText::Solve.into(),
+            ]),
+            common_state: CommonState::new(
+                id,
+                task_sender,
+                vec![
+                    CommonHelpText::SwitchPane.into(),
+                    CommonHelpText::ScrollUp.into(),
+                    CommonHelpText::ScrollDown.into(),
+                    CommonHelpText::Solve.into(),
+                    CommonHelpText::ReadContent.into(),
+                ],
+            ),
             all_questions: HashMap::new(),
             questions: Default::default(),
         }
@@ -86,15 +104,7 @@ impl super::Widget for QuestionListWidget {
         Ok(Some(Notification::HelpText(NotifContent::new(
             WidgetName::QuestionList,
             WidgetName::HelpLine,
-            vec![
-                HelpText::new(
-                    "Switch Pane".to_string(),
-                    vec![KeyCode::Left, KeyCode::Right],
-                ),
-                HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
-                HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
-                HelpText::new("Read Content".to_string(), vec![KeyCode::Enter]),
-            ],
+            self.get_help_texts().clone(),
         ))))
     }
 
@@ -143,6 +153,9 @@ impl super::Widget for QuestionListWidget {
                         )?;
                     };
                 }
+            }
+            KeyCode::Char('s') | KeyCode::Char('S') => {
+                println!("solvingthe question");
             }
             _ => {}
         };
@@ -197,10 +210,7 @@ impl super::Widget for QuestionListWidget {
                             PopupMessage {
                                 message: qd.content.html_to_text(),
                                 title: title.clone(),
-                                help_texts: vec![
-                                    HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
-                                    HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
-                                ],
+                                help_texts: self.popup_events.clone(),
                             },
                         ))));
                     }
@@ -215,47 +225,56 @@ impl super::Widget for QuestionListWidget {
         &mut self,
         notification: &Notification,
     ) -> AppResult<Option<Notification>> {
-        if let Notification::Questions(NotifContent {
-            src_wid: _,
-            dest_wid: _,
-            content: tags,
-        }) = notification
-        {
-            self.questions.items = vec![];
-            for tag in tags {
-                if tag.id == "all" {
-                    let mut question_set = HashSet::new();
-                    for val in self.all_questions.values().flatten() {
-                        question_set.insert(val.clone());
-                    }
-                    let notif = Notification::Stats(NotifContent::new(
-                        WidgetName::QuestionList,
-                        WidgetName::Stats,
-                        question_set
-                            .clone()
-                            .into_iter()
-                            .map(|q| q.as_ref().clone())
-                            .collect::<Vec<_>>(),
-                    ));
-                    self.questions.items.extend(question_set.into_iter());
-                    self.questions.items.sort();
-                    return Ok(Some(notif));
-                } else {
-                    let values = self.all_questions.get(tag).unwrap();
-                    let notif = Notification::Stats(NotifContent::new(
-                        WidgetName::QuestionList,
-                        WidgetName::Stats,
-                        values
-                            .iter()
-                            .map(|x| x.as_ref().clone())
-                            .collect::<Vec<_>>(),
-                    ));
-                    self.questions
-                        .items
-                        .extend(values.iter().map(|q| q.clone()));
-                    return Ok(Some(notif));
-                };
+        match notification {
+            Notification::Questions(NotifContent {
+                src_wid: _,
+                dest_wid: _,
+                content: tags,
+            }) => {
+                self.questions.items = vec![];
+                for tag in tags {
+                    if tag.id == "all" {
+                        let mut question_set = HashSet::new();
+                        for val in self.all_questions.values().flatten() {
+                            question_set.insert(val.clone());
+                        }
+                        let notif = Notification::Stats(NotifContent::new(
+                            WidgetName::QuestionList,
+                            WidgetName::Stats,
+                            question_set
+                                .clone()
+                                .into_iter()
+                                .map(|q| q.as_ref().clone())
+                                .collect::<Vec<_>>(),
+                        ));
+                        self.questions.items.extend(question_set.into_iter());
+                        self.questions.items.sort();
+                        return Ok(Some(notif));
+                    } else {
+                        let values = self.all_questions.get(tag).unwrap();
+                        let notif = Notification::Stats(NotifContent::new(
+                            WidgetName::QuestionList,
+                            WidgetName::Stats,
+                            values
+                                .iter()
+                                .map(|x| x.as_ref().clone())
+                                .collect::<Vec<_>>(),
+                        ));
+                        self.questions
+                            .items
+                            .extend(values.iter().map(|q| q.clone()));
+                        return Ok(Some(notif));
+                    };
+                }
             }
+            Notification::Event(NotifContent {
+                src_wid: _,
+                dest_wid: _,
+                content: event,
+            }) => {
+                return self.handler(*event);
+            }
+            _ => {}
         }
         Ok(None)
     }

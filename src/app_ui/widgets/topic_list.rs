@@ -1,13 +1,13 @@
 use crate::{
     app_ui::{
         channel::{ChannelRequestSender, Response, TaskRequest, TaskResponse},
-        components::{help_text::HelpText, list::StatefulList},
+        components::{help_text::CommonHelpText, list::StatefulList},
     },
     entities::TopicTagModel,
     errors::AppResult,
 };
 
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::KeyEvent;
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, List, ListItem},
@@ -30,7 +30,15 @@ pub struct TopicTagListWidget {
 impl TopicTagListWidget {
     pub fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
         Self {
-            common_state: CommonState::new(id, task_sender),
+            common_state: CommonState::new(
+                id,
+                task_sender,
+                vec![
+                    CommonHelpText::ScrollUp.into(),
+                    CommonHelpText::ScrollDown.into(),
+                    CommonHelpText::SwitchPane.into(),
+                ],
+            ),
             topics: Default::default(),
         }
     }
@@ -66,14 +74,7 @@ impl Widget for TopicTagListWidget {
         Ok(Some(Notification::HelpText(NotifContent::new(
             WidgetName::TopicList,
             WidgetName::HelpLine,
-            vec![
-                HelpText::new(
-                    "Switch Pane".to_string(),
-                    vec![KeyCode::Left, KeyCode::Right],
-                ),
-                HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
-                HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
-            ],
+            self.get_help_texts().clone(),
         ))))
     }
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
