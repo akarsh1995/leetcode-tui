@@ -81,9 +81,22 @@ impl QuestionListWidget {
 }
 
 impl super::Widget for QuestionListWidget {
-    fn set_active(&mut self) {
+    fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.get_common_state_mut().active = true;
+        Ok(Some(Notification::HelpText(
+            WidgetName::HelpLine,
+            vec![
+                HelpText::new(
+                    "Switch Pane".to_string(),
+                    vec![KeyCode::Left, KeyCode::Right],
+                ),
+                HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
+                HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
+                HelpText::new("Read Content".to_string(), vec![KeyCode::Enter]),
+            ],
+        )))
     }
+
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self
             .questions
@@ -140,11 +153,6 @@ impl super::Widget for QuestionListWidget {
             .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap {
                 widget_name: self.get_widget_name(),
             })?;
-        // Ok(Some(Notification::HelpText(WidgetName, vec![
-        //     HelpText::new("Switch Pane".to_string(), vec![KeyCode::Right]),
-        //     HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
-        //     HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
-        // ])))
         Ok(None)
     }
 

@@ -1,13 +1,13 @@
 use crate::{
     app_ui::{
         channel::{ChannelRequestSender, Response, TaskRequest, TaskResponse},
-        components::list::StatefulList,
+        components::{help_text::HelpText, list::StatefulList},
     },
     entities::TopicTagModel,
     errors::AppResult,
 };
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, List, ListItem},
@@ -57,6 +57,20 @@ impl TopicTagListWidget {
 }
 
 impl Widget for TopicTagListWidget {
+    fn set_active(&mut self) -> AppResult<Option<Notification>> {
+        self.common_state.active = true;
+        Ok(Some(Notification::HelpText(
+            WidgetName::HelpLine,
+            vec![
+                HelpText::new(
+                    "Switch Pane".to_string(),
+                    vec![KeyCode::Left, KeyCode::Right],
+                ),
+                HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
+                HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
+            ],
+        )))
+    }
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self
             .topics

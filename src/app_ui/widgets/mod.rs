@@ -1,4 +1,4 @@
-// pub mod footer;
+pub(crate) mod footer;
 pub(crate) mod notification;
 pub(crate) mod popup;
 pub mod question_list;
@@ -36,8 +36,9 @@ impl CommonState {
 }
 
 pub trait Widget: Debug {
-    fn set_active(&mut self) {
+    fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.get_common_state_mut().active = true;
+        Ok(None)
     }
     fn is_active(&self) -> bool {
         self.get_common_state().active
@@ -81,12 +82,13 @@ pub trait Widget: Debug {
 }
 
 impl WidgetVariant {
-    pub fn set_active(&mut self) {
+    pub fn set_active(&mut self) -> AppResult<Option<Notification>> {
         match self {
             WidgetVariant::QuestionList(v) => v.set_active(),
             WidgetVariant::TopicList(v) => v.set_active(),
             WidgetVariant::Stats(v) => v.set_active(),
             WidgetVariant::Popup(v) => v.set_active(),
+            WidgetVariant::HelpLine(v) => v.set_active(),
         }
     }
 
@@ -96,6 +98,7 @@ impl WidgetVariant {
             WidgetVariant::TopicList(v) => v.set_inactive(),
             WidgetVariant::Stats(v) => v.set_inactive(),
             WidgetVariant::Popup(v) => v.set_inactive(),
+            WidgetVariant::HelpLine(v) => v.set_inactive(),
         }
     }
 
@@ -105,6 +108,7 @@ impl WidgetVariant {
             WidgetVariant::TopicList(v) => v.is_navigable(),
             WidgetVariant::Stats(v) => v.is_navigable(),
             WidgetVariant::Popup(v) => v.is_navigable(),
+            WidgetVariant::HelpLine(v) => v.is_navigable(),
         }
     }
 
@@ -114,6 +118,7 @@ impl WidgetVariant {
             WidgetVariant::TopicList(v) => v.setup(),
             WidgetVariant::Stats(v) => v.setup(),
             WidgetVariant::Popup(v) => v.setup(),
+            WidgetVariant::HelpLine(v) => v.setup(),
         }
     }
 
@@ -126,6 +131,7 @@ impl WidgetVariant {
             WidgetVariant::TopicList(v) => v.process_task_response(response),
             WidgetVariant::Stats(v) => v.process_task_response(response),
             WidgetVariant::Popup(v) => v.process_task_response(response),
+            WidgetVariant::HelpLine(v) => v.process_task_response(response),
         }
     }
 
@@ -135,6 +141,7 @@ impl WidgetVariant {
             WidgetVariant::TopicList(v) => v.handler(event),
             WidgetVariant::Stats(v) => v.handler(event),
             WidgetVariant::Popup(v) => v.handler(event),
+            WidgetVariant::HelpLine(v) => v.handler(event),
         }
     }
 
@@ -147,6 +154,7 @@ impl WidgetVariant {
             WidgetVariant::TopicList(v) => v.process_notification(notification),
             WidgetVariant::Stats(v) => v.process_notification(notification),
             WidgetVariant::Popup(v) => v.process_notification(notification),
+            WidgetVariant::HelpLine(v) => v.process_notification(notification),
         }
     }
 
@@ -156,6 +164,7 @@ impl WidgetVariant {
             WidgetVariant::TopicList(v) => v.render(rect, frame),
             WidgetVariant::Stats(v) => v.render(rect, frame),
             WidgetVariant::Popup(v) => v.render(rect, frame),
+            WidgetVariant::HelpLine(v) => v.render(rect, frame),
         }
     }
 
@@ -165,6 +174,7 @@ impl WidgetVariant {
             WidgetVariant::TopicList(v) => v.is_active(),
             WidgetVariant::Stats(v) => v.is_active(),
             WidgetVariant::Popup(v) => v.is_active(),
+            WidgetVariant::HelpLine(v) => v.is_active(),
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
+use super::widgets::footer::Footer;
 use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
 use super::widgets::popup::Popup;
 use super::widgets::question_list::QuestionListWidget;
@@ -46,10 +47,16 @@ impl App {
 
         let w2 = WidgetVariant::Stats(Stats::new(WidgetName::Stats, task_request_sender.clone()));
 
+        let w3 = WidgetVariant::HelpLine(Footer::new(
+            WidgetName::HelpLine,
+            task_request_sender.clone(),
+        ));
+
         let order = [
             (WidgetName::TopicList, w0),
             (WidgetName::QuestionList, w1),
             (WidgetName::Stats, w2),
+            (WidgetName::HelpLine, w3),
         ];
 
         let mut app = Self {
@@ -69,27 +76,29 @@ impl App {
         self.widget_map.len()
     }
 
-    pub fn navigate(&mut self, val: i32) {
+    pub fn navigate(&mut self, val: i32) -> AppResult<Option<Notification>> {
         self.get_current_widget_mut().set_inactive();
         let a = self.selected_wid_idx + val;
         let b = self.total_widgets_count() as i32;
         self.selected_wid_idx = ((a % b) + b) % b;
-        self.get_current_widget_mut().set_active();
+        let maybe_notif = self.get_current_widget_mut().set_active()?;
+        self.push_notif(maybe_notif);
         if !self.get_current_widget().is_navigable() {
-            self.navigate(val)
+            self.navigate(val)?;
         }
+        Ok(None)
     }
 
     pub fn get_widget(&mut self, v: &WidgetName) -> &mut WidgetVariant {
         self.widget_map.get_mut(v).unwrap()
     }
 
-    pub fn next_widget(&mut self) {
-        self.navigate(1);
+    pub fn next_widget(&mut self) -> AppResult<Option<Notification>> {
+        self.navigate(1)
     }
 
-    pub fn prev_widget(&mut self) {
-        self.navigate(-1);
+    pub fn prev_widget(&mut self) -> AppResult<Option<Notification>> {
+        self.navigate(-1)
     }
 
     pub fn get_current_widget(&self) -> &WidgetVariant {
@@ -115,13 +124,18 @@ impl App {
     }
 
     pub fn setup(&mut self) -> AppResult<()> {
-        self.get_current_widget_mut().set_active();
+        let maybe_notif = self.get_current_widget_mut().set_active()?;
+        self.push_notif(maybe_notif);
         let mut v = vec![];
         for (_, widget) in self.widget_map.iter_mut() {
             v.push(widget.setup()?);
         }
         self.pending_notifications.extend(v);
         Ok(())
+    }
+
+    pub fn push_notif(&mut self, value: Option<Notification>) {
+        self.pending_notifications.push_back(value)
     }
 
     /// Handles the tick event of the terminal.
@@ -132,6 +146,8 @@ impl App {
             if !active_pop.is_active() {
                 self.popup_stack.pop();
             };
+            let k = self.get_current_widget_mut().set_active()?;
+            self.push_notif(k);
         }
         self.check_for_task()?;
         self.process_pending_notification()?;
@@ -159,7 +175,7 @@ impl App {
                         wid_name.clone(),
                         self.task_request_sender.clone(),
                     ));
-                    popup_instance.set_active();
+                    self.push_notif(popup_instance.set_active()?);
                     let maybe_notif = popup_instance.process_notification(&notif)?;
                     self.pending_notifications.push_back(maybe_notif);
                     self.popup_stack.push(popup_instance);

@@ -1,23 +1,13 @@
-use std::{
-    collections::{HashMap, HashSet},
-    rc::Rc,
-};
-
-use crate::app_ui::channel::Response;
+use crate::app_ui::channel::ChannelRequestSender;
 use crate::app_ui::components::help_text::HelpText;
-use crate::app_ui::{channel::ChannelRequestSender, components::list::StatefulList};
-use crate::entities::{QuestionModel, TopicTagModel};
 use crate::errors::AppResult;
 
-use crossterm::event::{KeyCode, KeyEvent, ModifierKeyCode};
-use ratatui::widgets::block::{Position, Title};
-use ratatui::{
-    prelude::*,
-    widgets::{Block, Borders, List, ListItem},
-};
+use crossterm::event::KeyEvent;
+use ratatui::widgets::block::Position;
+use ratatui::{prelude::*, widgets::Block};
 
-use super::notification::{Notification, NotificationRequestSender, PopupMessage};
-use super::{Callout, CommonState, CrosstermStderr, CHECK_MARK};
+use super::notification::{Notification, WidgetName};
+use super::{CommonState, CrosstermStderr};
 
 #[derive(Debug)]
 pub struct Footer {
@@ -26,12 +16,8 @@ pub struct Footer {
 }
 
 impl Footer {
-    pub fn new(
-        id: i32,
-        task_sender: ChannelRequestSender,
-        notif_req_sender: NotificationRequestSender,
-    ) -> Self {
-        let mut cs = CommonState::new(id, task_sender, notif_req_sender);
+    pub fn new(widget_name: WidgetName, task_sender: ChannelRequestSender) -> Self {
+        let mut cs = CommonState::new(widget_name, task_sender);
         cs.is_navigable = false;
         Self {
             common_state: cs,
@@ -61,26 +47,29 @@ impl super::Widget for Footer {
         }
     }
 
-    fn handler(&mut self, event: KeyEvent) -> AppResult<()> {
-        Ok(())
+    fn handler(&mut self, _event: KeyEvent) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
-    fn setup(&mut self) -> AppResult<()> {
-        Ok(())
+    fn setup(&mut self) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
     fn process_task_response(
         &mut self,
-        response: crate::app_ui::channel::TaskResponse,
-    ) -> AppResult<()> {
-        Ok(())
+        _response: crate::app_ui::channel::TaskResponse,
+    ) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
-    fn process_notification(&mut self, notification: &Notification) -> AppResult<()> {
-        if let Notification::HelpText(ht) = notification {
+    fn process_notification(
+        &mut self,
+        notification: &Notification,
+    ) -> AppResult<Option<Notification>> {
+        if let Notification::HelpText(_, ht) = notification {
             self.helptexts = ht.clone()
         }
-        Ok(())
+        Ok(None)
     }
 
     fn set_response(&mut self) {}

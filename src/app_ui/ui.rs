@@ -41,10 +41,10 @@ pub fn render(app: &mut App, f: &mut CrosstermStderr) {
         .split(chunks[1]);
 
     let layout_map = HashMap::from([
-        (WidgetName::TopicList, left_chunks[0]), // tags
-        (WidgetName::Stats, left_chunks[1]),     // stats
+        (WidgetName::TopicList, left_chunks[0]),    // tags
+        (WidgetName::Stats, left_chunks[1]),        // stats
         (WidgetName::QuestionList, right_chunk[0]), // question
-                                                 // (3, size),
+        (WidgetName::HelpLine, size),
     ]);
 
     for (name, wid) in app.widget_map.iter_mut() {

@@ -16,8 +16,8 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<Option
     }
 
     match key_event.code {
-        KeyCode::Left => app.next_widget(),
-        KeyCode::Right => app.prev_widget(),
+        KeyCode::Left => return app.next_widget(),
+        KeyCode::Right => return app.prev_widget(),
         KeyCode::Char('q') | KeyCode::Char('Q') => app.running = false,
         KeyCode::Char('c') | KeyCode::Char('C') => {
             if key_event.modifiers == KeyModifiers::CONTROL {
