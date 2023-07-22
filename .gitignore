@@ -3,3 +3,4 @@
 leetcode.sqlite
 config.toml
 src/.vscode
+temp/
