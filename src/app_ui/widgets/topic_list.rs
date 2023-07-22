@@ -15,7 +15,7 @@ use ratatui::{
 
 use super::{
     notification::{
-        Notification,
+        NotifContent, Notification,
         WidgetName::{self, QuestionList},
     },
     Callout, CommonState, CrosstermStderr, Widget,
@@ -49,7 +49,11 @@ impl TopicTagListWidget {
     fn update_questions(&mut self) -> AppResult<Option<Notification>> {
         if let Some(sel) = self.topics.get_selected_item() {
             let questions = vec![sel.as_ref().clone()];
-            let notif = Notification::Questions(QuestionList, questions);
+            let notif = Notification::Questions(NotifContent::new(
+                WidgetName::TopicList,
+                QuestionList,
+                questions,
+            ));
             return Ok(Some(notif));
         }
         Ok(None)
@@ -59,7 +63,8 @@ impl TopicTagListWidget {
 impl Widget for TopicTagListWidget {
     fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.common_state.active = true;
-        Ok(Some(Notification::HelpText(
+        Ok(Some(Notification::HelpText(NotifContent::new(
+            WidgetName::TopicList,
             WidgetName::HelpLine,
             vec![
                 HelpText::new(
@@ -69,7 +74,7 @@ impl Widget for TopicTagListWidget {
                 HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
                 HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
             ],
-        )))
+        ))))
     }
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self

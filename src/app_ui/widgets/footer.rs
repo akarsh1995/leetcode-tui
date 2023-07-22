@@ -6,7 +6,7 @@ use crossterm::event::KeyEvent;
 use ratatui::widgets::block::Position;
 use ratatui::{prelude::*, widgets::Block};
 
-use super::notification::{Notification, WidgetName};
+use super::notification::{NotifContent, Notification, WidgetName};
 use super::{CommonState, CrosstermStderr};
 
 #[derive(Debug)]
@@ -66,8 +66,13 @@ impl super::Widget for Footer {
         &mut self,
         notification: &Notification,
     ) -> AppResult<Option<Notification>> {
-        if let Notification::HelpText(_, ht) = notification {
-            self.helptexts = ht.clone()
+        if let Notification::HelpText(NotifContent {
+            src_wid: _,
+            dest_wid: _,
+            content,
+        }) = notification
+        {
+            self.helptexts = content.clone()
         }
         Ok(None)
     }

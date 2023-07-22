@@ -19,20 +19,53 @@ pub enum WidgetName {
 }
 
 #[derive(Debug, Clone)]
+pub struct NotifContent<T> {
+    pub src_wid: WidgetName,
+    pub dest_wid: WidgetName,
+    pub content: T,
+}
+
+impl<T> NotifContent<T> {
+    pub fn new(src_wid: WidgetName, dest_wid: WidgetName, content: T) -> Self {
+        Self {
+            src_wid,
+            dest_wid,
+            content,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Notification {
-    Questions(WidgetName, Vec<TopicTagModel>),
-    Stats(WidgetName, Vec<QuestionModel>),
-    Popup(WidgetName, PopupMessage),
-    HelpText(WidgetName, Vec<HelpText>),
+    Questions(NotifContent<Vec<TopicTagModel>>),
+    Stats(NotifContent<Vec<QuestionModel>>),
+    Popup(NotifContent<PopupMessage>),
+    HelpText(NotifContent<Vec<HelpText>>),
 }
 
 impl Notification {
     pub fn get_wid_name(&self) -> &WidgetName {
         match self {
-            Notification::Questions(n, _) => n,
-            Notification::Stats(n, _) => n,
-            Notification::Popup(n, _) => n,
-            Notification::HelpText(n, _) => n,
+            Notification::Questions(NotifContent {
+                src_wid: _,
+                dest_wid,
+                content: _,
+            }) => dest_wid,
+            Notification::Stats(NotifContent {
+                src_wid: _,
+                dest_wid,
+                content: _,
+            }) => dest_wid,
+            Notification::Popup(NotifContent {
+                src_wid: _,
+                dest_wid,
+                content: _,
+            }) => dest_wid,
+            Notification::HelpText(NotifContent {
+                src_wid: _,
+                dest_wid,
+                content: _,
+            }) => dest_wid,
         }
     }
 }
@@ -52,8 +85,5 @@ use super::{
     footer::Footer, popup::Popup, question_list::QuestionListWidget, stats::Stats,
     topic_list::TopicTagListWidget,
 };
-
-pub type NotificationRequestSender = crossbeam::channel::Sender<Notification>;
-pub type NotificationRequestReceiver = crossbeam::channel::Receiver<Notification>;
 
 pub type NotificationRequestSendError = crossbeam::channel::SendError<Notification>;

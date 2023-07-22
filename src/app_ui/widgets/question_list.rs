@@ -13,7 +13,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
-use super::notification::{Notification, NotificationRequestSender, PopupMessage, WidgetName};
+use super::notification::{NotifContent, Notification, PopupMessage, WidgetName};
 use super::{Callout, CommonState, CrosstermStderr, CHECK_MARK};
 
 #[derive(Debug)]
@@ -83,7 +83,8 @@ impl QuestionListWidget {
 impl super::Widget for QuestionListWidget {
     fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.get_common_state_mut().active = true;
-        Ok(Some(Notification::HelpText(
+        Ok(Some(Notification::HelpText(NotifContent::new(
+            WidgetName::QuestionList,
             WidgetName::HelpLine,
             vec![
                 HelpText::new(
@@ -94,7 +95,7 @@ impl super::Widget for QuestionListWidget {
                 HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
                 HelpText::new("Read Content".to_string(), vec![KeyCode::Enter]),
             ],
-        )))
+        ))))
     }
 
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
@@ -175,27 +176,29 @@ impl super::Widget for QuestionListWidget {
                 for (_, ql) in &mut self.all_questions {
                     ql.sort_unstable()
                 }
-                return Ok(Some(Notification::Questions(
+                return Ok(Some(Notification::Questions(NotifContent::new(
+                    WidgetName::QuestionList,
                     super::notification::WidgetName::QuestionList,
                     vec![TopicTagModel {
                         name: Some("All".to_owned()),
                         id: "all".to_owned(),
                         slug: Some("all".to_owned()),
                     }],
-                )));
+                ))));
             }
             crate::app_ui::channel::TaskResponse::QuestionDetail(qd) => {
                 let selected_question = self.questions.get_selected_item();
                 if let Some(sel) = selected_question {
                     let model = sel.clone();
                     if let Some(title_slug) = model.title_slug.as_ref() {
-                        return Ok(Some(Notification::Popup(
+                        return Ok(Some(Notification::Popup(NotifContent::new(
+                            WidgetName::QuestionList,
                             WidgetName::Popup,
                             PopupMessage {
                                 message: qd.content.html_to_text(),
                                 title: title_slug.clone(),
                             },
-                        )));
+                        ))));
                     }
                 }
             }
@@ -208,7 +211,12 @@ impl super::Widget for QuestionListWidget {
         &mut self,
         notification: &Notification,
     ) -> AppResult<Option<Notification>> {
-        if let Notification::Questions(_w, tags) = notification {
+        if let Notification::Questions(NotifContent {
+            src_wid: _,
+            dest_wid: _,
+            content: tags,
+        }) = notification
+        {
             self.questions.items = vec![];
             for tag in tags {
                 if tag.id == "all" {
@@ -216,26 +224,28 @@ impl super::Widget for QuestionListWidget {
                     for val in self.all_questions.values().flatten() {
                         question_set.insert(val.clone());
                     }
-                    let notif = Notification::Stats(
+                    let notif = Notification::Stats(NotifContent::new(
+                        WidgetName::QuestionList,
                         WidgetName::Stats,
                         question_set
                             .clone()
                             .into_iter()
                             .map(|q| q.as_ref().clone())
                             .collect::<Vec<_>>(),
-                    );
+                    ));
                     self.questions.items.extend(question_set.into_iter());
                     self.questions.items.sort();
                     return Ok(Some(notif));
                 } else {
                     let values = self.all_questions.get(tag).unwrap();
-                    let notif = Notification::Stats(
+                    let notif = Notification::Stats(NotifContent::new(
+                        WidgetName::QuestionList,
                         WidgetName::Stats,
                         values
                             .iter()
                             .map(|x| x.as_ref().clone())
                             .collect::<Vec<_>>(),
-                    );
+                    ));
                     self.questions
                         .items
                         .extend(values.iter().map(|q| q.clone()));

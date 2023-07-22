@@ -1,4 +1,4 @@
-use super::{notification::NotificationRequestSender, *};
+use super::{notification::NotifContent, *};
 use crate::app_ui::{channel::ChannelRequestSender, helpers::question};
 use ratatui::{
     prelude::*,
@@ -92,7 +92,12 @@ impl Widget for Stats {
         &mut self,
         notification: &Notification,
     ) -> AppResult<Option<Notification>> {
-        if let Notification::Stats(_, questions) = notification {
+        if let Notification::Stats(NotifContent {
+            src_wid: _,
+            dest_wid: _,
+            content: questions,
+        }) = notification
+        {
             let stats = crate::app_ui::helpers::question::Stats { qm: questions };
             self.stat_state = Some(stats.into());
         }

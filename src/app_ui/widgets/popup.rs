@@ -13,7 +13,7 @@ use ratatui::{
 };
 
 use super::{
-    notification::{Notification, WidgetName},
+    notification::{NotifContent, Notification, WidgetName},
     CommonState, CrosstermStderr, Widget,
 };
 
@@ -97,9 +97,14 @@ impl Widget for Popup {
         &mut self,
         notification: &Notification,
     ) -> AppResult<Option<Notification>> {
-        if let Notification::Popup(WidgetName::Popup, pop_msg) = notification {
-            self.message = pop_msg.message.to_owned();
-            self.title = pop_msg.title.to_owned();
+        if let Notification::Popup(NotifContent {
+            src_wid: _,
+            dest_wid: _,
+            content,
+        }) = notification
+        {
+            self.message = content.message.to_owned();
+            self.title = content.title.to_owned();
             return self.set_active();
         }
         Ok(None)
