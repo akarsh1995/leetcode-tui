@@ -27,7 +27,7 @@ pub struct App {
 
     pub pending_notifications: VecDeque<Option<Notification>>,
 
-    pub popup_stack: Vec<WidgetVariant>,
+    pub popup_stack: Vec<Popup>,
 }
 
 impl App {
@@ -77,6 +77,9 @@ impl App {
     }
 
     pub fn navigate(&mut self, val: i32) -> AppResult<Option<Notification>> {
+        if self.get_current_popup().is_some() {
+            return Ok(None);
+        }
         self.get_current_widget_mut().set_inactive();
         let a = self.selected_wid_idx + val;
         let b = self.total_widgets_count() as i32;
@@ -102,9 +105,6 @@ impl App {
     }
 
     pub fn get_current_widget(&self) -> &WidgetVariant {
-        if let Some(top_popup) = self.popup_stack.last() {
-            return top_popup;
-        }
         let (_, v) = self
             .widget_map
             .get_index(self.selected_wid_idx as usize)
@@ -113,14 +113,19 @@ impl App {
     }
 
     pub fn get_current_widget_mut(&mut self) -> &mut WidgetVariant {
-        if let Some(top_popup) = self.popup_stack.last_mut() {
-            return top_popup;
-        }
         let (_, v) = self
             .widget_map
             .get_index_mut(self.selected_wid_idx as usize)
             .unwrap();
         v
+    }
+
+    pub fn get_current_popup(&self) -> Option<&Popup> {
+        self.popup_stack.last()
+    }
+
+    pub fn get_current_popup_mut(&mut self) -> Option<&mut Popup> {
+        self.popup_stack.last_mut()
     }
 
     pub fn setup(&mut self) -> AppResult<()> {
@@ -140,14 +145,12 @@ impl App {
 
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self) -> AppResult<()> {
-        if let super::widgets::notification::WidgetVariant::Popup(active_pop) =
-            self.get_current_widget_mut()
-        {
-            if !active_pop.is_active() {
+        if let Some(popup) = self.get_current_popup_mut() {
+            if !popup.is_active() {
                 self.popup_stack.pop();
+                let maybe_notif = self.get_current_widget_mut().set_active()?;
+                self.push_notif(maybe_notif);
             };
-            let k = self.get_current_widget_mut().set_active()?;
-            self.push_notif(k);
         }
         self.check_for_task()?;
         self.process_pending_notification()?;
@@ -171,10 +174,8 @@ impl App {
             if let Some(notif) = elem {
                 let wid_name = notif.get_wid_name();
                 if let WidgetName::Popup = wid_name {
-                    let mut popup_instance = WidgetVariant::Popup(Popup::new(
-                        wid_name.clone(),
-                        self.task_request_sender.clone(),
-                    ));
+                    let mut popup_instance =
+                        Popup::new(wid_name.clone(), self.task_request_sender.clone());
                     self.push_notif(popup_instance.set_active()?);
                     let maybe_notif = popup_instance.process_notification(&notif)?;
                     self.pending_notifications.push_back(maybe_notif);

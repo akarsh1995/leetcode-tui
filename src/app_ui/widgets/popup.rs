@@ -1,7 +1,9 @@
+use std::collections::HashSet;
+
 use crate::{
     app_ui::{
         channel::{ChannelRequestSender, TaskResponse},
-        components::rect::centered_rect,
+        components::{help_text::HelpText, rect::centered_rect},
     },
     errors::AppResult,
 };
@@ -24,6 +26,8 @@ pub struct Popup {
     pub title: String,
     pub scroll_x: u16,
     pub scroll_y: u16,
+    pub can_handle_keys: HashSet<KeyCode>,
+    pub default_help_text: Vec<HelpText>,
 }
 
 impl Popup {
@@ -34,6 +38,11 @@ impl Popup {
             title: "Popup".to_string(),
             scroll_x: 0,
             scroll_y: 0,
+            can_handle_keys: HashSet::from_iter(vec![KeyCode::Enter, KeyCode::Esc]),
+            default_help_text: vec![
+                HelpText::new("Close".to_string(), vec![KeyCode::Enter]),
+                HelpText::new("Close".to_string(), vec![KeyCode::Esc]),
+            ],
         }
     }
 }
@@ -105,7 +114,15 @@ impl Widget for Popup {
         {
             self.message = content.message.to_owned();
             self.title = content.title.to_owned();
-            return self.set_active();
+            self.can_handle_keys
+                .extend(content.help_texts.iter().map(|ht| ht.get_keys()).flatten());
+            self.default_help_text
+                .append(&mut content.help_texts.clone());
+            return Ok(Some(Notification::HelpText(NotifContent {
+                src_wid: self.common_state.widget_name.clone(),
+                dest_wid: WidgetName::HelpLine,
+                content: self.default_help_text.clone(),
+            })));
         }
         Ok(None)
     }

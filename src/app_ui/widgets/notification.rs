@@ -7,6 +7,7 @@ use crate::{
 pub struct PopupMessage {
     pub(crate) title: String,
     pub(crate) message: String,
+    pub(crate) help_texts: Vec<HelpText>,
 }
 
 #[derive(Debug, Hash, Eq, Clone, PartialEq)]
@@ -80,6 +81,7 @@ pub enum WidgetVariant {
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;
+use crossterm::event::KeyCode;
 
 use super::{
     footer::Footer, popup::Popup, question_list::QuestionListWidget, stats::Stats,

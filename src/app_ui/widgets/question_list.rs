@@ -190,13 +190,17 @@ impl super::Widget for QuestionListWidget {
                 let selected_question = self.questions.get_selected_item();
                 if let Some(sel) = selected_question {
                     let model = sel.clone();
-                    if let Some(title_slug) = model.title_slug.as_ref() {
+                    if let Some(title) = model.title.as_ref() {
                         return Ok(Some(Notification::Popup(NotifContent::new(
                             WidgetName::QuestionList,
                             WidgetName::Popup,
                             PopupMessage {
                                 message: qd.content.html_to_text(),
-                                title: title_slug.clone(),
+                                title: title.clone(),
+                                help_texts: vec![
+                                    HelpText::new("Scroll Up".to_string(), vec![KeyCode::Up]),
+                                    HelpText::new("Scroll Down".to_string(), vec![KeyCode::Down]),
+                                ],
                             },
                         ))));
                     }

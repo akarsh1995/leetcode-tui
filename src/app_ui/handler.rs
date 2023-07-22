@@ -8,11 +8,11 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<Option<Notification>> {
-    // if has active popups then send events to popup
-    if let super::widgets::notification::WidgetVariant::Popup(active_pop) =
-        app.get_current_widget_mut()
-    {
-        return active_pop.handler(key_event);
+    // if ui has active popups then send only events registered with popup
+    if let Some(popup) = app.get_current_popup_mut() {
+        if popup.can_handle_keys.contains(&key_event.code) {
+            return popup.handler(key_event);
+        }
     }
 
     match key_event.code {
@@ -26,5 +26,6 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<Option
         }
         _ => return app.get_current_widget_mut().handler(key_event),
     };
+
     Ok(None)
 }

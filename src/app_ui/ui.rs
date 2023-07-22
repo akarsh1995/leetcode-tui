@@ -52,9 +52,7 @@ pub fn render(app: &mut App, f: &mut CrosstermStderr) {
         wid.render(*rect, f);
     }
 
-    if let super::widgets::notification::WidgetVariant::Popup(active_pop) =
-        app.get_current_widget_mut()
-    {
-        active_pop.render(inner_size, f);
+    if let Some(popup) = app.get_current_popup_mut() {
+        return popup.render(size, f);
     }
 }

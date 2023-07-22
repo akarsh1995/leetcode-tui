@@ -7,6 +7,12 @@ pub struct HelpText {
 }
 
 impl HelpText {
+    pub fn get_keys(&self) -> std::slice::Iter<KeyCode> {
+        self.button.iter()
+    }
+}
+
+impl HelpText {
     pub fn new(title: String, button: Vec<KeyCode>) -> Self {
         Self { button, title }
     }
