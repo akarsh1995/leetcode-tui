@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Show helps at the bottom/top
-
 - Create solution file in the preferred language
 
 - Run/test the solution against test cases
@@ -45,6 +43,7 @@ All notable changes to this project will be documented in this file.
 
 - Read question view is scrollable using up and down keys.
 - Question line is colored by easy => green, medium => yellow, hard => red.
+- Show helps at the bottom/top
 
 
 ## [0.1.0] - 2023-07-19
