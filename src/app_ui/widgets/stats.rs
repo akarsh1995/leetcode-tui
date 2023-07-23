@@ -75,17 +75,6 @@ impl Widget for Stats {
         }
     }
 
-    fn handler(&mut self, _event: KeyEvent) -> AppResult<Option<Notification>> {
-        Ok(None)
-    }
-
-    fn process_task_response(
-        &mut self,
-        _response: TaskResponse,
-    ) -> AppResult<Option<Notification>> {
-        Ok(None)
-    }
-
     fn process_notification(
         &mut self,
         notification: &Notification,

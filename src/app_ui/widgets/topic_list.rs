@@ -143,13 +143,6 @@ impl Widget for TopicTagListWidget {
         Ok(None)
     }
 
-    fn process_notification(
-        &mut self,
-        _notification: &Notification,
-    ) -> AppResult<Option<Notification>> {
-        Ok(None)
-    }
-
     fn get_common_state(&self) -> &CommonState {
         &self.common_state
     }

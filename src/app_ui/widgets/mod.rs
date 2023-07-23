@@ -95,9 +95,16 @@ pub trait Widget: Debug {
 
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);
 
-    fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>>;
+    fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
+        Ok(None)
+    }
 
-    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<Option<Notification>>;
+    fn process_task_response(
+        &mut self,
+        _response: TaskResponse,
+    ) -> AppResult<Option<Notification>> {
+        Ok(None)
+    }
 
     fn setup(&mut self) -> AppResult<Option<Notification>> {
         Ok(None)
@@ -105,8 +112,10 @@ pub trait Widget: Debug {
 
     fn process_notification(
         &mut self,
-        notification: &Notification,
-    ) -> AppResult<Option<Notification>>;
+        _notification: &Notification,
+    ) -> AppResult<Option<Notification>> {
+        Ok(None)
+    }
 }
 
 macro_rules! gen_methods {

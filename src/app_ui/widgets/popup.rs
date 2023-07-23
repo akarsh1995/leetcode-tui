@@ -97,17 +97,6 @@ impl Widget for Popup {
         Ok(None)
     }
 
-    fn process_task_response(
-        &mut self,
-        _response: TaskResponse,
-    ) -> AppResult<Option<Notification>> {
-        Ok(None)
-    }
-
-    fn setup(&mut self) -> AppResult<Option<Notification>> {
-        Ok(None)
-    }
-
     fn process_notification(
         &mut self,
         notification: &Notification,

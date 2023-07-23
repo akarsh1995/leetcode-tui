@@ -45,21 +45,6 @@ impl super::Widget for Footer {
         }
     }
 
-    fn handler(&mut self, _event: KeyEvent) -> AppResult<Option<Notification>> {
-        Ok(None)
-    }
-
-    fn setup(&mut self) -> AppResult<Option<Notification>> {
-        Ok(None)
-    }
-
-    fn process_task_response(
-        &mut self,
-        _response: crate::app_ui::channel::TaskResponse,
-    ) -> AppResult<Option<Notification>> {
-        Ok(None)
-    }
-
     fn process_notification(
         &mut self,
         notification: &Notification,
