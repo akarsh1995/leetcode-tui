@@ -248,7 +248,7 @@ impl super::Widget for QuestionListWidget {
                                 .collect::<Vec<_>>(),
                         ));
                         self.questions.items.extend(question_set.into_iter());
-                        self.questions.items.sort();
+                        self.questions.items.sort_unstable();
                         return Ok(Some(notif));
                     } else {
                         let values = self.all_questions.get(tag).unwrap();
