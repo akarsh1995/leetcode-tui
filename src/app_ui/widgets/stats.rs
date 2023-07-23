@@ -86,8 +86,6 @@ impl Widget for Stats {
         Ok(None)
     }
 
-    fn set_response(&mut self) {}
-
     fn process_notification(
         &mut self,
         notification: &Notification,

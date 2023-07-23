@@ -75,8 +75,6 @@ impl super::Widget for Footer {
         Ok(None)
     }
 
-    fn set_response(&mut self) {}
-
     fn get_common_state(&self) -> &CommonState {
         &self.common_state
     }

@@ -54,7 +54,7 @@ impl CommonState {
 }
 
 pub trait Widget: Debug {
-    fn get_key_set(&self) -> IndexSet<&KeyCode> {
+    fn can_handle_key_set(&self) -> IndexSet<&KeyCode> {
         self.get_common_state().get_key_set()
     }
 
@@ -102,8 +102,6 @@ pub trait Widget: Debug {
     fn setup(&mut self) -> AppResult<Option<Notification>> {
         Ok(None)
     }
-
-    fn set_response(&mut self);
 
     fn process_notification(
         &mut self,

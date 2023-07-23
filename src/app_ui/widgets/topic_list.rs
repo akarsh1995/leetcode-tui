@@ -143,8 +143,6 @@ impl Widget for TopicTagListWidget {
         Ok(None)
     }
 
-    fn set_response(&mut self) {}
-
     fn process_notification(
         &mut self,
         _notification: &Notification,
