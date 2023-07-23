@@ -111,102 +111,71 @@ pub trait Widget: Debug {
     ) -> AppResult<Option<Notification>>;
 }
 
+macro_rules! gen_methods {
+(
+    $(
+        ($fn_name:ident,  ($(($arg:ident, $par_type:ty)),*), $res:ty)
+    ),*
+) => {
+        $(
+            pub fn $fn_name(&mut self, $($arg: $par_type),*) -> $res {
+                match self {
+                    WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
+                    WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
+                    WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
+                    WidgetVariant::Popup(v) => v.$fn_name($($arg),*),
+                    WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
+                }
+            }
+        )*
+    };
+
+(
+    $(
+        ($fn_name:ident, $_:ident, ($(($arg:ident, $par_type:ty)),*), $res:ty)
+    ),*
+) => {
+        $(
+            pub fn $fn_name(&self, $($arg: $par_type),*) -> $res {
+                match self {
+                    WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
+                    WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
+                    WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
+                    WidgetVariant::Popup(v) => v.$fn_name($($arg),*),
+                    WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
+                }
+            }
+        )*
+    };
+}
+
 impl WidgetVariant {
-    pub fn set_active(&mut self) -> AppResult<Option<Notification>> {
-        match self {
-            WidgetVariant::QuestionList(v) => v.set_active(),
-            WidgetVariant::TopicList(v) => v.set_active(),
-            WidgetVariant::Stats(v) => v.set_active(),
-            WidgetVariant::Popup(v) => v.set_active(),
-            WidgetVariant::HelpLine(v) => v.set_active(),
-        }
-    }
-
-    pub fn set_inactive(&mut self) {
-        match self {
-            WidgetVariant::QuestionList(v) => v.set_inactive(),
-            WidgetVariant::TopicList(v) => v.set_inactive(),
-            WidgetVariant::Stats(v) => v.set_inactive(),
-            WidgetVariant::Popup(v) => v.set_inactive(),
-            WidgetVariant::HelpLine(v) => v.set_inactive(),
-        }
-    }
-
-    pub fn is_navigable(&self) -> bool {
-        match self {
-            WidgetVariant::QuestionList(v) => v.is_navigable(),
-            WidgetVariant::TopicList(v) => v.is_navigable(),
-            WidgetVariant::Stats(v) => v.is_navigable(),
-            WidgetVariant::Popup(v) => v.is_navigable(),
-            WidgetVariant::HelpLine(v) => v.is_navigable(),
-        }
-    }
-
-    pub fn setup(&mut self) -> AppResult<Option<Notification>> {
-        match self {
-            WidgetVariant::QuestionList(v) => v.setup(),
-            WidgetVariant::TopicList(v) => v.setup(),
-            WidgetVariant::Stats(v) => v.setup(),
-            WidgetVariant::Popup(v) => v.setup(),
-            WidgetVariant::HelpLine(v) => v.setup(),
-        }
-    }
-
-    pub fn process_task_response(
-        &mut self,
-        response: TaskResponse,
-    ) -> AppResult<Option<Notification>> {
-        match self {
-            WidgetVariant::QuestionList(v) => v.process_task_response(response),
-            WidgetVariant::TopicList(v) => v.process_task_response(response),
-            WidgetVariant::Stats(v) => v.process_task_response(response),
-            WidgetVariant::Popup(v) => v.process_task_response(response),
-            WidgetVariant::HelpLine(v) => v.process_task_response(response),
-        }
-    }
-
-    pub fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
-        match self {
-            WidgetVariant::QuestionList(v) => v.handler(event),
-            WidgetVariant::TopicList(v) => v.handler(event),
-            WidgetVariant::Stats(v) => v.handler(event),
-            WidgetVariant::Popup(v) => v.handler(event),
-            WidgetVariant::HelpLine(v) => v.handler(event),
-        }
-    }
-
-    pub fn process_notification(
-        &mut self,
-        notification: &Notification,
-    ) -> AppResult<Option<Notification>> {
-        match self {
-            WidgetVariant::QuestionList(v) => v.process_notification(notification),
-            WidgetVariant::TopicList(v) => v.process_notification(notification),
-            WidgetVariant::Stats(v) => v.process_notification(notification),
-            WidgetVariant::Popup(v) => v.process_notification(notification),
-            WidgetVariant::HelpLine(v) => v.process_notification(notification),
-        }
-    }
-
-    pub fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>) {
-        match self {
-            WidgetVariant::QuestionList(v) => v.render(rect, frame),
-            WidgetVariant::TopicList(v) => v.render(rect, frame),
-            WidgetVariant::Stats(v) => v.render(rect, frame),
-            WidgetVariant::Popup(v) => v.render(rect, frame),
-            WidgetVariant::HelpLine(v) => v.render(rect, frame),
-        }
-    }
-
-    pub fn is_active(&self) -> bool {
-        match self {
-            WidgetVariant::QuestionList(v) => v.is_active(),
-            WidgetVariant::TopicList(v) => v.is_active(),
-            WidgetVariant::Stats(v) => v.is_active(),
-            WidgetVariant::Popup(v) => v.is_active(),
-            WidgetVariant::HelpLine(v) => v.is_active(),
-        }
-    }
+    gen_methods!((is_navigable, nm, (), bool), (is_active, nm, (), bool));
+    gen_methods!(
+        (set_active, (), AppResult<Option<Notification>>),
+        (set_inactive, (), ()),
+        (setup, (), AppResult<Option<Notification>>),
+        (
+            process_task_response,
+            ((response, TaskResponse)),
+            AppResult<Option<Notification>>
+        ),
+        (
+            handler,
+            ((event, KeyEvent)),
+            AppResult<Option<Notification>>
+        ),
+        (
+            process_notification,
+            ((notification, &Notification)),
+            AppResult<Option<Notification>>
+        ),
+        (
+            render,
+            ((rect, Rect), (frame, &mut Frame<CrosstermBackend<Stderr>>)),
+            ()
+        )
+    );
 }
 
 pub type WidgetList = Vec<Box<dyn Widget>>;
