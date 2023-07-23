@@ -45,36 +45,24 @@ pub enum Notification {
     Event(NotifContent<KeyEvent>),
 }
 
-impl Notification {
-    pub fn get_wid_name(&self) -> &WidgetName {
-        match self {
-            Notification::Questions(NotifContent {
-                src_wid: _,
-                dest_wid,
-                content: _,
-            }) => dest_wid,
-            Notification::Stats(NotifContent {
-                src_wid: _,
-                dest_wid,
-                content: _,
-            }) => dest_wid,
-            Notification::Popup(NotifContent {
-                src_wid: _,
-                dest_wid,
-                content: _,
-            }) => dest_wid,
-            Notification::HelpText(NotifContent {
-                src_wid: _,
-                dest_wid,
-                content: _,
-            }) => dest_wid,
-            Notification::Event(NotifContent {
-                src_wid: _,
-                dest_wid,
-                content: _,
-            }) => dest_wid,
+macro_rules! dest_widname {
+    ($($variant:ident),*) => {
+        pub fn get_wid_name(&self) -> &WidgetName {
+            match self {
+                $(
+                    Notification::$variant(NotifContent {
+                        src_wid: _,
+                        dest_wid,
+                        content: _,
+                    }) => dest_wid,
+                )*
+            }
         }
-    }
+    };
+}
+
+impl Notification {
+    dest_widname!(Questions, Stats, Popup, HelpText, Event);
 }
 
 #[derive(Debug)]
