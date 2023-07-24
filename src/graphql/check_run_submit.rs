@@ -12,10 +12,15 @@ pub enum State {
 
 #[derive(Debug)]
 pub enum StatusMessage {
-    RuntimeError,
-    CompileError,
-    WrongAnswer,
     Accepted,
+    WrongAnswer,
+    MemoryLimitExceeded,
+    OutputLimitExceeded,
+    TimeLimitExceeded,
+    RuntimeError,
+    InternalError,
+    CompileError,
+    Timeout,
     Unknown(String),
 }
 

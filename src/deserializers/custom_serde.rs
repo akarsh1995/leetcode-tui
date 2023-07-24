@@ -19,10 +19,15 @@ where
     D: Deserializer<'de>,
 {
     Ok(match String::deserialize(deserializer)?.as_str() {
-        "Runtime Error" => StatusMessage::RuntimeError,
-        "Compile Error" => StatusMessage::CompileError,
-        "Wrong Answer" => StatusMessage::WrongAnswer,
         "Accepted" => StatusMessage::Accepted,
+        "Wrong Answer" => StatusMessage::WrongAnswer,
+        "Memory Limit Exceeded" => StatusMessage::MemoryLimitExceeded,
+        "Output Limit Exceeded" => StatusMessage::OutputLimitExceeded,
+        "Time Limit Exceeded" => StatusMessage::TimeLimitExceeded,
+        "Runtime Error" => StatusMessage::RuntimeError,
+        "Internal Error" => StatusMessage::InternalError,
+        "Compile Error" => StatusMessage::CompileError,
+        "Timeout" => StatusMessage::Timeout,
         unknown => StatusMessage::Unknown(unknown.to_string()),
     })
 }
