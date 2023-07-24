@@ -11,11 +11,21 @@ fn test_run_status_parsing() {
     let run_success = &run_responses[&"success"];
     let pending = &run_responses[&"pending"];
     let started = &run_responses[&"started"];
+    let mem_limit = &run_responses[&"memory_limit_exceeded"];
     let re: RunResponse = serde_json::from_value(runtime_error.to_owned()).unwrap();
     let ce: RunResponse = serde_json::from_value(compile_error.to_owned()).unwrap();
     let rs: RunResponse = serde_json::from_value(run_success.to_owned()).unwrap();
     let pending: RunResponse = serde_json::from_value(pending.to_owned()).unwrap();
     let started: RunResponse = serde_json::from_value(started.to_owned()).unwrap();
+    let mem_limit: RunResponse = serde_json::from_value(mem_limit.to_owned()).unwrap();
+
+    match mem_limit {
+        RunResponse::Success { status_msg, .. } => match status_msg {
+            StatusMessage::MemoryLimitExceeded => {}
+            _ => assert!(false),
+        },
+        _ => assert!(false),
+    }
 
     match ce {
         RunResponse::CompileError { status_msg, .. } => {

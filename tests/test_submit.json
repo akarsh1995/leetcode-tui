@@ -127,6 +127,30 @@
     "status_msg": "Wrong Answer",
     "state": "SUCCESS"
   },
+  "memory_limit_exceeded": {
+    "status_code": 12,
+    "lang": "python3",
+    "run_success": false,
+    "status_runtime": "N/A",
+    "memory": 976692000,
+    "code_answer": [],
+    "code_output": [],
+    "std_output_list": [
+      ""
+    ],
+    "elapsed_time": 1638,
+    "task_finish_time": 1690182098359,
+    "task_name": "judger.runcodetask.RunCode",
+    "total_correct": null,
+    "total_testcases": null,
+    "runtime_percentile": null,
+    "status_memory": "N/A",
+    "memory_percentile": null,
+    "pretty_lang": "Python3",
+    "submission_id": "runcode_1690182094.4995568_1dCAthLRtZ",
+    "status_msg": "Memory Limit Exceeded",
+    "state": "SUCCESS"
+  },
   "pending": {
     "state": "PENDING"
   },
