@@ -8,7 +8,9 @@ use sea_orm::Database;
 use tokio::task::JoinHandle;
 
 use leetcode_tui_rs::app_ui::app::App;
-use leetcode_tui_rs::app_ui::event::{look_for_events, Event, EventHandler};
+use leetcode_tui_rs::app_ui::event::{
+    look_for_events, vim_ping_channel, Event, EventHandler, VimPingSender,
+};
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
 
 use leetcode_tui_rs::utils::{
@@ -17,6 +19,8 @@ use leetcode_tui_rs::utils::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
@@ -57,7 +61,7 @@ async fn main() -> AppResult<()> {
 
     let (ev_sender, ev_receiver) = std::sync::mpsc::channel();
 
-    let mut tui = Tui::new(
+    let tui = Tui::new(
         terminal,
         EventHandler {
             sender: ev_sender.clone(),
@@ -65,11 +69,16 @@ async fn main() -> AppResult<()> {
         },
     );
 
-    tui.init()?;
-    tokio::task::spawn_blocking(move || run_app(tx_request, rx_response, tui).unwrap());
+    let vim_running = Arc::new(AtomicBool::new(false));
+    let vim_running_loop_ref = vim_running.clone();
+    let (vim_tx, vim_rx) = vim_ping_channel(10);
+
+    tokio::task::spawn_blocking(move || {
+        run_app(tx_request, rx_response, tui, vim_tx, vim_running).unwrap()
+    });
 
     // blog post does not work in separate thread
-    match look_for_events(100, ev_sender).await {
+    match look_for_events(100, ev_sender, vim_running_loop_ref, vim_rx).await {
         Ok(_) => Ok(()),
         Err(e) => match e {
             leetcode_tui_rs::errors::LcAppError::SyncSendError(_) => Ok(()),
@@ -86,8 +95,11 @@ fn run_app(
     tx_request: ChannelRequestSender,
     rx_response: ChannelResponseReceiver,
     mut tui: Tui,
+    vim_tx: VimPingSender,
+    vim_running: Arc<AtomicBool>,
 ) -> AppResult<()> {
-    let mut app = App::new(tx_request, rx_response)?;
+    tui.init()?;
+    let mut app = App::new(tx_request, rx_response, vim_tx, vim_running)?;
 
     // Start the main loop.
     while app.running {
@@ -103,6 +115,7 @@ fn run_app(
             }
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
+            Event::Redraw => tui.reinit()?,
         }
     }
 

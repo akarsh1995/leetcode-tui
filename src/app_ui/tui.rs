@@ -58,10 +58,15 @@ impl Tui {
         Ok(())
     }
 
+    pub fn reinit(&mut self) -> AppResult<()> {
+        self.exit()?;
+        self.init()
+    }
+
     /// Exits the terminal interface.
     ///
     /// It disables the raw mode and reverts back the terminal properties.
-    pub fn exit(mut self) -> AppResult<()> {
+    pub fn exit(&mut self) -> AppResult<()> {
         terminal::disable_raw_mode().map_err(|e| {
             LcAppError::CrossTermError(format!("Error while disabling raw mode. {e}"))
         })?;
@@ -71,7 +76,6 @@ impl Tui {
         self.terminal
             .show_cursor()
             .map_err(|e| LcAppError::CrossTermError(format!("Error while show cursor. {e}")))?;
-        drop(self.events.receiver);
         Ok(())
     }
 }

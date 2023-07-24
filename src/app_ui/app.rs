@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
+use super::event::VimPingSender;
 use super::widgets::footer::Footer;
 use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
 use super::widgets::popup::Popup;
@@ -28,6 +31,10 @@ pub struct App {
     pub pending_notifications: VecDeque<Option<Notification>>,
 
     pub popup_stack: Vec<Popup>,
+
+    pub vim_tx: VimPingSender,
+
+    pub vim_running: Arc<AtomicBool>,
 }
 
 impl App {
@@ -35,6 +42,8 @@ impl App {
     pub fn new(
         task_request_sender: ChannelRequestSender,
         task_response_recv: ChannelResponseReceiver,
+        vim_tx: VimPingSender,
+        vim_running: Arc<AtomicBool>,
     ) -> AppResult<Self> {
         let w0 = WidgetVariant::TopicList(TopicTagListWidget::new(
             WidgetName::TopicList,
@@ -43,6 +52,8 @@ impl App {
         let w1 = WidgetVariant::QuestionList(QuestionListWidget::new(
             WidgetName::QuestionList,
             task_request_sender.clone(),
+            vim_tx.clone(),
+            vim_running.clone(),
         ));
 
         let w2 = WidgetVariant::Stats(Stats::new(WidgetName::Stats, task_request_sender.clone()));
@@ -67,6 +78,8 @@ impl App {
             task_response_recv,
             pending_notifications: vec![].into(),
             popup_stack: vec![],
+            vim_running,
+            vim_tx,
         };
         app.setup()?;
         Ok(app)

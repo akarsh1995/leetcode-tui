@@ -1,8 +1,13 @@
+use crossterm::event::Event as CEvent;
 use std::collections::{HashMap, HashSet};
+use std::process::Stdio;
 use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
+use std::sync::{mpsc, Arc};
 
 use crate::app_ui::channel::Response;
 use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
+use crate::app_ui::event::VimPingSender;
 use crate::app_ui::{channel::ChannelRequestSender, components::list::StatefulList};
 use crate::entities::{QuestionModel, TopicTagModel};
 use crate::errors::AppResult;
@@ -23,16 +28,25 @@ pub struct QuestionListWidget {
     pub questions: StatefulList<QuestionModel>,
     pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Rc<QuestionModel>>>,
     popup_events: IndexSet<HelpText>,
+    vim_tx: VimPingSender,
+    vim_running: Arc<AtomicBool>,
 }
 
 impl QuestionListWidget {
-    pub fn new(id: WidgetName, task_sender: ChannelRequestSender) -> Self {
+    pub fn new(
+        id: WidgetName,
+        task_sender: ChannelRequestSender,
+        vim_tx: VimPingSender,
+        vim_running: Arc<AtomicBool>,
+    ) -> Self {
         Self {
             popup_events: IndexSet::from_iter([
                 // since the popup will be the question detail
                 CommonHelpText::ScrollUp.into(),
                 CommonHelpText::ScrollDown.into(),
                 CommonHelpText::Solve.into(),
+                CommonHelpText::Run.into(),
+                CommonHelpText::Submit.into(),
             ]),
             common_state: CommonState::new(
                 id,
@@ -43,10 +57,14 @@ impl QuestionListWidget {
                     CommonHelpText::ScrollDown.into(),
                     CommonHelpText::Solve.into(),
                     CommonHelpText::ReadContent.into(),
+                    CommonHelpText::Run.into(),
+                    CommonHelpText::Submit.into(),
                 ],
             ),
             all_questions: HashMap::new(),
             questions: Default::default(),
+            vim_tx,
+            vim_running,
         }
     }
 }
@@ -155,7 +173,24 @@ impl super::Widget for QuestionListWidget {
                 }
             }
             KeyCode::Char('s') | KeyCode::Char('S') => {
-                println!("solvingthe question");
+                let vim_cmd = format!("nvim");
+                let mut output = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&vim_cmd)
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .spawn()
+                    .expect("Can run vim cmd");
+                self.vim_running
+                    .store(true, std::sync::atomic::Ordering::Relaxed);
+                let vim_cmd_result = output.wait().expect("Run exits ok");
+                self.vim_tx.blocking_send(1).unwrap();
+                self.vim_running
+                    .store(false, std::sync::atomic::Ordering::Relaxed);
+                if !vim_cmd_result.success() {
+                    println!("error vim");
+                }
             }
             _ => {}
         };
