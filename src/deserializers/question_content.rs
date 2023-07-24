@@ -5,8 +5,10 @@ pub struct QueryQuestionContent {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct QuestionContent {
     pub content: String,
+    pub title_slug: String,
 }
 
 #[derive(Debug, serde::Deserialize)]

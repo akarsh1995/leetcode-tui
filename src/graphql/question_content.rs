@@ -5,6 +5,7 @@ const QUERY: &str = r#"
 query questionContent($titleSlug: String!) {
   question(titleSlug: $titleSlug) {
     content
+    titleSlug
   }
 }
 "#;
