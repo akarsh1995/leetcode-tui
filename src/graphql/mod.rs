@@ -6,6 +6,7 @@ pub mod problemset_question_list;
 pub mod question_content;
 pub mod run_code;
 pub mod submit;
+pub mod editor_data;
 use crate::errors::AppResult;
 
 pub type QuestionContentQuery = question_content::Query;
