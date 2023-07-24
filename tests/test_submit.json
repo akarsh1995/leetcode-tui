@@ -1,0 +1,136 @@
+{
+  "compile_error": {
+    "status_code": 20,
+    "lang": "rust",
+    "run_success": false,
+    "compile_error": "Line 89, Char 2: this file contains an unclosed delimiter (solution.rs)",
+    "full_compile_error": "Line 89, Char 2: this file contains an unclosed delimiter (solution.rs)\n   |\n1  | fn first_index(haystack: &str, needle: &str) -> i32 {\n   |                                                     - unclosed delimiter\n...\n31 |         if flag {\n   |                 - this delimiter might not be properly closed...\n...\n34 |     }\n   |     - ...as it matches this but it has different indentation\n...\n89 | }\n   |  ^\nLine 40, Char 56: expected `;`, found keyword `while` (solution.rs)\n   |\n40 |         first_index(haystack.as_str(), needle.as_str())\n   |                                                        ^ help: add `;` here\n41 |         while true {\n   |         ----- unexpected token\nLine 54, Char 1: cannot declare a non-inline module inside a block unless it has a path attribute (solution.rs)\n   |\n54 | mod list_node;\n   | ^^^^^^^^^^^^^^\n   |\nnote: maybe `use` the module `list_node` instead of redeclaring it\n  --> src/main.rs:55:1\n   |\n54 | mod list_node;\n   | ^^^^^^^^^^^^^^\nLine 55, Char 1: cannot declare a non-inline module inside a block unless it has a path attribute (solution.rs)\n   |\n55 | mod tree_node;\n   | ^^^^^^^^^^^^^^\n   |\nnote: maybe `use` the module `tree_node` instead of redeclaring it\n  --> src/main.rs:56:1\n   |\n55 | mod tree_node;\n   | ^^^^^^^^^^^^^^\nLine 56, Char 1: cannot declare a non-inline module inside a block unless it has a path attribute (solution.rs)\n   |\n56 | mod nested_integer;\n   | ^^^^^^^^^^^^^^^^^^^\n   |\nnote: maybe `use` the module `nested_integer` instead of redeclaring it\n  --> src/main.rs:57:1\n   |\n56 | mod nested_integer;\n   | ^^^^^^^^^^^^^^^^^^^\nLine 58, Char 1: cannot declare a non-inline module inside a block unless it has a path attribute (solution.rs)\n   |\n58 | mod __serializer__;\n   | ^^^^^^^^^^^^^^^^^^^\n   |\nnote: maybe `use` the module `__serializer__` instead of redeclaring it\n  --> src/main.rs:59:1\n   |\n58 | mod __serializer__;\n   | ^^^^^^^^^^^^^^^^^^^\nLine 59, Char 1: cannot declare a non-inline module inside a block unless it has a path attribute (solution.rs)\n   |\n59 | mod __deserializer__;\n   | ^^^^^^^^^^^^^^^^^^^^^\n   |\nnote: maybe `use` the module `__deserializer__` instead of redeclaring it\n  --> src/main.rs:60:1\n   |\n59 | mod __deserializer__;\n   | ^^^^^^^^^^^^^^^^^^^^^\nLine 50, Char 1: an `extern crate` loading macros must be at the crate root (solution.rs)\n   |\n50 | extern crate lazy_static;\n   | ^^^^^^^^^^^^^^^^^^^^^^^^^\nLine 61, Char 11: unresolved import `self::__serializer__` (solution.rs)\n   |\n61 | use self::__serializer__::*;\n   |           ^^^^^^^^^^^^^^ could not find `__serializer__` in the crate root\nLine 62, Char 11: unresolved import `self::__deserializer__` (solution.rs)\n   |\n62 | use self::__deserializer__::*;\n   |           ^^^^^^^^^^^^^^^^ could not find `__deserializer__` in the crate root\nLine 63, Char 11: unresolved import `self::list_node` (solution.rs)\n   |\n63 | use self::list_node::*;\n   |           ^^^^^^^^^ could not find `list_node` in the crate root\nLine 64, Char 11: unresolved import `self::tree_node` (solution.rs)\n   |\n64 | use self::tree_node::*;\n   |           ^^^^^^^^^ could not find `tree_node` in the crate root\nLine 65, Char 11: unresolved import `self::nested_integer` (solution.rs)\n   |\n65 | use self::nested_integer::*;\n   |           ^^^^^^^^^^^^^^ could not find `nested_integer` in the crate root\nLine 81, Char 23: failed to resolve: use of undeclared type `Deserializer` (solution.rs)\n   |\n81 |         let param_1 = Deserializer::to_string(line.unwrap().as_str()).unwrap();\n   |                       ^^^^^^^^^^^^ not found in this scope\n   |\nhelp: consider importing this struct\n   |\n1  | use serde_json::Deserializer;\n   |\nLine 83, Char 23: failed to resolve: use of undeclared type `Deserializer` (solution.rs)\n   |\n83 |         let param_2 = Deserializer::to_string(line.unwrap().as_str()).unwrap();\n   |                       ^^^^^^^^^^^^ not found in this scope\n   |\nhelp: consider importing this struct\n   |\n1  | use serde_json::Deserializer;\n   |\nwarning: denote infinite loops with `loop { ... }`\n  --> src/main.rs:42:9\n   |\n41 |         while true {\n   |         ^^^^^^^^^^ help: use `loop`\n   |\n   = note: `#[warn(while_true)]` on by default\nLine 40, Char 9: mismatched types (solution.rs)\n   |\n40 |         first_index(haystack.as_str(), needle.as_str())\n   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^- help: consider using a semicolon here\n   |         |\n   |         expected `()`, found `i32`\nLine 85, Char 23: no method named `serialize` found for type `i32` in the current scope (solution.rs)\n    |\n85  |         let out = ret.serialize();\n    |                       ^^^^^^^^^ method not found in `i32`\n    |\n   ::: /usr/local/cargo/registry/src/github.com-1ecc6299db9ec823/serde-1.0.80/src/ser/mod.rs:246:8\n    |\n245 |     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>\n    |        --------- the method is available for `i32` here\n    |\n    = help: items from traits can only be used if the trait is in scope\nhelp: the following trait is implemented but not in scope; perhaps add a `use` for it:\n    |\n1   | use serde::ser::Serialize;\n    |\nSome errors have detailed explanations: E0308, E0432, E0433, E0468, E0599.\nFor more information about an error, try `rustc --explain E0308`.\nwarning: `prog` (bin \"prog\") generated 1 warning\nerror: could not compile `prog` due to 17 previous errors; 1 warning emitted\nmv: cannot stat '/leetcode/rust_compile/target/release/prog': No such file or directory",
+    "status_runtime": "N/A",
+    "memory": 0,
+    "code_answer": [],
+    "code_output": [],
+    "std_output_list": [
+      ""
+    ],
+    "task_finish_time": 1690111655862,
+    "task_name": "judger.runcodetask.RunCode",
+    "total_correct": null,
+    "total_testcases": null,
+    "runtime_percentile": null,
+    "status_memory": "N/A",
+    "memory_percentile": null,
+    "pretty_lang": "Rust",
+    "submission_id": "runcode_1690111652.7634475_TUGkFGAvCs",
+    "status_msg": "Compile Error",
+    "state": "SUCCESS"
+  },
+  "runtime_error": {
+    "status_code": 15,
+    "lang": "python3",
+    "run_success": false,
+    "runtime_error": "Line 3: IndentationError: expected an indented block after function definition on line 52",
+    "full_runtime_error": "IndentationError: expected an indented block after function definition on line 52\n    import sys\nLine 3  (Solution.py)",
+    "status_runtime": "N/A",
+    "memory": 9028000,
+    "code_answer": [],
+    "code_output": [],
+    "std_output_list": [
+      ""
+    ],
+    "elapsed_time": 29,
+    "task_finish_time": 1690110685327,
+    "task_name": "judger.runcodetask.RunCode",
+    "total_correct": null,
+    "total_testcases": null,
+    "runtime_percentile": null,
+    "status_memory": "N/A",
+    "memory_percentile": null,
+    "pretty_lang": "Python3",
+    "submission_id": "runcode_1690110683.056359_eI1ADXx4EQ",
+    "status_msg": "Runtime Error",
+    "state": "SUCCESS"
+  },
+  "success": {
+    "status_code": 10,
+    "lang": "rust",
+    "run_success": true,
+    "status_runtime": "0 ms",
+    "memory": 2000000,
+    "code_answer": [
+      "0",
+      "-1"
+    ],
+    "code_output": [],
+    "std_output_list": [
+      "",
+      "",
+      ""
+    ],
+    "elapsed_time": 20,
+    "task_finish_time": 1690111018529,
+    "task_name": "judger.runcodetask.RunCode",
+    "expected_status_code": 10,
+    "expected_lang": "cpp",
+    "expected_run_success": true,
+    "expected_status_runtime": "2",
+    "expected_memory": 5944000,
+    "expected_code_answer": [
+      "0",
+      "-1"
+    ],
+    "expected_code_output": [],
+    "expected_std_output_list": [
+      "",
+      "",
+      ""
+    ],
+    "expected_elapsed_time": 22,
+    "expected_task_finish_time": 1690109912057,
+    "expected_task_name": "judger.interprettask.Interpret",
+    "correct_answer": true,
+    "compare_result": "11",
+    "total_correct": 2,
+    "total_testcases": 2,
+    "runtime_percentile": null,
+    "status_memory": "2 MB",
+    "memory_percentile": null,
+    "pretty_lang": "Rust",
+    "submission_id": "runcode_1690111013.83172_QguZOxVXV0",
+    "status_msg": "Accepted",
+    "state": "SUCCESS"
+  },
+  "wrong_answer": {
+    "status_code": 11,
+    "lang": "rust",
+    "run_success": true,
+    "status_runtime": "N/A",
+    "memory": 2320000,
+    "question_id": "28",
+    "elapsed_time": 14,
+    "compare_result": "00000000000000100000000000000001000000000000100000000000000000000000000000000000",
+    "code_output": "4",
+    "std_output": "",
+    "last_testcase": "\"sadbutsad\"\n\"sad\"",
+    "expected_output": "0",
+    "task_finish_time": 1690113635048,
+    "task_name": "judger.judgetask.Judge",
+    "finished": true,
+    "total_correct": 3,
+    "total_testcases": 80,
+    "runtime_percentile": null,
+    "status_memory": "N/A",
+    "memory_percentile": null,
+    "pretty_lang": "Rust",
+    "submission_id": "1001782379",
+    "input_formatted": "\"sadbutsad\", \"sad\"",
+    "input": "\"sadbutsad\"\n\"sad\"",
+    "status_msg": "Wrong Answer",
+    "state": "SUCCESS"
+  },
+  "pending": {
+    "state": "PENDING"
+  },
+  "started": {
+    "state": "STARTED"
+  }
+}

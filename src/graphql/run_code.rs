@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use super::{GQLLeetcodeQuery, Language};
+use super::{check_run_submit::RunResponse, GQLLeetcodeQuery, Language};
 
 #[derive(Debug, Deserialize, Serialize)]
-struct RunSolution {
+struct RunSolutionBody {
     lang: Language,
     question_id: String,
     typed_code: String,
@@ -14,13 +14,13 @@ struct RunSolution {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct TestCase {
+struct RunSolutionResponse {
     interpret_id: String,
     test_cases: String,
 }
 
-impl GQLLeetcodeQuery for RunSolution {
-    type T = TestCase;
+impl GQLLeetcodeQuery for RunSolutionBody {
+    type T = RunSolutionResponse;
 
     fn get_endpoint(&self) -> String {
         let slug = self.slug.as_str();
@@ -28,15 +28,27 @@ impl GQLLeetcodeQuery for RunSolution {
     }
 }
 
+impl GQLLeetcodeQuery for RunSolutionResponse {
+    type T = RunResponse;
+    fn is_post(&self) -> bool {
+        false
+    }
+
+    fn get_endpoint(&self) -> String {
+        let interpret_id = self.interpret_id.as_str();
+        format!("https://leetcode.com/submissions/detail/{interpret_id}/check/")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
 
-    use super::RunSolution;
+    use super::RunSolutionBody;
 
     #[test]
     fn test() {
-        let s = RunSolution {
+        let s = RunSolutionBody {
             lang: crate::graphql::Language::Python3,
             question_id: "1".to_string(),
             typed_code: "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:    return [4]".to_string(),

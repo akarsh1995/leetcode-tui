@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
+pub mod check_run_submit;
 pub mod problemset_question_list;
 pub mod question_content;
 pub mod run_code;
@@ -21,6 +22,7 @@ pub trait GQLLeetcodeQuery: Serialize {
         true
     }
 
+    /// Default graphql endpoint
     fn get_endpoint(&self) -> String {
         "https://leetcode.com/graphql".to_string()
     }
