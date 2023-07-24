@@ -11,7 +11,7 @@ use crate::errors::AppResult;
 pub type QuestionContentQuery = question_content::Query;
 
 #[async_trait]
-pub trait GQLLeetcodeQuery: Serialize {
+pub trait GQLLeetcodeQuery: Serialize + Sync {
     type T: DeserializeOwned;
 
     fn get_body(&self) -> Value {
@@ -43,7 +43,38 @@ pub trait GQLLeetcodeQuery: Serialize {
     }
 }
 
+pub enum RunOrSubmitCode {
+    Run(RunSolutionBody),
+    Submit(SubmitRequestBody),
+}
+
+impl RunOrSubmitCode {
+    pub async fn post(&self, client: &reqwest::Client) -> AppResult<RunResponse> {
+        match self {
+            RunOrSubmitCode::Run(run) => self.poll_check_response(client, run).await,
+            RunOrSubmitCode::Submit(submit) => self.poll_check_response(client, submit).await,
+        }
+    }
+
+    pub async fn poll_check_response<T: GQLLeetcodeQuery<T = RunResponse>>(
+        &self,
+        client: &reqwest::Client,
+        body: &impl GQLLeetcodeQuery<T = T>,
+    ) -> AppResult<RunResponse> {
+        let run_response: T = body.post(client).await?;
+        loop {
+            let status_check = run_response.post(client).await?;
+            match status_check {
+                RunResponse::State { .. } => {}
+                _ => return Ok(status_check),
+            }
+        }
+    }
+}
+
 use serde::Deserialize;
+
+use self::{check_run_submit::RunResponse, run_code::RunSolutionBody, submit::SubmitRequestBody};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct LanguageInfo {

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{check_run_submit::RunResponse, GQLLeetcodeQuery, Language};
 
 #[derive(Debug, Deserialize, Serialize)]
-struct RunSolutionBody {
+pub struct RunSolutionBody {
     lang: Language,
     question_id: String,
     typed_code: String,
@@ -14,7 +14,7 @@ struct RunSolutionBody {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct RunSolutionResponse {
+pub struct RunSolutionResponse {
     interpret_id: String,
     test_cases: String,
 }

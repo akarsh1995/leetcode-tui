@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::errors::AppResult;
-
 use super::{check_run_submit::RunResponse, GQLLeetcodeQuery, Language};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -38,24 +36,6 @@ impl GQLLeetcodeQuery for SubmitResponse {
     fn get_endpoint(&self) -> String {
         let submission_id = self.submission_id;
         format!("https://leetcode.com/submissions/detail/{submission_id}/check/")
-    }
-}
-
-#[derive(Debug)]
-pub struct CombinedRun {
-    request_body: SubmitRequestBody,
-}
-
-impl CombinedRun {
-    async fn run_and_get_output(&self, client: &reqwest::Client) -> AppResult<RunResponse> {
-        let run_response = self.request_body.post(client).await?;
-        loop {
-            let status_check = run_response.post(client).await?;
-            match status_check {
-                RunResponse::State { .. } => {}
-                _ => return Ok(status_check),
-            }
-        }
     }
 }
 
