@@ -18,12 +18,7 @@ pub(crate) trait Component {
     fn get_common_state_mut(&mut self) -> &mut CommonState;
     fn get_common_state(&self) -> &CommonState;
     fn get_key_set(&self) -> IndexSet<HelpText> {
-        return self
-            .get_common_state()
-            .help_text
-            .iter()
-            .map(|ht| ht.clone())
-            .collect::<IndexSet<_>>();
+        self.get_common_state().help_text.clone()
     }
 }
 

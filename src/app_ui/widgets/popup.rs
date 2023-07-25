@@ -6,7 +6,7 @@ use crate::{
     errors::AppResult,
 };
 
-use crossterm::event::{KeyEvent};
+use crossterm::event::KeyEvent;
 
 use ratatui::prelude::*;
 

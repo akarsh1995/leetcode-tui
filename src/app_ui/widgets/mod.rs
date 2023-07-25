@@ -129,7 +129,6 @@ macro_rules! gen_methods {
                     WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
                     WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
                     WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::Popup(v) => v.$fn_name($($arg),*),
                     WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
                 }
             }
@@ -147,7 +146,6 @@ macro_rules! gen_methods {
                     WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
                     WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
                     WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::Popup(v) => v.$fn_name($($arg),*),
                     WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
                 }
             }
@@ -156,7 +154,7 @@ macro_rules! gen_methods {
 }
 
 impl WidgetVariant {
-    gen_methods!((is_navigable, nm, (), bool), (is_active, nm, (), bool));
+    gen_methods!((is_navigable, nm, (), bool));
     gen_methods!(
         (set_active, (), AppResult<Option<Notification>>),
         (set_inactive, (), ()),

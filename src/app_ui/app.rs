@@ -105,10 +105,6 @@ impl App {
         Ok(None)
     }
 
-    pub(crate) fn get_widget(&mut self, v: &WidgetName) -> &mut WidgetVariant {
-        self.widget_map.get_mut(v).unwrap()
-    }
-
     pub fn next_widget(&mut self) -> AppResult<Option<Notification>> {
         self.navigate(1)
     }

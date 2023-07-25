@@ -70,7 +70,6 @@ pub(crate) enum WidgetVariant {
     QuestionList(QuestionListWidget),
     TopicList(TopicTagListWidget),
     Stats(Stats),
-    Popup(Popup),
     HelpLine(Footer),
 }
 
@@ -79,6 +78,5 @@ use crossterm::event::KeyEvent;
 use indexmap::IndexSet;
 
 use super::{
-    footer::Footer, popup::Popup, question_list::QuestionListWidget, stats::Stats,
-    topic_list::TopicTagListWidget,
+    footer::Footer, question_list::QuestionListWidget, stats::Stats, topic_list::TopicTagListWidget,
 };
