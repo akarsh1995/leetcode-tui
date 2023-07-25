@@ -31,7 +31,7 @@ All notable changes to this project will be documented in this file.
 
 - Submit directly.
 
-- Summary of the question 
+- Summary of the question
     - Submission stats
     - View more question details
 
@@ -44,7 +44,7 @@ All notable changes to this project will be documented in this file.
 - Read question view is scrollable using up and down keys.
 - Question line is colored by easy => green, medium => yellow, hard => red.
 - Show helps at the bottom/top.
-- Open file in the editor to solve by pressing the key S. 
+- Open file in the editor to solve by pressing the key S.
 
 
 ## [0.1.0] - 2023-07-19
@@ -65,6 +65,4 @@ All notable changes to this project will be documented in this file.
 
 - Scrollable View of questions corresponding to the tags.
 
-- Read question in the popup using `Enter` key on the selected question. 
-
-
+- Read question in the popup using `Enter` key on the selected question.

@@ -164,7 +164,7 @@ jobs:
       with:
         toolchain: nightly
         override: true
-        
+
     - name: cargo-udeps
       run: |
         # cargo install --locked cargo-udeps

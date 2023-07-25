@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all="camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct CodeSnippet {
     lang: String,
     lang_slug: String,
@@ -9,8 +9,7 @@ pub struct CodeSnippet {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-
-#[serde(rename_all="camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct Question {
     question_id: String,
     question_frontend_id: String,
