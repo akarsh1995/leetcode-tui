@@ -1,10 +1,7 @@
 use crate::{
     app_ui::{
-        channel::{ChannelRequestSender, TaskResponse},
-        components::{
-            help_text::{CommonHelpText, HelpText},
-            rect::centered_rect,
-        },
+        channel::ChannelRequestSender,
+        components::{help_text::CommonHelpText, rect::centered_rect},
     },
     errors::AppResult,
 };

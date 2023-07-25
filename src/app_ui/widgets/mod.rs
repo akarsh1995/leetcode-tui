@@ -47,8 +47,7 @@ impl CommonState {
     pub(crate) fn get_key_set(&self) -> IndexSet<&KeyCode> {
         self.help_texts
             .iter()
-            .map(|ht| ht.get_keys())
-            .flatten()
+            .flat_map(|ht| ht.get_keys())
             .collect::<IndexSet<_>>()
     }
 }
@@ -95,7 +94,7 @@ pub trait Widget: Debug {
 
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);
 
-    fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
+    fn handler(&mut self, _event: KeyEvent) -> AppResult<Option<Notification>> {
         Ok(None)
     }
 

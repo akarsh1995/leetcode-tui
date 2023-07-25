@@ -1,10 +1,7 @@
-use std::collections::HashSet;
-
 use crate::app_ui::channel::ChannelRequestSender;
-use crate::app_ui::components::help_text::HelpText;
+
 use crate::errors::AppResult;
 
-use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::block::Position;
 use ratatui::{prelude::*, widgets::Block};
 

@@ -1,7 +1,7 @@
 use leetcode_tui_rs::graphql::check_run_submit::{RunResponse, StatusMessage};
 use serde_json::{self, Value};
 
-const JSONS_STR: &'static str = include_str!("./test_submit.json");
+const JSONS_STR: &str = include_str!("./test_submit.json");
 
 #[test]
 fn test_run_status_parsing() {

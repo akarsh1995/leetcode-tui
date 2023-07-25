@@ -1,9 +1,8 @@
-use crossterm::event::Event as CEvent;
 use std::collections::{HashMap, HashSet};
 use std::process::Stdio;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 
 use crate::app_ui::channel::Response;
 use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
@@ -173,7 +172,7 @@ impl super::Widget for QuestionListWidget {
                 }
             }
             KeyCode::Char('s') | KeyCode::Char('S') => {
-                let vim_cmd = format!("nvim");
+                let vim_cmd = "nvim".to_string();
                 let mut output = std::process::Command::new("sh")
                     .arg("-c")
                     .arg(&vim_cmd)
@@ -221,7 +220,7 @@ impl super::Widget for QuestionListWidget {
                     )
                 });
                 self.all_questions.extend(map_iter);
-                for (_, ql) in &mut self.all_questions {
+                for ql in &mut self.all_questions.values_mut() {
                     ql.sort_unstable()
                 }
                 return Ok(Some(Notification::Questions(NotifContent::new(
@@ -267,7 +266,7 @@ impl super::Widget for QuestionListWidget {
                 content: tags,
             }) => {
                 self.questions.items = vec![];
-                for tag in tags {
+                if let Some(tag) = tags.iter().next() {
                     if tag.id == "all" {
                         let mut question_set = HashSet::new();
                         for val in self.all_questions.values().flatten() {
@@ -295,9 +294,7 @@ impl super::Widget for QuestionListWidget {
                                 .map(|x| x.as_ref().clone())
                                 .collect::<Vec<_>>(),
                         ));
-                        self.questions
-                            .items
-                            .extend(values.iter().map(|q| q.clone()));
+                        self.questions.items.extend(values.iter().cloned());
                         return Ok(Some(notif));
                     };
                 }

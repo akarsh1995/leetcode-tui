@@ -53,6 +53,6 @@ pub fn render(app: &mut App, f: &mut CrosstermStderr) {
     }
 
     if let Some(popup) = app.get_current_popup_mut() {
-        return popup.render(size, f);
+        popup.render(size, f)
     }
 }

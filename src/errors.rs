@@ -4,7 +4,6 @@ use thiserror::Error;
 
 use crate::app_ui::channel::*;
 use crate::app_ui::event::Event;
-use crate::app_ui::widgets::notification::NotificationRequestSendError;
 
 #[derive(Error, Debug)]
 pub enum LcAppError {
@@ -55,9 +54,6 @@ pub enum LcAppError {
 
     #[error("Tokio join handle error")]
     TokioThreadJoinError(#[from] tokio::task::JoinError),
-
-    #[error("Error while sending notification between widgets {0}")]
-    NotificationSendError(#[from] NotificationRequestSendError),
 
     #[error("unknown lc app error")]
     Unknown,

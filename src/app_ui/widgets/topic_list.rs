@@ -107,11 +107,11 @@ impl Widget for TopicTagListWidget {
         match event.code {
             crossterm::event::KeyCode::Up => {
                 self.topics.previous();
-                return Ok(self.update_questions()?);
+                return self.update_questions();
             }
             crossterm::event::KeyCode::Down => {
                 self.topics.next();
-                return Ok(self.update_questions()?);
+                return self.update_questions();
             }
             _ => {}
         };

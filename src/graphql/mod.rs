@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
@@ -29,12 +31,11 @@ pub trait GQLLeetcodeQuery: Serialize + Sync {
     }
 
     async fn post(&self, client: &reqwest::Client) -> AppResult<Self::T> {
-        let request;
-        if self.is_post() {
-            request = client.post(self.get_endpoint()).json(&self.get_body());
+        let request = if self.is_post() {
+            client.post(self.get_endpoint()).json(&self.get_body())
         } else {
-            request = client.get(self.get_endpoint());
-        }
+            client.get(self.get_endpoint())
+        };
         Ok(request
             .header("Content-Type", "application/json")
             .send()
@@ -130,7 +131,7 @@ pub enum Language {
 }
 
 impl Language {
-    fn from_id(id: u32) -> Language {
+    pub fn from_id(id: u32) -> Language {
         match id {
             0 => Language::Cpp,
             1 => Language::Java,
@@ -162,9 +163,14 @@ impl Language {
             _ => Language::Unknown(id),
         }
     }
+}
 
-    fn to_string(&self) -> String {
-        match self {
+impl Display for Language {
+    // pub fn to_string(&self) -> String {
+    // }
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let k = match self {
             Language::Cpp => "cpp".to_string(),
             Language::Java => "java".to_string(),
             Language::Python => "python".to_string(),
@@ -193,7 +199,8 @@ impl Language {
             Language::Pythondata => "pythondata".to_string(),
             Language::React => "react".to_string(),
             Language::Unknown(id) => format!("Unknown({})", id),
-        }
+        };
+        f.write_str(k.as_str())
     }
 }
 

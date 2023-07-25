@@ -82,5 +82,3 @@ use super::{
     footer::Footer, popup::Popup, question_list::QuestionListWidget, stats::Stats,
     topic_list::TopicTagListWidget,
 };
-
-pub type NotificationRequestSendError = crossbeam::channel::SendError<Notification>;

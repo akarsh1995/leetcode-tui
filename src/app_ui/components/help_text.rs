@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use crossterm::event::{KeyCode, ModifierKeyCode};
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct HelpText {
     button: Vec<KeyCode>,
     title: String,
@@ -13,6 +13,13 @@ impl Eq for HelpText {}
 impl PartialEq for HelpText {
     fn eq(&self, other: &Self) -> bool {
         self.title == other.title
+    }
+}
+
+impl Hash for HelpText {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.button.hash(state);
+        self.title.hash(state);
     }
 }
 
@@ -79,7 +86,7 @@ impl From<&HelpText> for String {
         let symbols = value
             .button
             .iter()
-            .map(|k| HelpText::get_symbol_by_keycode(k))
+            .map(HelpText::get_symbol_by_keycode)
             .collect::<String>();
         format!("{}[{}]", value.title, symbols,)
     }
@@ -96,9 +103,9 @@ pub(crate) enum CommonHelpText {
     Close,
 }
 
-impl Into<HelpText> for CommonHelpText {
-    fn into(self) -> HelpText {
-        let (k, t) = match self {
+impl From<CommonHelpText> for HelpText {
+    fn from(value: CommonHelpText) -> Self {
+        let (k, t) = match value {
             CommonHelpText::ScrollUp => (vec![KeyCode::Up], "Up"),
             CommonHelpText::ScrollDown => (vec![KeyCode::Down], "Down"),
             CommonHelpText::SwitchPane => (vec![KeyCode::Left, KeyCode::Right], "Switch Pane"),
