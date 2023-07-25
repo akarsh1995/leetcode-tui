@@ -20,7 +20,7 @@ pub struct App {
     /// Is the application running?
     pub running: bool,
 
-    pub widget_map: indexmap::IndexMap<WidgetName, WidgetVariant>,
+    pub(crate) widget_map: indexmap::IndexMap<WidgetName, WidgetVariant>,
 
     selected_wid_idx: i32,
 
@@ -30,7 +30,7 @@ pub struct App {
 
     pub pending_notifications: VecDeque<Option<Notification>>,
 
-    pub popup_stack: Vec<Popup>,
+    pub(crate) popup_stack: Vec<Popup>,
 
     pub vim_tx: VimPingSender,
 
@@ -105,7 +105,7 @@ impl App {
         Ok(None)
     }
 
-    pub fn get_widget(&mut self, v: &WidgetName) -> &mut WidgetVariant {
+    pub(crate) fn get_widget(&mut self, v: &WidgetName) -> &mut WidgetVariant {
         self.widget_map.get_mut(v).unwrap()
     }
 
@@ -117,7 +117,7 @@ impl App {
         self.navigate(-1)
     }
 
-    pub fn get_current_widget(&self) -> &WidgetVariant {
+    pub(crate) fn get_current_widget(&self) -> &WidgetVariant {
         let (_, v) = self
             .widget_map
             .get_index(self.selected_wid_idx as usize)
@@ -125,7 +125,7 @@ impl App {
         v
     }
 
-    pub fn get_current_widget_mut(&mut self) -> &mut WidgetVariant {
+    pub(crate) fn get_current_widget_mut(&mut self) -> &mut WidgetVariant {
         let (_, v) = self
             .widget_map
             .get_index_mut(self.selected_wid_idx as usize)
@@ -133,11 +133,11 @@ impl App {
         v
     }
 
-    pub fn get_current_popup(&self) -> Option<&Popup> {
+    pub(crate) fn get_current_popup(&self) -> Option<&Popup> {
         self.popup_stack.last()
     }
 
-    pub fn get_current_popup_mut(&mut self) -> Option<&mut Popup> {
+    pub(crate) fn get_current_popup_mut(&mut self) -> Option<&mut Popup> {
         self.popup_stack.last_mut()
     }
 

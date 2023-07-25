@@ -16,10 +16,11 @@ impl PartialEq for HelpText {
     }
 }
 
+/// char('s') -> solve, char('s') -> show_solution  is not possible.
+/// Hence hashing only button values so that multiple actions cannot point to single key
 impl Hash for HelpText {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.button.hash(state);
-        self.title.hash(state);
     }
 }
 

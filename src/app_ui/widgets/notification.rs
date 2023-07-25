@@ -1,13 +1,17 @@
 use crate::{
-    app_ui::components::help_text::HelpText,
+    app_ui::components::{help_text::HelpText, popups::paragraph::ParagraphPopup},
     entities::{QuestionModel, TopicTagModel},
 };
 
 #[derive(Debug, Clone)]
+pub(crate) enum PopupType {
+    Paragraph(ParagraphPopup),
+}
+
+#[derive(Debug, Clone)]
 pub struct PopupMessage {
-    pub(crate) title: String,
-    pub(crate) message: String,
     pub(crate) help_texts: IndexSet<HelpText>,
+    pub(crate) popup: PopupType,
 }
 
 #[derive(Debug, Hash, Eq, Clone, PartialEq)]
@@ -50,11 +54,7 @@ macro_rules! dest_widname {
         pub fn get_wid_name(&self) -> &WidgetName {
             match self {
                 $(
-                    Notification::$variant(NotifContent {
-                        src_wid: _,
-                        dest_wid,
-                        content: _,
-                    }) => dest_wid,
+                    Notification::$variant(NotifContent { dest_wid, .. }) => dest_wid,
                 )*
             }
         }
@@ -66,7 +66,7 @@ impl Notification {
 }
 
 #[derive(Debug)]
-pub enum WidgetVariant {
+pub(crate) enum WidgetVariant {
     QuestionList(QuestionListWidget),
     TopicList(TopicTagListWidget),
     Stats(Stats),

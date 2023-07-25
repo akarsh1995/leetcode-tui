@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use crate::app_ui::channel::Response;
 use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
+use crate::app_ui::components::popups::paragraph::ParagraphPopup;
 use crate::app_ui::event::VimPingSender;
 use crate::app_ui::{channel::ChannelRequestSender, components::list::StatefulList};
 use crate::entities::{QuestionModel, TopicTagModel};
@@ -18,7 +19,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
-use super::notification::{NotifContent, Notification, PopupMessage, WidgetName};
+use super::notification::{NotifContent, Notification, PopupMessage, PopupType, WidgetName};
 use super::{Callout, CommonState, CrosstermStderr, CHECK_MARK};
 
 #[derive(Debug)]
@@ -40,9 +41,7 @@ impl QuestionListWidget {
     ) -> Self {
         Self {
             popup_events: IndexSet::from_iter([
-                // since the popup will be the question detail
-                CommonHelpText::ScrollUp.into(),
-                CommonHelpText::ScrollDown.into(),
+                // send the events that this widget can handle
                 CommonHelpText::Solve.into(),
                 CommonHelpText::Run.into(),
                 CommonHelpText::Submit.into(),
@@ -242,9 +241,11 @@ impl super::Widget for QuestionListWidget {
                             WidgetName::QuestionList,
                             WidgetName::Popup,
                             PopupMessage {
-                                message: qd.content.html_to_text(),
-                                title: title.clone(),
                                 help_texts: self.popup_events.clone(),
+                                popup: PopupType::Paragraph(ParagraphPopup::new(
+                                    title.clone(),
+                                    qd.content.html_to_text(),
+                                )),
                             },
                         ))));
                     }

@@ -55,6 +55,9 @@ pub enum LcAppError {
     #[error("Tokio join handle error")]
     TokioThreadJoinError(#[from] tokio::task::JoinError),
 
+    #[error("Key Combination already exists")]
+    KeyCombiExist(String),
+
     #[error("unknown lc app error")]
     Unknown,
 }
