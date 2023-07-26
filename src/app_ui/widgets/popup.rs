@@ -79,7 +79,7 @@ impl Widget for Popup {
 
     fn process_notification(
         &mut self,
-        notification: &Notification,
+        notification: Notification,
     ) -> AppResult<Option<Notification>> {
         if let Notification::Popup(NotifContent {
             src_wid,
@@ -87,13 +87,13 @@ impl Widget for Popup {
             content,
         }) = notification
         {
-            self.callee_wid = Some(src_wid.clone());
-            self.popup_type = Some(content.popup.clone());
-            let extended = match &content.popup {
+            self.callee_wid = Some(src_wid);
+            let extended_help = match &content.popup {
                 PopupType::Paragraph(p) => p.get_key_set(),
             };
+            self.popup_type = Some(content.popup);
             self.get_help_texts_mut().extend(content.help_texts.clone());
-            self.get_help_texts_mut().extend(extended);
+            self.get_help_texts_mut().extend(extended_help);
             return Ok(Some(Notification::HelpText(NotifContent {
                 src_wid: self.common_state.widget_name.clone(),
                 dest_wid: WidgetName::HelpLine,
@@ -109,5 +109,9 @@ impl Widget for Popup {
 
     fn get_common_state_mut(&mut self) -> &mut CommonState {
         &mut self.common_state
+    }
+
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
     }
 }

@@ -1,6 +1,8 @@
 use crate::{
     app_ui::{
-        channel::{ChannelRequestSender, Response, TaskRequest, TaskResponse},
+        channel::{
+            ChannelRequestSender, Request as TaskRequestFormat, Response, TaskRequest, TaskResponse,
+        },
         components::{help_text::CommonHelpText, list::StatefulList},
     },
     entities::TopicTagModel,
@@ -119,11 +121,7 @@ impl Widget for TopicTagListWidget {
     }
 
     fn process_task_response(&mut self, response: TaskResponse) -> AppResult<Option<Notification>> {
-        if let TaskResponse::AllTopicTags(Response {
-            content,
-            widget_name: _,
-        }) = response
-        {
+        if let TaskResponse::AllTopicTags(Response { content, .. }) = response {
             self.topics.add_item(TopicTagModel {
                 name: Some("All".to_owned()),
                 id: "all".to_owned(),
@@ -137,9 +135,12 @@ impl Widget for TopicTagListWidget {
     }
 
     fn setup(&mut self) -> AppResult<Option<Notification>> {
-        self.get_task_sender().send(TaskRequest::GetAllTopicTags {
-            widget_name: self.get_widget_name(),
-        })?;
+        self.get_task_sender()
+            .send(TaskRequest::GetAllTopicTags(TaskRequestFormat {
+                widget_name: self.get_widget_name(),
+                request_id: "".to_string(),
+                content: (),
+            }))?;
         Ok(None)
     }
 
@@ -149,5 +150,9 @@ impl Widget for TopicTagListWidget {
 
     fn get_common_state_mut(&mut self) -> &mut CommonState {
         &mut self.common_state
+    }
+
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
     }
 }

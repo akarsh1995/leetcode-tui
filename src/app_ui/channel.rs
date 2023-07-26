@@ -7,17 +7,15 @@ use crate::{
 };
 
 #[derive(Debug)]
+pub struct Request<T> {
+    pub(crate) request_id: String,
+    pub(crate) content: T,
+    pub(crate) widget_name: WidgetName,
+}
 pub enum TaskRequest {
-    QuestionDetail {
-        slug: String,
-        widget_name: WidgetName,
-    },
-    GetAllQuestionsMap {
-        widget_name: WidgetName,
-    },
-    GetAllTopicTags {
-        widget_name: WidgetName,
-    },
+    QuestionDetail(Request<String>),
+    GetAllQuestionsMap(Request<()>),
+    GetAllTopicTags(Request<()>),
 }
 
 impl TaskRequest {
@@ -27,21 +25,28 @@ impl TaskRequest {
         conn: &DatabaseConnection,
     ) -> TaskResponse {
         match self {
-            TaskRequest::QuestionDetail { slug, widget_name } => {
-                get_question_details(widget_name, slug, client).await
-            }
-            TaskRequest::GetAllQuestionsMap { widget_name } => {
-                get_all_questions(widget_name, conn).await
-            }
-            TaskRequest::GetAllTopicTags { widget_name } => {
-                get_all_topic_tags(widget_name, conn).await
-            }
+            TaskRequest::QuestionDetail(Request {
+                content: slug,
+                widget_name,
+                request_id,
+            }) => get_question_details(request_id, widget_name, slug, client).await,
+            TaskRequest::GetAllQuestionsMap(Request {
+                widget_name,
+                request_id,
+                ..
+            }) => get_all_questions(request_id, widget_name, conn).await,
+            TaskRequest::GetAllTopicTags(Request {
+                widget_name,
+                request_id,
+                ..
+            }) => get_all_topic_tags(request_id, widget_name, conn).await,
         }
     }
 }
 
 #[derive(Debug)]
 pub struct Response<T> {
+    pub(crate) request_id: String,
     pub(crate) content: T,
     pub(crate) widget_name: WidgetName,
 }
@@ -57,22 +62,10 @@ pub enum TaskResponse {
 impl TaskResponse {
     pub fn get_widget_name(&self) -> WidgetName {
         match self {
-            TaskResponse::QuestionDetail(Response {
-                widget_name,
-                content: _,
-            }) => widget_name,
-            TaskResponse::GetAllQuestionsMap(Response {
-                widget_name,
-                content: _,
-            }) => widget_name,
-            TaskResponse::AllTopicTags(Response {
-                content: _,
-                widget_name,
-            }) => widget_name,
-            TaskResponse::Error(Response {
-                widget_name,
-                content: _,
-            }) => widget_name,
+            TaskResponse::QuestionDetail(Response { widget_name, .. }) => widget_name,
+            TaskResponse::GetAllQuestionsMap(Response { widget_name, .. }) => widget_name,
+            TaskResponse::AllTopicTags(Response { widget_name, .. }) => widget_name,
+            TaskResponse::Error(Response { widget_name, .. }) => widget_name,
         }
         .clone()
     }

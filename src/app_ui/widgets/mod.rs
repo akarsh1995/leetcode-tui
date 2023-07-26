@@ -5,7 +5,11 @@ pub mod question_list;
 pub mod stats;
 pub mod topic_list;
 
-use std::{collections::HashMap, fmt::Debug, io::Stderr};
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::Debug,
+    io::Stderr,
+};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use indexmap::IndexSet;
@@ -27,6 +31,7 @@ pub struct CommonState {
     pub task_sender: ChannelRequestSender,
     pub is_navigable: bool,
     help_texts: IndexSet<HelpText>,
+    pub notification_queue: VecDeque<Notification>,
 }
 
 impl CommonState {
@@ -41,6 +46,7 @@ impl CommonState {
             task_sender,
             is_navigable: true,
             help_texts: IndexSet::from_iter(help_texts),
+            notification_queue: Default::default(),
         }
     }
 
@@ -92,6 +98,8 @@ pub trait Widget: Debug {
 
     fn get_common_state(&self) -> &CommonState;
 
+    fn get_notification_queue(&mut self) -> &mut VecDeque<Notification>;
+
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);
 
     fn handler(&mut self, _event: KeyEvent) -> AppResult<Option<Notification>> {
@@ -111,7 +119,7 @@ pub trait Widget: Debug {
 
     fn process_notification(
         &mut self,
-        _notification: &Notification,
+        _notification: Notification,
     ) -> AppResult<Option<Notification>> {
         Ok(None)
     }
@@ -155,6 +163,7 @@ macro_rules! gen_methods {
 
 impl WidgetVariant {
     gen_methods!((is_navigable, nm, (), bool));
+    gen_methods!((get_notification_queue, (), &mut VecDeque<Notification>));
     gen_methods!(
         (set_active, (), AppResult<Option<Notification>>),
         (set_inactive, (), ()),
@@ -171,7 +180,7 @@ impl WidgetVariant {
         ),
         (
             process_notification,
-            ((notification, &Notification)),
+            ((notification, Notification)),
             AppResult<Option<Notification>>
         ),
         (

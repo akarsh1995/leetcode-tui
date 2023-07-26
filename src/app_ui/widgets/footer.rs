@@ -44,7 +44,7 @@ impl super::Widget for Footer {
 
     fn process_notification(
         &mut self,
-        notification: &Notification,
+        notification: Notification,
     ) -> AppResult<Option<Notification>> {
         if let Notification::HelpText(NotifContent {
             src_wid: _,
@@ -52,7 +52,7 @@ impl super::Widget for Footer {
             content,
         }) = notification
         {
-            *self.get_help_texts_mut() = content.clone();
+            *self.get_help_texts_mut() = content;
         }
         Ok(None)
     }
@@ -63,5 +63,9 @@ impl super::Widget for Footer {
 
     fn get_common_state_mut(&mut self) -> &mut CommonState {
         &mut self.common_state
+    }
+
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
     }
 }

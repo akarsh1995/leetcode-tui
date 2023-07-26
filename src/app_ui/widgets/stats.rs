@@ -77,7 +77,7 @@ impl Widget for Stats {
 
     fn process_notification(
         &mut self,
-        notification: &Notification,
+        notification: Notification,
     ) -> AppResult<Option<Notification>> {
         if let Notification::Stats(NotifContent {
             src_wid: _,
@@ -85,7 +85,7 @@ impl Widget for Stats {
             content: questions,
         }) = notification
         {
-            let stats = crate::app_ui::helpers::question::Stats { qm: questions };
+            let stats = crate::app_ui::helpers::question::Stats { qm: &questions };
             self.stat_state = Some(stats.into());
         }
         Ok(None)
@@ -97,6 +97,9 @@ impl Widget for Stats {
 
     fn get_common_state_mut(&mut self) -> &mut CommonState {
         &mut self.common_state
+    }
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
     }
 }
 

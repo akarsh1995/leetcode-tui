@@ -1,10 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::process::Stdio;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
-use crate::app_ui::channel::Response;
+use crate::app_ui::channel::{Request, Response, TaskResponse};
 use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
 use crate::app_ui::components::popups::paragraph::ParagraphPopup;
 use crate::app_ui::event::VimPingSender;
@@ -20,7 +20,14 @@ use ratatui::{
 };
 
 use super::notification::{NotifContent, Notification, PopupMessage, PopupType, WidgetName};
-use super::{Callout, CommonState, CrosstermStderr, CHECK_MARK};
+use super::{Callout, CommonState, CrosstermStderr, Widget, CHECK_MARK};
+use lru;
+use std::num::NonZeroUsize;
+
+#[derive(Debug, Default)]
+struct CachedQuestion {
+    qd: Option<TaskResponse>,
+}
 
 #[derive(Debug)]
 pub struct QuestionListWidget {
@@ -30,6 +37,9 @@ pub struct QuestionListWidget {
     popup_events: IndexSet<HelpText>,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
+    cache: lru::LruCache<Rc<QuestionModel>, CachedQuestion>,
+    task_map: HashMap<String, Rc<QuestionModel>>,
+    pending_event_actions: VecDeque<(KeyEvent, Rc<QuestionModel>)>,
 }
 
 impl QuestionListWidget {
@@ -63,6 +73,9 @@ impl QuestionListWidget {
             questions: Default::default(),
             vim_tx,
             vim_running,
+            cache: lru::LruCache::new(NonZeroUsize::new(10).unwrap()),
+            task_map: HashMap::new(),
+            pending_event_actions: Default::default(),
         }
     }
 }
@@ -112,6 +125,42 @@ impl QuestionListWidget {
         let styled_title = Span::styled(line_text, combination);
         ListItem::new(styled_title)
     }
+
+    fn process_pending_events(&mut self) {
+        while let Some((remaining_event, qm)) = self.pending_event_actions.pop_front() {
+            match remaining_event.code {
+                KeyCode::Enter => {
+                    let ques_in_cache = self
+                        .cache
+                        .get_or_insert_mut(qm.clone(), CachedQuestion::default);
+                    if let Some(cache_ques) = &ques_in_cache.qd {
+                        let popup_content = match cache_ques {
+                            TaskResponse::QuestionDetail(qd) => qd.content.html_to_text(),
+                            TaskResponse::Error(e) => e.content.clone(),
+                            _ => break,
+                        };
+                        let title = qm.title.as_ref().unwrap();
+                        self.common_state
+                            .notification_queue
+                            .push_back(Notification::Popup(NotifContent {
+                                src_wid: self.get_widget_name(),
+                                dest_wid: WidgetName::Popup,
+                                content: PopupMessage {
+                                    help_texts: self.popup_events.clone(),
+                                    popup: PopupType::Paragraph(ParagraphPopup::new(
+                                        title.to_string(),
+                                        popup_content,
+                                    )),
+                                },
+                            }));
+                    } else {
+                        break;
+                    }
+                }
+                _ => break,
+            }
+        }
+    }
 }
 
 impl super::Widget for QuestionListWidget {
@@ -160,14 +209,34 @@ impl super::Widget for QuestionListWidget {
                 let selected_question = self.questions.get_selected_item();
                 if let Some(sel) = selected_question {
                     let model = sel.clone();
-                    if let Some(title_slug) = model.title_slug.as_ref() {
-                        self.get_task_sender().send(
-                            crate::app_ui::channel::TaskRequest::QuestionDetail {
-                                slug: title_slug.clone(),
-                                widget_name: self.get_widget_name(),
-                            },
-                        )?;
-                    };
+
+                    let cached_q = self
+                        .cache
+                        .get_or_insert_mut(model.clone(), CachedQuestion::default);
+
+                    // if question details are not in the cache then send request to get the
+                    // details and push the event to be processed in the future
+                    if cached_q.qd.as_ref().is_none() {
+                        if let Some(title_slug) = model.title_slug.as_ref() {
+                            // before sending the task request set the key as the request id and value
+                            // as question model so that we can obtain the question model once we get the response
+                            self.task_map.insert(title_slug.to_string(), model.clone());
+                            self.get_task_sender().send(
+                                crate::app_ui::channel::TaskRequest::QuestionDetail(Request {
+                                    widget_name: self.get_widget_name(),
+                                    request_id: title_slug.clone(),
+                                    content: title_slug.clone(),
+                                }),
+                            )?;
+                            self.pending_event_actions.push_back((event, model.clone()));
+                        };
+                    } else {
+                        // because the question details exists in the cache
+                        // process instantly send the notification to notification queue send the
+                        // notification to notification queue
+                        self.pending_event_actions.push_back((event, model.clone()));
+                        self.process_pending_events();
+                    }
                 }
             }
             KeyCode::Char('s') | KeyCode::Char('S') => {
@@ -197,9 +266,13 @@ impl super::Widget for QuestionListWidget {
 
     fn setup(&mut self) -> AppResult<Option<Notification>> {
         self.get_task_sender()
-            .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap {
-                widget_name: self.get_widget_name(),
-            })?;
+            .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap(
+                Request {
+                    widget_name: self.get_widget_name(),
+                    request_id: "".to_string(),
+                    content: (),
+                },
+            ))?;
         Ok(None)
     }
 
@@ -207,15 +280,15 @@ impl super::Widget for QuestionListWidget {
         &mut self,
         response: crate::app_ui::channel::TaskResponse,
     ) -> AppResult<Option<Notification>> {
-        match response {
+        match &response {
             crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
-                content,
-                widget_name: _,
+                content, ..
             }) => {
-                let map_iter = content.into_iter().map(|v| {
+                // avoid this cloning
+                let map_iter = content.iter().map(|v| {
                     (
-                        Rc::new(v.0),
-                        (v.1.into_iter().map(Rc::new)).collect::<Vec<_>>(),
+                        Rc::new(v.0.clone()),
+                        (v.1.iter().map(|x| Rc::new(x.clone()))).collect::<Vec<_>>(),
                     )
                 });
                 self.all_questions.extend(map_iter);
@@ -233,23 +306,14 @@ impl super::Widget for QuestionListWidget {
                 ))));
             }
             crate::app_ui::channel::TaskResponse::QuestionDetail(qd) => {
-                let selected_question = self.questions.get_selected_item();
-                if let Some(sel) = selected_question {
-                    let model = sel.clone();
-                    if let Some(title) = model.title.as_ref() {
-                        return Ok(Some(Notification::Popup(NotifContent::new(
-                            WidgetName::QuestionList,
-                            WidgetName::Popup,
-                            PopupMessage {
-                                help_texts: self.popup_events.clone(),
-                                popup: PopupType::Paragraph(ParagraphPopup::new(
-                                    title.clone(),
-                                    qd.content.html_to_text(),
-                                )),
-                            },
-                        ))));
-                    }
-                }
+                let cached_q = self.cache.get_or_insert_mut(
+                    self.task_map
+                        .remove(&qd.request_id)
+                        .expect("sent task is not found in the task list."),
+                    CachedQuestion::default,
+                );
+                cached_q.qd = Some(response);
+                self.process_pending_events();
             }
             _ => {}
         }
@@ -258,7 +322,7 @@ impl super::Widget for QuestionListWidget {
 
     fn process_notification(
         &mut self,
-        notification: &Notification,
+        notification: Notification,
     ) -> AppResult<Option<Notification>> {
         match notification {
             Notification::Questions(NotifContent {
@@ -267,7 +331,7 @@ impl super::Widget for QuestionListWidget {
                 content: tags,
             }) => {
                 self.questions.items = vec![];
-                if let Some(tag) = tags.iter().next() {
+                if let Some(tag) = tags.into_iter().next() {
                     if tag.id == "all" {
                         let mut question_set = HashSet::new();
                         for val in self.all_questions.values().flatten() {
@@ -286,7 +350,7 @@ impl super::Widget for QuestionListWidget {
                         self.questions.items.sort_unstable();
                         return Ok(Some(notif));
                     } else {
-                        let values = self.all_questions.get(tag).unwrap();
+                        let values = self.all_questions.get(&tag).unwrap();
                         let notif = Notification::Stats(NotifContent::new(
                             WidgetName::QuestionList,
                             WidgetName::Stats,
@@ -305,7 +369,7 @@ impl super::Widget for QuestionListWidget {
                 dest_wid: _,
                 content: event,
             }) => {
-                return self.handler(*event);
+                return self.handler(event);
             }
             _ => {}
         }
@@ -319,4 +383,11 @@ impl super::Widget for QuestionListWidget {
     fn get_common_state_mut(&mut self) -> &mut CommonState {
         &mut self.common_state
     }
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
+    }
 }
+
+// send popup for showing the question details.
+// if let Some(sel) = selected_question {
+// }

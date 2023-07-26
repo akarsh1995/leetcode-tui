@@ -161,6 +161,13 @@ impl App {
                 self.push_notif(maybe_notif);
             };
         }
+
+        for wid in self.widget_map.values_mut() {
+            while let Some(notif) = wid.get_notification_queue().pop_front() {
+                self.pending_notifications.push_back(Some(notif));
+            }
+        }
+
         self.check_for_task()?;
         self.process_pending_notification()?;
         Ok(())
@@ -186,12 +193,12 @@ impl App {
                     let mut popup_instance =
                         Popup::new(wid_name.clone(), self.task_request_sender.clone());
                     self.push_notif(popup_instance.set_active()?);
-                    let maybe_notif = popup_instance.process_notification(&notif)?;
+                    let maybe_notif = popup_instance.process_notification(notif)?;
                     self.pending_notifications.push_back(maybe_notif);
                     self.popup_stack.push(popup_instance);
                 } else {
                     let widget_var = self.widget_map.get_mut(wid_name).unwrap();
-                    let more_notif = widget_var.process_notification(&notif)?;
+                    let more_notif = widget_var.process_notification(notif)?;
                     self.pending_notifications.push_back(more_notif);
                 }
             }
