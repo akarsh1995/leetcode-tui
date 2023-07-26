@@ -120,7 +120,7 @@ impl Widget for TopicTagListWidget {
         Ok(None)
     }
 
-    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<Option<Notification>> {
+    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()> {
         if let TaskResponse::AllTopicTags(Response { content, .. }) = response {
             self.topics.add_item(TopicTagModel {
                 name: Some("All".to_owned()),
@@ -131,7 +131,8 @@ impl Widget for TopicTagListWidget {
                 self.topics.add_item(tt)
             }
         }
-        self.update_questions()
+        self.update_questions()?;
+        Ok(())
     }
 
     fn setup(&mut self) -> AppResult<()> {

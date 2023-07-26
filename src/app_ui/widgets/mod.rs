@@ -106,11 +106,8 @@ pub trait Widget: Debug {
         Ok(None)
     }
 
-    fn process_task_response(
-        &mut self,
-        _response: TaskResponse,
-    ) -> AppResult<Option<Notification>> {
-        Ok(None)
+    fn process_task_response(&mut self, _response: TaskResponse) -> AppResult<()> {
+        Ok(())
     }
 
     fn setup(&mut self) -> AppResult<()> {
@@ -171,7 +168,7 @@ impl WidgetVariant {
         (
             process_task_response,
             ((response, TaskResponse)),
-            AppResult<Option<Notification>>
+            AppResult<()>
         ),
         (
             handler,

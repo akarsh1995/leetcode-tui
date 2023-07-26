@@ -173,12 +173,10 @@ impl App {
 
     fn check_for_task(&mut self) -> AppResult<()> {
         if let Ok(task_result) = self.task_response_recv.try_recv() {
-            self.pending_notifications.push_back(
-                self.widget_map
-                    .get_mut(&task_result.get_widget_name())
-                    .unwrap()
-                    .process_task_response(task_result)?,
-            );
+            self.widget_map
+                .get_mut(&task_result.get_widget_name())
+                .unwrap()
+                .process_task_response(task_result)?;
         }
         Ok(())
     }

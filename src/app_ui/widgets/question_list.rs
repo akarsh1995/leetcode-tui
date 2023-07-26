@@ -279,7 +279,7 @@ impl super::Widget for QuestionListWidget {
     fn process_task_response(
         &mut self,
         response: crate::app_ui::channel::TaskResponse,
-    ) -> AppResult<Option<Notification>> {
+    ) -> AppResult<()> {
         match &response {
             crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
                 content, ..
@@ -295,15 +295,16 @@ impl super::Widget for QuestionListWidget {
                 for ql in &mut self.all_questions.values_mut() {
                     ql.sort_unstable()
                 }
-                return Ok(Some(Notification::Questions(NotifContent::new(
-                    WidgetName::QuestionList,
-                    super::notification::WidgetName::QuestionList,
-                    vec![TopicTagModel {
-                        name: Some("All".to_owned()),
-                        id: "all".to_owned(),
-                        slug: Some("all".to_owned()),
-                    }],
-                ))));
+                self.get_notification_queue()
+                    .push_back(Notification::Questions(NotifContent::new(
+                        WidgetName::QuestionList,
+                        super::notification::WidgetName::QuestionList,
+                        vec![TopicTagModel {
+                            name: Some("All".to_owned()),
+                            id: "all".to_owned(),
+                            slug: Some("all".to_owned()),
+                        }],
+                    )));
             }
             crate::app_ui::channel::TaskResponse::QuestionDetail(qd) => {
                 let cached_q = self.cache.get_or_insert_mut(
@@ -317,7 +318,7 @@ impl super::Widget for QuestionListWidget {
             }
             _ => {}
         }
-        Ok(None)
+        Ok(())
     }
 
     fn process_notification(
