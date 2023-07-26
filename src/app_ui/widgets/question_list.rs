@@ -264,7 +264,7 @@ impl super::Widget for QuestionListWidget {
         Ok(None)
     }
 
-    fn setup(&mut self) -> AppResult<Option<Notification>> {
+    fn setup(&mut self) -> AppResult<()> {
         self.get_task_sender()
             .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap(
                 Request {
@@ -273,7 +273,7 @@ impl super::Widget for QuestionListWidget {
                     content: (),
                 },
             ))?;
-        Ok(None)
+        Ok(())
     }
 
     fn process_task_response(
@@ -325,11 +325,7 @@ impl super::Widget for QuestionListWidget {
         notification: Notification,
     ) -> AppResult<Option<Notification>> {
         match notification {
-            Notification::Questions(NotifContent {
-                src_wid: _,
-                dest_wid: _,
-                content: tags,
-            }) => {
+            Notification::Questions(NotifContent { content: tags, .. }) => {
                 self.questions.items = vec![];
                 if let Some(tag) = tags.into_iter().next() {
                     if tag.id == "all" {

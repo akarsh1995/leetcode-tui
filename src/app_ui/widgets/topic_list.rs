@@ -134,14 +134,14 @@ impl Widget for TopicTagListWidget {
         self.update_questions()
     }
 
-    fn setup(&mut self) -> AppResult<Option<Notification>> {
+    fn setup(&mut self) -> AppResult<()> {
         self.get_task_sender()
             .send(TaskRequest::GetAllTopicTags(TaskRequestFormat {
                 widget_name: self.get_widget_name(),
                 request_id: "".to_string(),
                 content: (),
             }))?;
-        Ok(None)
+        Ok(())
     }
 
     fn get_common_state(&self) -> &CommonState {

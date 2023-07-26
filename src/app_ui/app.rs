@@ -140,11 +140,9 @@ impl App {
     pub fn setup(&mut self) -> AppResult<()> {
         let maybe_notif = self.get_current_widget_mut().set_active()?;
         self.push_notif(maybe_notif);
-        let mut v = vec![];
         for (_, widget) in self.widget_map.iter_mut() {
-            v.push(widget.setup()?);
+            widget.setup()?;
         }
-        self.pending_notifications.extend(v);
         Ok(())
     }
 
