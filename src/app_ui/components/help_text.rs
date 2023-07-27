@@ -97,11 +97,12 @@ pub(crate) enum CommonHelpText {
     ScrollUp,
     ScrollDown,
     SwitchPane,
-    Solve,
+    Edit,
     ReadContent,
-    Submit,
-    Run,
+    // Submit,
+    // Run,
     Close,
+    Select,
 }
 
 impl From<CommonHelpText> for HelpText {
@@ -110,17 +111,18 @@ impl From<CommonHelpText> for HelpText {
             CommonHelpText::ScrollUp => (vec![KeyCode::Up], "Up"),
             CommonHelpText::ScrollDown => (vec![KeyCode::Down], "Down"),
             CommonHelpText::SwitchPane => (vec![KeyCode::Left, KeyCode::Right], "Switch Pane"),
-            CommonHelpText::Solve => (vec![KeyCode::Char('S'), KeyCode::Char('s')], "Solve"),
+            CommonHelpText::Edit => (vec![KeyCode::Char('E'), KeyCode::Char('e')], "Edit"),
             CommonHelpText::ReadContent => (vec![KeyCode::Enter], "Read Content"),
-            CommonHelpText::Close => (vec![KeyCode::Esc, KeyCode::Enter], "Close"),
-            CommonHelpText::Submit => (
-                vec![
-                    KeyCode::Modifier(ModifierKeyCode::LeftControl),
-                    KeyCode::Enter,
-                ],
-                "Submit",
-            ),
-            CommonHelpText::Run => (vec![KeyCode::Char('R'), KeyCode::Char('r')], "Run"),
+            CommonHelpText::Close => (vec![KeyCode::Esc], "Close"),
+            CommonHelpText::Select => (vec![KeyCode::Enter], "Select"),
+            // CommonHelpText::Submit => (
+            //     vec![
+            //         KeyCode::Modifier(ModifierKeyCode::LeftControl),
+            //         KeyCode::Enter,
+            //     ],
+            //     "Submit",
+            // ),
+            // CommonHelpText::Run => (vec![KeyCode::Char('R'), KeyCode::Char('r')], "Run"),
         };
         HelpText {
             button: k,

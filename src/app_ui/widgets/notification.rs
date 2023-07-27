@@ -1,11 +1,19 @@
 use crate::{
-    app_ui::components::{help_text::HelpText, popups::paragraph::ParagraphPopup},
+    app_ui::components::{
+        help_text::HelpText,
+        popups::{paragraph::ParagraphPopup, selection_list::SelectionListPopup},
+    },
     entities::{QuestionModel, TopicTagModel},
 };
 
 #[derive(Debug, Clone)]
 pub(crate) enum PopupType {
     Paragraph(ParagraphPopup),
+    List {
+        popup: SelectionListPopup,
+        // to catch the reference back to the parent widget
+        key: String,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +55,7 @@ pub enum Notification {
     Popup(NotifContent<PopupMessage>),
     HelpText(NotifContent<IndexSet<HelpText>>),
     Event(NotifContent<KeyEvent>),
+    SelectedItem(NotifContent<(String, usize)>),
 }
 
 macro_rules! dest_widname {
@@ -62,7 +71,7 @@ macro_rules! dest_widname {
 }
 
 impl Notification {
-    dest_widname!(Questions, Stats, Popup, HelpText, Event);
+    dest_widname!(Questions, Stats, Popup, HelpText, Event, SelectedItem);
 }
 
 #[derive(Debug)]

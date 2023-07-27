@@ -19,6 +19,7 @@ use leetcode_tui_rs::utils::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
@@ -74,7 +75,7 @@ async fn main() -> AppResult<()> {
     let (vim_tx, vim_rx) = vim_ping_channel(10);
 
     tokio::task::spawn_blocking(move || {
-        run_app(tx_request, rx_response, tui, vim_tx, vim_running).unwrap()
+        run_app(tx_request, rx_response, tui, vim_tx, vim_running, config).unwrap()
     });
 
     // blog post does not work in separate thread
@@ -97,9 +98,11 @@ fn run_app(
     mut tui: Tui,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
+    config: Config,
 ) -> AppResult<()> {
+    let config = Rc::new(config);
     tui.init()?;
-    let mut app = App::new(tx_request, rx_response, vim_tx, vim_running)?;
+    let mut app = App::new(tx_request, rx_response, vim_tx, vim_running, config)?;
 
     // Start the main loop.
     while app.running {

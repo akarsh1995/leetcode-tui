@@ -97,7 +97,7 @@ struct Languages {
 }
 
 // Generate the enum for languages
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     Cpp,
@@ -163,6 +163,96 @@ impl Language {
             _ => Language::Unknown(id),
         }
     }
+
+    pub fn comment_text(&self, input_text: &str) -> String {
+        let (comment_start, comment_end) = match self {
+            Language::Cpp
+            | Language::C
+            | Language::Scala
+            | Language::Java
+            | Language::Javascript
+            | Language::Swift
+            | Language::Golang
+            | Language::Rust
+            | Language::Kotlin => ("/*\n", "\n*/"),
+            Language::Python | Language::Python3 => ("'''\n", "\n'''"),
+            Language::Mysql | Language::Mssql | Language::Oraclesql => ("-- ", ""),
+            Language::Csharp => ("// ", ""),
+            Language::Ruby => ("=begin\n", "\n=end"),
+            Language::Bash => ("# ", ""),
+            Language::Html => ("<!--\n", "\n-->"),
+            Language::Pythonml => ("# ", ""),
+            // => ("// ", ""),
+            Language::Php => ("// ", ""),
+            Language::Typescript => ("// ", ""),
+            Language::Racket => ("; ", ""),
+            Language::Erlang => ("% ", ""),
+            Language::Elixir => ("# ", ""),
+            Language::Dart => ("// ", ""),
+            Language::Pythondata => ("# ", ""),
+            Language::React => ("// ", ""),
+            Language::Unknown(_) => ("", ""),
+        };
+
+        match self {
+            Language::C
+            | Language::Html
+            | Language::Cpp
+            | Language::Python
+            | Language::Python3
+            | Language::Ruby
+            | Language::Javascript
+            | Language::Scala
+            | Language::Java
+            | Language::Swift
+            | Language::Golang
+            | Language::Kotlin
+            | Language::Rust => {
+                format!("{}{}{}", comment_start, input_text, comment_end)
+            }
+            _ => {
+                let commented_lines: Vec<String> = input_text
+                    .lines()
+                    .map(|line| format!("{}{}", comment_start, line))
+                    .collect();
+
+                commented_lines.join("\n")
+            }
+        }
+    }
+
+    pub fn get_extension(&self) -> &str {
+        match self {
+            Language::Cpp => "cpp",
+            Language::Java => "java",
+            Language::Python => "py",
+            Language::Python3 => "py",
+            Language::Mysql => "sql",
+            Language::Mssql => "sql",
+            Language::Oraclesql => "sql",
+            Language::C => "c",
+            Language::Csharp => "cs",
+            Language::Javascript => "js",
+            Language::Ruby => "rb",
+            Language::Bash => "sh",
+            Language::Swift => "swift",
+            Language::Golang => "go",
+            Language::Scala => "scala",
+            Language::Html => "html",
+            Language::Pythonml => "py",
+            Language::Kotlin => "kt",
+            Language::Rust => "rs",
+            Language::Php => "php",
+            Language::Typescript => "ts",
+            Language::Racket => "rkt",
+            Language::Erlang => "erl",
+            Language::Elixir => "ex",
+            Language::Dart => "dart",
+            Language::Pythondata => "py",
+            Language::React => "jsx",
+            Language::Unknown(_) => "",
+        }
+    }
 }
 
 impl Display for Language {
@@ -207,6 +297,70 @@ impl Display for Language {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_comment_text() {
+        let test_cases = [
+            // Test for C++
+            (
+                Language::Cpp,
+                "This is a single-line comment.",
+                "/*\nThis is a single-line comment.\n*/",
+            ),
+            (
+                Language::Cpp,
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "/*\nThis is a multi-line text.\nIt can have multiple lines.\n*/",
+            ),
+            (
+                Language::Python,
+                "This is a single-line comment.",
+                "'''\nThis is a single-line comment.\n'''",
+            ),
+            (
+                Language::Python,
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "'''\nThis is a multi-line text.\nIt can have multiple lines.\n'''",
+            ),
+            // Test for C
+            (
+                Language::C,
+                "This is a single-line comment.",
+                "/*\nThis is a single-line comment.\n*/",
+            ),
+            (
+                Language::C,
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "/*\nThis is a multi-line text.\nIt can have multiple lines.\n*/",
+            ),
+            // Test for HTML
+            (
+                Language::Html,
+                "This is a single-line comment.",
+                "<!--\nThis is a single-line comment.\n-->",
+            ),
+            (
+                Language::Html,
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "<!--\nThis is a multi-line text.\nIt can have multiple lines.\n-->",
+            ),
+            // Test for Unknown language
+            (
+                Language::Unknown(999),
+                "This is a single-line comment.",
+                "This is a single-line comment.",
+            ),
+            (
+                Language::Unknown(999),
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "This is a multi-line text.\nIt can have multiple lines.",
+            ),
+        ];
+
+        for (language, input_text, expected_output) in &test_cases {
+            assert_eq!(language.comment_text(input_text), *expected_output);
+        }
+    }
 
     use std::collections::HashMap;
     #[test]

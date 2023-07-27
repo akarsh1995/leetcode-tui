@@ -1,4 +1,5 @@
 pub mod paragraph;
+pub mod selection_list;
 
 use std::io::Stderr;
 
@@ -14,7 +15,7 @@ pub type FrameBackend<'a> = Frame<'a, CrossTermStderr>;
 
 pub(crate) trait Component {
     fn event_handler(&mut self, event: KeyEvent) -> Option<KeyEvent>;
-    fn render(&self, f: &mut Frame<CrosstermBackend<Stderr>>, render_area: Rect);
+    fn render(&mut self, f: &mut Frame<CrosstermBackend<Stderr>>, render_area: Rect);
     fn get_common_state_mut(&mut self) -> &mut CommonState;
     fn get_common_state(&self) -> &CommonState;
     fn get_key_set(&self) -> IndexSet<HelpText> {

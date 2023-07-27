@@ -20,7 +20,7 @@ pub enum LcAppError {
     RequestRecvError(#[from] RequestRecvError),
 
     #[error("Task response send error async to sync context: {0}")]
-    ResponseSendError(#[from] ResponseSendError),
+    ResponseSendError(#[from] Box<ResponseSendError>),
 
     #[error("Task response receive error async to sync context: {0}")]
     ResponseReceiveError(#[from] ResponseReceiveError),

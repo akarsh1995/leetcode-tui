@@ -103,7 +103,7 @@ pub async fn tasks_executor(
 ) -> AppResult<()> {
     while let Some(task) = rx_request.recv().await {
         let response = task.execute(client, conn).await;
-        tx_response.send(response)?;
+        tx_response.send(response).map_err(Box::new)?;
     }
     Ok(())
 }

@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use std::process::Stdio;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
@@ -7,8 +8,13 @@ use std::sync::Arc;
 use crate::app_ui::channel::{Request, Response, TaskResponse};
 use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
 use crate::app_ui::components::popups::paragraph::ParagraphPopup;
+use crate::app_ui::components::popups::selection_list::SelectionListPopup;
 use crate::app_ui::event::VimPingSender;
+use crate::app_ui::helpers::utils::{generate_random_string, SolutionFile};
 use crate::app_ui::{channel::ChannelRequestSender, components::list::StatefulList};
+use crate::config::Config;
+use crate::deserializers;
+use crate::deserializers::editor_data::CodeSnippet;
 use crate::entities::{QuestionModel, TopicTagModel};
 use crate::errors::AppResult;
 
@@ -26,7 +32,39 @@ use std::num::NonZeroUsize;
 
 #[derive(Debug, Default)]
 struct CachedQuestion {
-    qd: Option<TaskResponse>,
+    editor_data: Option<deserializers::editor_data::Question>,
+    qd: Option<deserializers::question_content::QuestionContent>,
+}
+
+impl CachedQuestion {
+    fn question_data_received(&self) -> bool {
+        self.qd.is_some()
+    }
+
+    fn editor_data_received(&self) -> bool {
+        self.editor_data.is_some()
+    }
+
+    fn get_code_snippets(&self) -> Option<&Vec<CodeSnippet>> {
+        if let Some(ed) = &self.editor_data {
+            return Some(&ed.code_snippets);
+        }
+        None
+    }
+
+    fn get_list_of_languages(&self) -> Option<Vec<String>> {
+        if let Some(cs) = self.get_code_snippets() {
+            return Some(cs.iter().map(|s| s.lang.clone()).collect());
+        }
+        None
+    }
+
+    fn get_question_content(&self) -> Option<String> {
+        if let Some(content) = &self.qd {
+            return Some(content.html_to_text());
+        }
+        None
+    }
 }
 
 #[derive(Debug)]
@@ -34,12 +72,13 @@ pub struct QuestionListWidget {
     pub common_state: CommonState,
     pub questions: StatefulList<QuestionModel>,
     pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Rc<QuestionModel>>>,
-    popup_events: IndexSet<HelpText>,
+    // popup_events: IndexSet<HelpText>,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
     cache: lru::LruCache<Rc<QuestionModel>, CachedQuestion>,
     task_map: HashMap<String, Rc<QuestionModel>>,
-    pending_event_actions: VecDeque<(KeyEvent, Rc<QuestionModel>)>,
+    pending_event_actions: IndexSet<(KeyEvent, Rc<QuestionModel>)>,
+    config: Rc<Config>,
 }
 
 impl QuestionListWidget {
@@ -48,14 +87,9 @@ impl QuestionListWidget {
         task_sender: ChannelRequestSender,
         vim_tx: VimPingSender,
         vim_running: Arc<AtomicBool>,
+        config: Rc<Config>,
     ) -> Self {
         Self {
-            popup_events: IndexSet::from_iter([
-                // send the events that this widget can handle
-                CommonHelpText::Solve.into(),
-                CommonHelpText::Run.into(),
-                CommonHelpText::Submit.into(),
-            ]),
             common_state: CommonState::new(
                 id,
                 task_sender,
@@ -63,10 +97,8 @@ impl QuestionListWidget {
                     CommonHelpText::SwitchPane.into(),
                     CommonHelpText::ScrollUp.into(),
                     CommonHelpText::ScrollDown.into(),
-                    CommonHelpText::Solve.into(),
+                    CommonHelpText::Edit.into(),
                     CommonHelpText::ReadContent.into(),
-                    CommonHelpText::Run.into(),
-                    CommonHelpText::Submit.into(),
                 ],
             ),
             all_questions: HashMap::new(),
@@ -76,11 +108,105 @@ impl QuestionListWidget {
             cache: lru::LruCache::new(NonZeroUsize::new(10).unwrap()),
             task_map: HashMap::new(),
             pending_event_actions: Default::default(),
+            config,
         }
     }
 }
 
 impl QuestionListWidget {
+    fn send_fetch_question_editor_details(&mut self, question: Rc<QuestionModel>) -> AppResult<()> {
+        if let Some(cached_q) = self.cache.peek(&question) {
+            if !cached_q.question_data_received() {
+                self.send_fetch_question_details(question.clone())?;
+            }
+        }
+        let random_key = generate_random_string(10);
+        self.task_map.insert(random_key.clone(), question.clone());
+        self.get_task_sender()
+            .send(crate::app_ui::channel::TaskRequest::GetQuestionEditorData(
+                Request {
+                    widget_name: self.get_widget_name(),
+                    request_id: random_key,
+                    content: question.title_slug.as_ref().unwrap().clone(),
+                },
+            ))?;
+        Ok(())
+    }
+
+    fn send_fetch_question_details(&mut self, question: Rc<QuestionModel>) -> AppResult<()> {
+        let random_key = generate_random_string(10);
+        self.task_map.insert(random_key.clone(), question.clone());
+        self.get_task_sender()
+            .send(crate::app_ui::channel::TaskRequest::QuestionDetail(
+                Request {
+                    widget_name: self.get_widget_name(),
+                    request_id: random_key,
+                    content: question.title_slug.as_ref().unwrap().clone(),
+                },
+            ))?;
+        Ok(())
+    }
+    fn is_notif_pending(&self, key: &(KeyEvent, Rc<QuestionModel>)) -> bool {
+        self.pending_event_actions.contains(key)
+    }
+
+    fn open_vim_editor(&mut self, file_name: &Path) {
+        let vim_cmd = format!("nvim {}", file_name.display());
+        let mut output = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(&vim_cmd)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .expect("Can run vim cmd");
+        self.vim_running
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        let vim_cmd_result = output.wait().expect("Run exits ok");
+        self.vim_tx.blocking_send(1).unwrap();
+        self.vim_running
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+        if !vim_cmd_result.success() {
+            println!("error vim");
+        }
+    }
+
+    fn popup_list_notification(
+        &mut self,
+        popup_content: Vec<String>,
+        question_title: String,
+        popup_key: String,
+        help_texts: IndexSet<HelpText>,
+    ) -> Notification {
+        Notification::Popup(NotifContent {
+            src_wid: self.get_widget_name(),
+            dest_wid: WidgetName::Popup,
+            content: PopupMessage {
+                help_texts,
+                popup: PopupType::List {
+                    popup: SelectionListPopup::new(question_title, popup_content),
+                    key: popup_key,
+                },
+            },
+        })
+    }
+
+    fn popup_paragraph_notification(
+        &self,
+        popup_content: String,
+        popup_title: String,
+        help_texts: IndexSet<HelpText>,
+    ) -> Notification {
+        Notification::Popup(NotifContent {
+            src_wid: self.get_widget_name(),
+            dest_wid: WidgetName::Popup,
+            content: PopupMessage {
+                help_texts,
+                popup: PopupType::Paragraph(ParagraphPopup::new(popup_title, popup_content)),
+            },
+        })
+    }
+
     fn get_item(question: &QuestionModel) -> ListItem {
         let number = question.frontend_question_id.clone();
         let title = question
@@ -126,40 +252,68 @@ impl QuestionListWidget {
         ListItem::new(styled_title)
     }
 
+    fn add_event_to_event_queue(&mut self, data: (KeyEvent, Rc<QuestionModel>)) -> bool {
+        self.pending_event_actions.insert(data)
+    }
+
     fn process_pending_events(&mut self) {
-        while let Some((remaining_event, qm)) = self.pending_event_actions.pop_front() {
-            match remaining_event.code {
+        let mut to_process_again = vec![];
+        while let Some((pending_event, qm)) = self.pending_event_actions.pop() {
+            let ques_in_cache = self
+                .cache
+                .get_or_insert_mut(qm.clone(), CachedQuestion::default);
+            match pending_event.code {
                 KeyCode::Enter => {
-                    let ques_in_cache = self
-                        .cache
-                        .get_or_insert_mut(qm.clone(), CachedQuestion::default);
                     if let Some(cache_ques) = &ques_in_cache.qd {
-                        let popup_content = match cache_ques {
-                            TaskResponse::QuestionDetail(qd) => qd.content.html_to_text(),
-                            TaskResponse::Error(e) => e.content.clone(),
-                            _ => break,
-                        };
-                        let title = qm.title.as_ref().unwrap();
-                        self.common_state
-                            .notification_queue
-                            .push_back(Notification::Popup(NotifContent {
-                                src_wid: self.get_widget_name(),
-                                dest_wid: WidgetName::Popup,
-                                content: PopupMessage {
-                                    help_texts: self.popup_events.clone(),
-                                    popup: PopupType::Paragraph(ParagraphPopup::new(
-                                        title.to_string(),
-                                        popup_content,
-                                    )),
-                                },
-                            }));
+                        let content = cache_ques.html_to_text();
+                        let title = qm.title.as_ref().unwrap().to_string();
+                        let notif = self.popup_paragraph_notification(
+                            content,
+                            title,
+                            IndexSet::from_iter([CommonHelpText::Edit.into()]),
+                        );
+                        self.get_notification_queue().push_back(notif);
                     } else {
-                        break;
+                        to_process_again.push((pending_event, qm));
                     }
                 }
-                _ => break,
+                KeyCode::Char('E') | KeyCode::Char('e') => {
+                    let question_data_in_cache = ques_in_cache.question_data_received();
+                    let question_editor_data_in_cache = ques_in_cache.editor_data_received();
+
+                    if question_data_in_cache && question_editor_data_in_cache {
+                        let content = ques_in_cache.get_list_of_languages().unwrap();
+                        let title = "Select Language".to_string();
+                        let popup_key = generate_random_string(10);
+                        self.task_map.insert(popup_key.clone(), qm.clone());
+                        let notif = self.popup_list_notification(
+                            content,
+                            title,
+                            popup_key,
+                            IndexSet::new(),
+                        );
+                        self.get_notification_queue().push_back(notif);
+                    } else {
+                        to_process_again.push((pending_event, qm));
+                    }
+                }
+                _ => continue,
             }
         }
+
+        for i in to_process_again {
+            self.add_event_to_event_queue(i);
+        }
+    }
+
+    fn get_selected_question_from_cache(&mut self) -> (&mut CachedQuestion, Rc<QuestionModel>) {
+        let selected_question = self.questions.get_selected_item();
+        let sel = selected_question.expect("no question selected");
+        let model = sel.clone();
+        let k = self
+            .cache
+            .get_or_insert_mut(model.clone(), CachedQuestion::default);
+        (k, model.clone())
     }
 }
 
@@ -206,58 +360,54 @@ impl super::Widget for QuestionListWidget {
             crossterm::event::KeyCode::Up => self.questions.previous(),
             crossterm::event::KeyCode::Down => self.questions.next(),
             crossterm::event::KeyCode::Enter => {
-                let selected_question = self.questions.get_selected_item();
-                if let Some(sel) = selected_question {
-                    let model = sel.clone();
+                let (cache, model) = self.get_selected_question_from_cache();
+                let question_data_in_cache = cache.question_data_received();
 
-                    let cached_q = self
-                        .cache
-                        .get_or_insert_mut(model.clone(), CachedQuestion::default);
-
-                    // if question details are not in the cache then send request to get the
-                    // details and push the event to be processed in the future
-                    if cached_q.qd.as_ref().is_none() {
-                        if let Some(title_slug) = model.title_slug.as_ref() {
-                            // before sending the task request set the key as the request id and value
-                            // as question model so that we can obtain the question model once we get the response
-                            self.task_map.insert(title_slug.to_string(), model.clone());
-                            self.get_task_sender().send(
-                                crate::app_ui::channel::TaskRequest::QuestionDetail(Request {
-                                    widget_name: self.get_widget_name(),
-                                    request_id: title_slug.clone(),
-                                    content: title_slug.clone(),
-                                }),
-                            )?;
-                            self.pending_event_actions.push_back((event, model.clone()));
-                        };
-                    } else {
-                        // because the question details exists in the cache
-                        // process instantly send the notification to notification queue send the
-                        // notification to notification queue
-                        self.pending_event_actions.push_back((event, model.clone()));
-                        self.process_pending_events();
-                    }
+                if question_data_in_cache {
+                    let content = cache.get_question_content().unwrap();
+                    let title = model.title.as_ref().unwrap().clone();
+                    return Ok(Some(self.popup_paragraph_notification(
+                        content,
+                        title,
+                        IndexSet::from_iter([CommonHelpText::Edit.into()]),
+                    )));
                 }
+
+                if self.is_notif_pending(&(event, model.clone())) {
+                    self.process_pending_events();
+                    return Ok(None);
+                }
+
+                // before sending the task request set the key as the request id and value
+                // as question model so that we can obtain the question model once we get the response
+                self.send_fetch_question_details(model.clone())?;
+                self.add_event_to_event_queue((event, model));
             }
-            KeyCode::Char('s') | KeyCode::Char('S') => {
-                let vim_cmd = "nvim".to_string();
-                let mut output = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(&vim_cmd)
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::inherit())
-                    .stderr(Stdio::inherit())
-                    .spawn()
-                    .expect("Can run vim cmd");
-                self.vim_running
-                    .store(true, std::sync::atomic::Ordering::Relaxed);
-                let vim_cmd_result = output.wait().expect("Run exits ok");
-                self.vim_tx.blocking_send(1).unwrap();
-                self.vim_running
-                    .store(false, std::sync::atomic::Ordering::Relaxed);
-                if !vim_cmd_result.success() {
-                    println!("error vim");
+
+            KeyCode::Char('e') | KeyCode::Char('E') => {
+                let (cache, model) = self.get_selected_question_from_cache();
+                let question_data_in_cache = cache.question_data_received();
+                let question_editor_data_in_cache = cache.editor_data_received();
+
+                if question_data_in_cache && question_editor_data_in_cache {
+                    let content = cache.get_list_of_languages().unwrap();
+                    let title = "Select Language".to_string();
+                    let popup_key = generate_random_string(10);
+                    self.task_map.insert(popup_key.clone(), model.clone());
+                    let notif =
+                        self.popup_list_notification(content, title, popup_key, IndexSet::new());
+                    return Ok(Some(notif));
                 }
+
+                if self.is_notif_pending(&(event, model.clone())) {
+                    self.process_pending_events();
+                    return Ok(None);
+                }
+
+                // before sending the task request set the key as the request id and value
+                // as question model so that we can obtain the question model once we get the response
+                self.send_fetch_question_editor_details(model.clone())?;
+                self.add_event_to_event_queue((event, model));
             }
             _ => {}
         };
@@ -280,15 +430,14 @@ impl super::Widget for QuestionListWidget {
         &mut self,
         response: crate::app_ui::channel::TaskResponse,
     ) -> AppResult<()> {
-        match &response {
+        match response {
             crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
                 content, ..
             }) => {
-                // avoid this cloning
-                let map_iter = content.iter().map(|v| {
+                let map_iter = content.into_iter().map(|v| {
                     (
-                        Rc::new(v.0.clone()),
-                        (v.1.iter().map(|x| Rc::new(x.clone()))).collect::<Vec<_>>(),
+                        Rc::new(v.0),
+                        (v.1.into_iter().map(Rc::new)).collect::<Vec<_>>(),
                     )
                 });
                 self.all_questions.extend(map_iter);
@@ -313,11 +462,35 @@ impl super::Widget for QuestionListWidget {
                         .expect("sent task is not found in the task list."),
                     CachedQuestion::default,
                 );
-                cached_q.qd = Some(response);
-                self.process_pending_events();
+                cached_q.qd = Some(qd.content);
+            }
+            TaskResponse::QuestionEditorData(ed) => {
+                let cached_q = self.cache.get_or_insert_mut(
+                    self.task_map
+                        .remove(&ed.request_id)
+                        .expect("sent task is not found in the task list."),
+                    CachedQuestion::default,
+                );
+                cached_q.editor_data = Some(ed.content);
+            }
+            TaskResponse::Error(e) => {
+                let src_wid = self.get_widget_name();
+                self.get_notification_queue()
+                    .push_back(Notification::Popup(NotifContent {
+                        src_wid,
+                        dest_wid: WidgetName::Popup,
+                        content: PopupMessage {
+                            help_texts: IndexSet::new(),
+                            popup: PopupType::Paragraph(ParagraphPopup::new(
+                                "Error Encountered".into(),
+                                e.content,
+                            )),
+                        },
+                    }));
             }
             _ => {}
         }
+        self.process_pending_events();
         Ok(())
     }
 
@@ -361,6 +534,35 @@ impl super::Widget for QuestionListWidget {
                     };
                 }
             }
+            Notification::SelectedItem(NotifContent { content, .. }) => {
+                let (lookup_key, index) = content;
+                let question = self.task_map.remove(&lookup_key).unwrap();
+                let question_id = question.as_ref().frontend_question_id.as_str();
+                let cached_question = self.cache.get(&question).unwrap();
+                let editor_data = cached_question
+                    .editor_data
+                    .as_ref()
+                    .expect("no editor data found");
+                let question_data = cached_question.qd.as_ref().expect("no question data found");
+                let description = question_data.html_to_text();
+                let slug = question_data.title_slug.as_str().to_string();
+
+                let snippets = &editor_data.code_snippets;
+                let selected_snippet = snippets[index].code.as_str().to_string();
+                let selected_lang = snippets[index].lang_slug.clone();
+                let dir = self.config.questions_dir.clone();
+
+                let sf = SolutionFile::new(
+                    slug.as_str(),
+                    &selected_lang,
+                    Some(description.as_str()),
+                    Some(&selected_snippet),
+                    question_id,
+                );
+                sf.create_if_not_exists(&dir)?;
+                self.open_vim_editor(&sf.get_save_path(&dir));
+            }
+
             Notification::Event(NotifContent {
                 src_wid: _,
                 dest_wid: _,
@@ -384,7 +586,3 @@ impl super::Widget for QuestionListWidget {
         &mut self.common_state.notification_queue
     }
 }
-
-// send popup for showing the question details.
-// if let Some(sel) = selected_question {
-// }

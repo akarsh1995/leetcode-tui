@@ -5,6 +5,7 @@ const QUERY: &str = r#"
 query questionEditorData($titleSlug: String!) {
   question(titleSlug: $titleSlug) {
     questionId
+    titleSlug
     questionFrontendId
     codeSnippets {
       lang

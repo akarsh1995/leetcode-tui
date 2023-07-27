@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
@@ -11,6 +12,7 @@ use super::widgets::question_list::QuestionListWidget;
 use super::widgets::stats::Stats;
 use super::widgets::topic_list::TopicTagListWidget;
 use super::widgets::Widget;
+use crate::config::Config;
 use crate::errors::AppResult;
 use indexmap::IndexMap;
 
@@ -35,6 +37,8 @@ pub struct App {
     pub vim_tx: VimPingSender,
 
     pub vim_running: Arc<AtomicBool>,
+
+    pub config: Rc<Config>,
 }
 
 impl App {
@@ -44,6 +48,7 @@ impl App {
         task_response_recv: ChannelResponseReceiver,
         vim_tx: VimPingSender,
         vim_running: Arc<AtomicBool>,
+        config: Rc<Config>,
     ) -> AppResult<Self> {
         let w0 = WidgetVariant::TopicList(TopicTagListWidget::new(
             WidgetName::TopicList,
@@ -54,6 +59,7 @@ impl App {
             task_request_sender.clone(),
             vim_tx.clone(),
             vim_running.clone(),
+            config.clone(),
         ));
 
         let w2 = WidgetVariant::Stats(Stats::new(WidgetName::Stats, task_request_sender.clone()));
@@ -71,6 +77,7 @@ impl App {
         ];
 
         let mut app = Self {
+            config,
             running: true,
             widget_map: IndexMap::from(order),
             selected_wid_idx: 0,

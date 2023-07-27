@@ -6,7 +6,7 @@ use crate::{
     errors::AppResult,
 };
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 
 use ratatui::prelude::*;
 
@@ -18,7 +18,6 @@ use super::{
 #[derive(Debug)]
 pub(crate) struct Popup {
     pub common_state: CommonState,
-    // pub message: String,
     pub callee_wid: Option<WidgetName>,
     pub popup_type: Option<PopupType>,
 }
@@ -42,9 +41,10 @@ impl Widget for Popup {
         if self.is_active() {
             let size = rect;
             let size = centered_rect(60, 50, size);
-            if let Some(pt) = &self.popup_type {
+            if let Some(pt) = &mut self.popup_type {
                 match pt {
                     PopupType::Paragraph(p) => p.render(frame, size),
+                    PopupType::List { popup: l, .. } => l.render(frame, size),
                 }
             }
         }
@@ -52,13 +52,28 @@ impl Widget for Popup {
 
     fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
         match event.code {
-            crossterm::event::KeyCode::Enter | crossterm::event::KeyCode::Esc => {
-                self.set_inactive()
+            KeyCode::Enter => {
+                let src_wid = self.get_widget_name();
+                let mut notif: Option<Notification> = None;
+                if let Some(PopupType::List { popup, key }) = &mut self.popup_type {
+                    let i = popup.get_selected_index();
+                    notif = Some(Notification::SelectedItem(NotifContent {
+                        src_wid,
+                        dest_wid: WidgetName::QuestionList,
+                        content: (key.to_string(), i),
+                    }));
+                }
+                self.set_inactive();
+                return Ok(notif);
+            }
+            KeyCode::Esc => {
+                self.set_inactive();
             }
             _ => {
                 let fwd_event_to_parent = match &mut self.popup_type {
                     Some(popup) => match popup {
                         PopupType::Paragraph(p) => p.event_handler(event),
+                        PopupType::List { popup: l, .. } => l.event_handler(event),
                     },
                     None => None,
                 };
@@ -90,6 +105,7 @@ impl Widget for Popup {
             self.callee_wid = Some(src_wid);
             let extended_help = match &content.popup {
                 PopupType::Paragraph(p) => p.get_key_set(),
+                PopupType::List { popup: l, .. } => l.get_key_set(),
             };
             self.popup_type = Some(content.popup);
             self.get_help_texts_mut().extend(content.help_texts.clone());

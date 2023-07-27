@@ -45,7 +45,7 @@ impl Component for ParagraphPopup {
         None
     }
 
-    fn render(&self, f: &mut FrameBackend, render_area: Rect) {
+    fn render(&mut self, f: &mut FrameBackend, render_area: Rect) {
         let block = Block::default()
             .borders(Borders::ALL)
             .style(Style::default().fg(Color::Gray))

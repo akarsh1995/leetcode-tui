@@ -1080,6 +1080,7 @@ dependencies = [
  "indexmap 2.0.0",
  "kdam",
  "lru",
+ "rand",
  "ratatui",
  "reqwest",
  "sea-orm",

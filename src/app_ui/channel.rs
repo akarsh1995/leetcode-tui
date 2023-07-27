@@ -16,6 +16,7 @@ pub enum TaskRequest {
     QuestionDetail(Request<String>),
     GetAllQuestionsMap(Request<()>),
     GetAllTopicTags(Request<()>),
+    GetQuestionEditorData(Request<String>),
 }
 
 impl TaskRequest {
@@ -40,6 +41,11 @@ impl TaskRequest {
                 request_id,
                 ..
             }) => get_all_topic_tags(request_id, widget_name, conn).await,
+            TaskRequest::GetQuestionEditorData(Request {
+                request_id,
+                content,
+                widget_name,
+            }) => get_editor_data(request_id, widget_name, content, client).await,
         }
     }
 }
@@ -56,6 +62,7 @@ pub enum TaskResponse {
     QuestionDetail(Response<deserializers::question_content::QuestionContent>),
     GetAllQuestionsMap(Response<HashMap<TopicTagModel, Vec<QuestionModel>>>),
     AllTopicTags(Response<Vec<TopicTagModel>>),
+    QuestionEditorData(Response<deserializers::editor_data::Question>),
     Error(Response<String>),
 }
 
@@ -66,6 +73,7 @@ impl TaskResponse {
             TaskResponse::GetAllQuestionsMap(Response { widget_name, .. }) => widget_name,
             TaskResponse::AllTopicTags(Response { widget_name, .. }) => widget_name,
             TaskResponse::Error(Response { widget_name, .. }) => widget_name,
+            TaskResponse::QuestionEditorData(Response { widget_name, .. }) => widget_name,
         }
         .clone()
     }

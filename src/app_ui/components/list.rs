@@ -1,7 +1,7 @@
 use ratatui::widgets::ListState;
 use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StatefulList<T> {
     pub state: ListState,
     pub items: Vec<Rc<T>>,
@@ -31,14 +31,14 @@ impl<T> StatefulList<T> {
         }
     }
 
-    pub fn with_items(items: Vec<Rc<T>>) -> StatefulList<T> {
+    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
         let mut list_state = ListState::default();
         if !items.is_empty() {
             list_state.select(Some(0))
         }
         StatefulList {
             state: list_state,
-            items,
+            items: items.into_iter().map(|item| Rc::new(item)).collect(),
         }
     }
 
