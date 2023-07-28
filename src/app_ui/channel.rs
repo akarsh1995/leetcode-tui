@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::app_ui::helpers::tasks::*;
+use crate::graphql::{self, RunOrSubmitCode};
 use crate::{
     deserializers,
     entities::{QuestionModel, TopicTagModel},
@@ -17,6 +18,7 @@ pub enum TaskRequest {
     GetAllQuestionsMap(Request<()>),
     GetAllTopicTags(Request<()>),
     GetQuestionEditorData(Request<String>),
+    CodeRunRequest(Request<RunOrSubmitCode>),
 }
 
 impl TaskRequest {
@@ -46,6 +48,11 @@ impl TaskRequest {
                 content,
                 widget_name,
             }) => get_editor_data(request_id, widget_name, content, client).await,
+            TaskRequest::CodeRunRequest(Request {
+                request_id,
+                content,
+                widget_name,
+            }) => run_or_submit_question(request_id, widget_name, content, client).await,
         }
     }
 }
@@ -63,6 +70,7 @@ pub enum TaskResponse {
     GetAllQuestionsMap(Response<HashMap<TopicTagModel, Vec<QuestionModel>>>),
     AllTopicTags(Response<Vec<TopicTagModel>>),
     QuestionEditorData(Response<deserializers::editor_data::Question>),
+    RunResponseData(Response<graphql::check_run_submit::ParsedResponse>),
     Error(Response<String>),
 }
 
@@ -74,6 +82,7 @@ impl TaskResponse {
             TaskResponse::AllTopicTags(Response { widget_name, .. }) => widget_name,
             TaskResponse::Error(Response { widget_name, .. }) => widget_name,
             TaskResponse::QuestionEditorData(Response { widget_name, .. }) => widget_name,
+            TaskResponse::RunResponseData(Response { widget_name, .. }) => widget_name,
         }
         .clone()
     }

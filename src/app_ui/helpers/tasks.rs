@@ -5,7 +5,8 @@ use crate::app_ui::widgets::notification::WidgetName;
 use crate::entities::TopicTagEntity;
 use crate::graphql::editor_data::Query as QuestionEditorDataQuery;
 use crate::graphql::question_content::Query as QuestionGQLQuery;
-use crate::graphql::GQLLeetcodeQuery;
+use crate::graphql::run_code::RunSolutionBody;
+use crate::graphql::{self, GQLLeetcodeQuery, RunOrSubmitCode};
 
 pub async fn get_question_details(
     request_id: String,
@@ -78,6 +79,50 @@ pub async fn get_all_topic_tags(
         Ok(t_tags) => TaskResponse::AllTopicTags(Response {
             request_id,
             content: t_tags,
+            widget_name,
+        }),
+        Err(e) => TaskResponse::Error(Response {
+            request_id,
+            content: e.to_string(),
+            widget_name,
+        }),
+    }
+}
+
+pub async fn run_or_submit_question(
+    request_id: String,
+    widget_name: WidgetName,
+    mut run_or_submit_code: graphql::RunOrSubmitCode,
+    client: &reqwest::Client,
+) -> TaskResponse {
+    if let RunOrSubmitCode::Run(RunSolutionBody {
+        test_cases_stdin,
+        slug,
+        ..
+    }) = &mut run_or_submit_code
+    {
+        match graphql::console_panel_config::Query::new(slug.clone())
+            .post(client)
+            .await
+        {
+            Ok(resp) => {
+                *test_cases_stdin =
+                    Some(resp.data.question.example_testcase_list.clone().join("\n"));
+            }
+            Err(e) => {
+                return TaskResponse::Error(Response {
+                    request_id,
+                    content: e.to_string(),
+                    widget_name,
+                })
+            }
+        }
+    }
+
+    match run_or_submit_code.post(client).await {
+        Ok(run_response_body) => TaskResponse::RunResponseData(Response {
+            request_id,
+            content: run_response_body,
             widget_name,
         }),
         Err(e) => TaskResponse::Error(Response {

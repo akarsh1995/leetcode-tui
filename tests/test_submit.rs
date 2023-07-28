@@ -1,4 +1,4 @@
-use leetcode_tui_rs::graphql::check_run_submit::{RunResponse, StatusMessage};
+use leetcode_tui_rs::graphql::check_run_submit::{ParsedResponse, RunResponse};
 use serde_json::{self, Value};
 
 const JSONS_STR: &str = include_str!("./test_submit.json");
@@ -13,6 +13,7 @@ fn test_run_status_parsing() {
     let started = &run_responses[&"started"];
     let mem_limit = &run_responses[&"memory_limit_exceeded"];
     let out_limit = &run_responses[&"output_limit"];
+    let submit_success = &run_responses[&"submit_successful"];
     let re: RunResponse = serde_json::from_value(runtime_error.to_owned()).unwrap();
     let ce: RunResponse = serde_json::from_value(compile_error.to_owned()).unwrap();
     let rs: RunResponse = serde_json::from_value(run_success.to_owned()).unwrap();
@@ -20,62 +21,42 @@ fn test_run_status_parsing() {
     let started: RunResponse = serde_json::from_value(started.to_owned()).unwrap();
     let mem_limit: RunResponse = serde_json::from_value(mem_limit.to_owned()).unwrap();
     let out_limit: RunResponse = serde_json::from_value(out_limit.to_owned()).unwrap();
+    let submit_success: RunResponse = serde_json::from_value(submit_success.to_owned()).unwrap();
 
-    match out_limit {
-        RunResponse::OutputLimitExceed { status_msg, .. } => match status_msg {
-            StatusMessage::OutputLimitExceeded => {}
-            _ => assert!(false),
-        },
-        _ => assert!(false),
-    }
+    let re = re.to_parsed_response().unwrap();
+    let ce = ce.to_parsed_response().unwrap();
+    let rs = rs.to_parsed_response().unwrap();
 
-    match mem_limit {
-        RunResponse::Success { status_msg, .. } => match status_msg {
-            StatusMessage::MemoryLimitExceeded => {}
-            _ => assert!(false),
-        },
-        _ => assert!(false),
-    }
+    let pending = pending.to_parsed_response().unwrap();
+    let started = started.to_parsed_response().unwrap();
+    let mem_limit = mem_limit.to_parsed_response().unwrap();
+    let out_limit = out_limit.to_parsed_response().unwrap();
+    let submit_success = submit_success.to_parsed_response().unwrap();
 
-    match ce {
-        RunResponse::CompileError { status_msg, .. } => {
-            match status_msg {
-                StatusMessage::CompileError => {}
-                _ => assert!(false),
-            }
+    match (
+        re,
+        ce,
+        rs,
+        pending,
+        started,
+        mem_limit,
+        out_limit,
+        submit_success,
+    ) {
+        (
+            ParsedResponse::RuntimeError(_),
+            ParsedResponse::CompileError(_),
+            ParsedResponse::Success(_),
+            ParsedResponse::Pending,
+            ParsedResponse::Pending,
+            ParsedResponse::MemoryLimitExceeded(_),
+            ParsedResponse::OutputLimitExceed(_),
+            ParsedResponse::Success(_),
+        ) => {
             assert!(true)
         }
-        _ => {
-            dbg!(&ce);
-            assert!(false);
-        }
-    }
-    match re {
-        RunResponse::RuntimeError { .. } => assert!(true),
-        _ => {
-            dbg!(re);
+        (_, _, _, _, _, _, _, _) => {
             assert!(false)
-        }
-    }
-    match rs {
-        RunResponse::Success { .. } => assert!(true),
-        _ => {
-            dbg!(rs);
-            assert!(false);
-        }
-    }
-    match pending {
-        RunResponse::State { .. } => assert!(true),
-        _ => {
-            dbg!(pending);
-            assert!(false)
-        }
-    }
-    match started {
-        RunResponse::State { .. } => assert!(true),
-        _ => {
-            dbg!(started);
-            assert!(false);
         }
     }
 }

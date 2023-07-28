@@ -1,9 +1,10 @@
+use std::hash::Hash;
 use std::path::{Path, PathBuf};
 
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 
-use std::fs::File;
+use std::fs::{read_to_string, File};
 use std::io::Write;
 
 use crate::errors::AppResult;
@@ -26,21 +27,37 @@ fn write_to_file(filename: &PathBuf, content: &str) -> Result<(), std::io::Error
     Ok(())
 }
 
-pub(crate) struct SolutionFile<'a> {
-    slug: &'a str,
-    lang: &'a Language,
-    description: Option<&'a str>,
-    editor_data: Option<&'a str>,
-    question_id: &'a str,
+#[derive(Debug)]
+pub(crate) struct SolutionFile {
+    slug: String,
+    pub lang: Language,
+    description: Option<String>,
+    editor_data: Option<String>,
+    pub question_id: String,
 }
 
-impl<'a> SolutionFile<'a> {
+impl Eq for SolutionFile {}
+
+impl PartialEq for SolutionFile {
+    fn eq(&self, other: &Self) -> bool {
+        self.slug == other.slug && self.lang == other.lang
+    }
+}
+
+impl Hash for SolutionFile {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.slug.hash(state);
+        self.lang.hash(state);
+    }
+}
+
+impl SolutionFile {
     pub(crate) fn new(
-        slug: &'a str,
-        lang: &'a Language,
-        description: Option<&'a str>,
-        editor_data: Option<&'a str>,
-        question_id: &'a str,
+        slug: String,
+        lang: Language,
+        description: Option<String>,
+        editor_data: Option<String>,
+        question_id: String,
     ) -> Self {
         Self {
             slug,
@@ -49,6 +66,32 @@ impl<'a> SolutionFile<'a> {
             editor_data,
             question_id,
         }
+    }
+
+    pub fn from_file(value: PathBuf) -> Option<Self> {
+        if value.is_file() {
+            let file_name = value
+                .file_name()
+                .expect("cannot get file name")
+                .to_str()
+                .expect("cannot convert filename to string");
+            if file_name.starts_with("s_") {
+                let mut splitted = file_name.split('_');
+                splitted.next();
+                let id = splitted.next().unwrap();
+                let slug = splitted.next().unwrap();
+                let lang_id = splitted.next().unwrap().split('.').next().unwrap();
+                let lang = Language::from_id(lang_id.parse().unwrap());
+                return Some(Self {
+                    slug: slug.to_string(),
+                    lang,
+                    description: None,
+                    editor_data: None,
+                    question_id: id.to_string(),
+                });
+            }
+        }
+        None
     }
 
     pub(crate) fn create_if_not_exists(&self, path: &Path) -> AppResult<()> {
@@ -67,20 +110,22 @@ impl<'a> SolutionFile<'a> {
 
     fn get_file_name(&self) -> String {
         format!(
-            "s_{:0>3}_{}.{}",
+            "s_{0:0>3}_{1}_{2}.{3}",
             self.question_id,
-            self.slug_to_snake_case(),
+            self.slug,
+            self.lang.to_id(),
             self.lang.get_extension()
         )
     }
 
-    fn slug_to_snake_case(&self) -> String {
-        self.slug.replace('-', "_")
+    pub fn read_file_contents(&self, directory: &Path) -> String {
+        let file_path = self.get_save_path(directory);
+        read_to_string(file_path).unwrap()
     }
 
     fn get_file_contents(&self) -> Option<String> {
         if let Some(description) = self.get_commented_description() {
-            if let Some(editor_data) = self.editor_data {
+            if let Some(editor_data) = &self.editor_data {
                 return Some(format!("{}\n\n{}", description, editor_data));
             }
         }
@@ -88,8 +133,8 @@ impl<'a> SolutionFile<'a> {
     }
 
     fn get_commented_description(&self) -> Option<String> {
-        if let Some(d) = self.description {
-            return Some(self.lang.comment_text(d));
+        if let Some(d) = &self.description {
+            return Some(self.lang.comment_text(d.as_str()));
         }
         None
     }
@@ -103,14 +148,14 @@ mod tests {
     #[test]
     fn test_solution() {
         let sf = SolutionFile {
-            slug: "two-sum",
-            lang: &Language::Python3,
-            description: Some("Helloworld"),
-            editor_data: Some("def hello():    print('hello')"),
-            question_id: "1",
+            slug: "two-sum".to_string(),
+            lang: Language::Python3,
+            description: Some("Helloworld".to_string()),
+            editor_data: Some("def hello():    print('hello')".to_string()),
+            question_id: "1".to_string(),
         };
 
-        assert_eq!("s_001_two_sum.py".to_string(), sf.get_file_name());
+        assert_eq!("s_001_two-sum_11.py".to_string(), sf.get_file_name());
         assert_eq!(
             Some("'''\nHelloworld\n'''".to_string()),
             sf.get_commented_description()

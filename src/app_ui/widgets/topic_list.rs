@@ -141,7 +141,8 @@ impl Widget for TopicTagListWidget {
                 widget_name: self.get_widget_name(),
                 request_id: "".to_string(),
                 content: (),
-            }))?;
+            }))
+            .map_err(Box::new)?;
         Ok(())
     }
 

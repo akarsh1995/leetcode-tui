@@ -4,19 +4,19 @@ use super::{check_run_submit::RunResponse, GQLLeetcodeQuery, Language};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RunSolutionBody {
-    lang: Language,
-    question_id: String,
-    typed_code: String,
+    pub lang: Language,
+    pub question_id: String,
+    pub typed_code: String,
     #[serde(rename = "data_input")]
-    test_cases_stdin: String,
+    pub test_cases_stdin: Option<String>,
     #[serde(skip_serializing, skip_deserializing)]
-    slug: String,
+    pub slug: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RunSolutionResponse {
     interpret_id: String,
-    test_cases: String,
+    test_case: String,
 }
 
 impl GQLLeetcodeQuery for RunSolutionBody {
@@ -52,7 +52,7 @@ mod tests {
             lang: crate::graphql::Language::Python3,
             question_id: "1".to_string(),
             typed_code: "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:    return [4]".to_string(),
-            test_cases_stdin: "[2,7,11,15]\n9\n[3,2,4]\n6\n[3,3]\n6".to_string(),
+            test_cases_stdin: Some("[2,7,11,15]\n9\n[3,2,4]\n6\n[3,3]\n6".to_string()),
             slug: "".to_string(),
         };
 

@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
 pub mod check_run_submit;
+pub mod console_panel_config;
 pub mod editor_data;
 pub mod problemset_question_list;
 pub mod question_content;
@@ -45,13 +46,14 @@ pub trait GQLLeetcodeQuery: Serialize + Sync {
     }
 }
 
+#[derive(Debug)]
 pub enum RunOrSubmitCode {
     Run(RunSolutionBody),
     Submit(SubmitRequestBody),
 }
 
 impl RunOrSubmitCode {
-    pub async fn post(&self, client: &reqwest::Client) -> AppResult<RunResponse> {
+    pub async fn post(&self, client: &reqwest::Client) -> AppResult<ParsedResponse> {
         match self {
             RunOrSubmitCode::Run(run) => self.poll_check_response(client, run).await,
             RunOrSubmitCode::Submit(submit) => self.poll_check_response(client, submit).await,
@@ -62,13 +64,14 @@ impl RunOrSubmitCode {
         &self,
         client: &reqwest::Client,
         body: &impl GQLLeetcodeQuery<T = T>,
-    ) -> AppResult<RunResponse> {
+    ) -> AppResult<ParsedResponse> {
         let run_response: T = body.post(client).await?;
         loop {
             let status_check = run_response.post(client).await?;
-            match status_check {
-                RunResponse::State { .. } => {}
-                _ => return Ok(status_check),
+            let parsed_response = status_check.to_parsed_response()?;
+            match parsed_response {
+                ParsedResponse::Pending => {}
+                _ => return Ok(parsed_response),
             }
         }
     }
@@ -76,7 +79,11 @@ impl RunOrSubmitCode {
 
 use serde::Deserialize;
 
-use self::{check_run_submit::RunResponse, run_code::RunSolutionBody, submit::SubmitRequestBody};
+use self::{
+    check_run_submit::{ParsedResponse, RunResponse},
+    run_code::RunSolutionBody,
+    submit::SubmitRequestBody,
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct LanguageInfo {
@@ -97,7 +104,7 @@ struct Languages {
 }
 
 // Generate the enum for languages
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     Cpp,
@@ -136,10 +143,7 @@ impl Language {
             0 => Language::Cpp,
             1 => Language::Java,
             2 => Language::Python,
-            11 => Language::Python3,
             3 => Language::Mysql,
-            14 => Language::Mssql,
-            15 => Language::Oraclesql,
             4 => Language::C,
             5 => Language::Csharp,
             6 => Language::Javascript,
@@ -147,10 +151,13 @@ impl Language {
             8 => Language::Bash,
             9 => Language::Swift,
             10 => Language::Golang,
+            11 => Language::Python3,
             12 => Language::Scala,
+            13 => Language::Kotlin,
+            14 => Language::Mssql,
+            15 => Language::Oraclesql,
             16 => Language::Html,
             17 => Language::Pythonml,
-            13 => Language::Kotlin,
             18 => Language::Rust,
             19 => Language::Php,
             20 => Language::Typescript,
@@ -161,6 +168,39 @@ impl Language {
             25 => Language::Pythondata,
             26 => Language::React,
             _ => Language::Unknown(id),
+        }
+    }
+
+    pub fn to_id(&self) -> u32 {
+        match self {
+            Language::Cpp => 0,
+            Language::Java => 1,
+            Language::Python => 2,
+            Language::Mysql => 3,
+            Language::C => 4,
+            Language::Csharp => 5,
+            Language::Javascript => 6,
+            Language::Ruby => 7,
+            Language::Bash => 8,
+            Language::Swift => 9,
+            Language::Golang => 10,
+            Language::Python3 => 11,
+            Language::Scala => 12,
+            Language::Kotlin => 13,
+            Language::Mssql => 14,
+            Language::Oraclesql => 15,
+            Language::Html => 16,
+            Language::Pythonml => 17,
+            Language::Rust => 18,
+            Language::Php => 19,
+            Language::Typescript => 20,
+            Language::Racket => 21,
+            Language::Erlang => 22,
+            Language::Elixir => 23,
+            Language::Dart => 24,
+            Language::Pythondata => 25,
+            Language::React => 26,
+            Language::Unknown(id) => *id,
         }
     }
 
@@ -256,9 +296,6 @@ impl Language {
 }
 
 impl Display for Language {
-    // pub fn to_string(&self) -> String {
-    // }
-
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let k = match self {
             Language::Cpp => "cpp".to_string(),
@@ -288,7 +325,7 @@ impl Display for Language {
             Language::Dart => "dart".to_string(),
             Language::Pythondata => "pythondata".to_string(),
             Language::React => "react".to_string(),
-            Language::Unknown(id) => format!("Unknown({})", id),
+            Language::Unknown(id) => format!("{}", id),
         };
         f.write_str(k.as_str())
     }

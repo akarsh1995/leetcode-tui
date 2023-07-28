@@ -122,6 +122,7 @@ mod tests {
     #[test]
     fn test() {
         let sample_config = [
+            "questions_dir = '/some/xyz/path'",
             "[db]",
             "url = 'sqlite://leetcode.sqlite'",
             "[leetcode]",
@@ -130,7 +131,13 @@ mod tests {
         ]
         .join("\n");
 
+        let mut pathbuf = PathBuf::new();
+        pathbuf.push("/");
+        pathbuf.push("some");
+        pathbuf.push("xyz");
+        pathbuf.push("path");
         let config: Config = toml::from_str(sample_config.as_str()).unwrap();
+        assert_eq!(config.questions_dir, pathbuf);
         assert_eq!(config.leetcode.csrftoken, "ctoken".to_string());
         assert_eq!(config.leetcode.leetcode_session, "lsession".to_string());
 

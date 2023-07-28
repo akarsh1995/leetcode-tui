@@ -16,6 +16,9 @@ use crate::deserializers;
 use crate::deserializers::editor_data::CodeSnippet;
 use crate::entities::{QuestionModel, TopicTagModel};
 use crate::errors::AppResult;
+use crate::graphql::check_run_submit::{ParsedResponse, Success};
+use crate::graphql::run_code::RunSolutionBody;
+use crate::graphql::{Language, RunOrSubmitCode};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use indexmap::IndexSet;
@@ -67,17 +70,24 @@ impl CachedQuestion {
 }
 
 #[derive(Debug)]
+enum TaskType {
+    Run,
+    Edit,
+    Read,
+}
+
+#[derive(Debug)]
 pub struct QuestionListWidget {
     pub common_state: CommonState,
     pub questions: StatefulList<QuestionModel>,
     pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Rc<QuestionModel>>>,
-    // popup_events: IndexSet<HelpText>,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
     cache: lru::LruCache<Rc<QuestionModel>, CachedQuestion>,
-    task_map: HashMap<String, Rc<QuestionModel>>,
+    task_map: HashMap<String, (Rc<QuestionModel>, TaskType)>,
     pending_event_actions: IndexSet<(KeyEvent, Rc<QuestionModel>)>,
     config: Rc<Config>,
+    files: HashMap<i32, HashSet<SolutionFile>>,
 }
 
 impl QuestionListWidget {
@@ -88,6 +98,24 @@ impl QuestionListWidget {
         vim_running: Arc<AtomicBool>,
         config: Rc<Config>,
     ) -> Self {
+        let mut files: HashMap<i32, HashSet<SolutionFile>> = HashMap::new();
+        for file in config
+            .questions_dir
+            .read_dir()
+            .expect("Cannot read the solutions directory")
+            .flatten()
+        {
+            if file.path().is_file() {
+                if let Some(sf) = SolutionFile::from_file(file.path()) {
+                    let qid = sf
+                        .question_id
+                        .clone()
+                        .parse::<i32>()
+                        .expect("frontend_question_id is not a number");
+                    files.entry(qid).or_default().insert(sf);
+                }
+            }
+        }
         Self {
             common_state: CommonState::new(
                 id,
@@ -98,6 +126,7 @@ impl QuestionListWidget {
                     CommonHelpText::ScrollDown.into(),
                     CommonHelpText::Edit.into(),
                     CommonHelpText::ReadContent.into(),
+                    CommonHelpText::Run.into(),
                 ],
             ),
             all_questions: HashMap::new(),
@@ -108,6 +137,7 @@ impl QuestionListWidget {
             task_map: HashMap::new(),
             pending_event_actions: Default::default(),
             config,
+            files,
         }
     }
 }
@@ -120,7 +150,8 @@ impl QuestionListWidget {
             }
         }
         let random_key = generate_random_string(10);
-        self.task_map.insert(random_key.clone(), question.clone());
+        self.task_map
+            .insert(random_key.clone(), (question.clone(), TaskType::Edit));
         self.get_task_sender()
             .send(crate::app_ui::channel::TaskRequest::GetQuestionEditorData(
                 Request {
@@ -128,13 +159,43 @@ impl QuestionListWidget {
                     request_id: random_key,
                     content: question.title_slug.as_ref().unwrap().clone(),
                 },
-            ))?;
+            ))
+            .map_err(Box::new)?;
+        Ok(())
+    }
+
+    fn send_fetch_solution_run_details(
+        &mut self,
+        question: Rc<QuestionModel>,
+        lang: Language,
+        typed_code: String,
+    ) -> AppResult<()> {
+        let random_key = generate_random_string(10);
+        self.task_map
+            .insert(random_key.clone(), (question.clone(), TaskType::Run));
+
+        self.get_task_sender()
+            .send(crate::app_ui::channel::TaskRequest::CodeRunRequest(
+                Request {
+                    widget_name: self.get_widget_name(),
+                    request_id: random_key.clone(),
+                    content: RunOrSubmitCode::Run(RunSolutionBody {
+                        lang,
+                        question_id: question.frontend_question_id.clone(),
+                        typed_code,
+                        test_cases_stdin: None,
+                        slug: question.title_slug.as_ref().unwrap().clone(),
+                    }),
+                },
+            ))
+            .map_err(Box::new)?;
         Ok(())
     }
 
     fn send_fetch_question_details(&mut self, question: Rc<QuestionModel>) -> AppResult<()> {
         let random_key = generate_random_string(10);
-        self.task_map.insert(random_key.clone(), question.clone());
+        self.task_map
+            .insert(random_key.clone(), (question.clone(), TaskType::Read));
         self.get_task_sender()
             .send(crate::app_ui::channel::TaskRequest::QuestionDetail(
                 Request {
@@ -142,9 +203,13 @@ impl QuestionListWidget {
                     request_id: random_key,
                     content: question.title_slug.as_ref().unwrap().clone(),
                 },
-            ))?;
+            ))
+            .map_err(Box::new)?;
         Ok(())
     }
+
+    // fn send_fetch_run_response(&mut self, question)
+
     fn is_notif_pending(&self, key: &(KeyEvent, Rc<QuestionModel>)) -> bool {
         self.pending_event_actions.contains(key)
     }
@@ -281,7 +346,8 @@ impl QuestionListWidget {
                         let content = ques_in_cache.get_list_of_languages().unwrap();
                         let title = "Select Language".to_string();
                         let popup_key = generate_random_string(10);
-                        self.task_map.insert(popup_key.clone(), qm.clone());
+                        self.task_map
+                            .insert(popup_key.clone(), (qm.clone(), TaskType::Edit));
                         let notif = self.popup_list_notification(
                             content,
                             title,
@@ -380,7 +446,8 @@ impl super::Widget for QuestionListWidget {
                     let content = cache.get_list_of_languages().unwrap();
                     let title = "Select Language".to_string();
                     let popup_key = generate_random_string(10);
-                    self.task_map.insert(popup_key.clone(), model.clone());
+                    self.task_map
+                        .insert(popup_key.clone(), (model.clone(), TaskType::Edit));
                     let notif =
                         self.popup_list_notification(content, title, popup_key, IndexSet::new());
                     return Ok(Some(notif));
@@ -396,6 +463,29 @@ impl super::Widget for QuestionListWidget {
                 self.send_fetch_question_editor_details(model.clone())?;
                 self.add_event_to_event_queue((event, model));
             }
+
+            KeyCode::Char('r') | KeyCode::Char('R') => {
+                let selected_question = self
+                    .questions
+                    .get_selected_item()
+                    .expect("no question selected");
+                let id: i32 = selected_question.frontend_question_id.parse().unwrap();
+                if let Some(files) = self.files.get(&id) {
+                    let langs = files
+                        .iter()
+                        .map(|f| f.lang.clone().to_string())
+                        .collect::<Vec<_>>();
+                    let key = generate_random_string(10);
+                    self.task_map
+                        .insert(key.clone(), (selected_question.clone(), TaskType::Run));
+                    return Ok(Some(self.popup_list_notification(
+                        langs,
+                        "Select Language".to_string(),
+                        key,
+                        IndexSet::new(),
+                    )));
+                }
+            }
             _ => {}
         };
         Ok(None)
@@ -409,7 +499,8 @@ impl super::Widget for QuestionListWidget {
                     request_id: "".to_string(),
                     content: (),
                 },
-            ))?;
+            ))
+            .map_err(Box::new)?;
         Ok(())
     }
 
@@ -446,7 +537,8 @@ impl super::Widget for QuestionListWidget {
                 let cached_q = self.cache.get_or_insert_mut(
                     self.task_map
                         .remove(&qd.request_id)
-                        .expect("sent task is not found in the task list."),
+                        .expect("sent task is not found in the task list.")
+                        .0,
                     CachedQuestion::default,
                 );
                 cached_q.qd = Some(qd.content);
@@ -455,10 +547,100 @@ impl super::Widget for QuestionListWidget {
                 let cached_q = self.cache.get_or_insert_mut(
                     self.task_map
                         .remove(&ed.request_id)
-                        .expect("sent task is not found in the task list."),
+                        .expect("sent task is not found in the task list.")
+                        .0,
                     CachedQuestion::default,
                 );
                 cached_q.editor_data = Some(ed.content);
+            }
+            TaskResponse::RunResponseData(run_res) => {
+                let k = match run_res.content {
+                    ParsedResponse::Pending => "Pending".to_string(),
+                    ParsedResponse::CompileError(_) => "Compile Error".to_string(),
+                    ParsedResponse::RuntimeError(_) => {
+                        // } => format!("{status_msg}:\n\n{runtime_error}\n\n{full_runtime_error}"),
+                        "Runtime Error".to_string()
+                    }
+                    ParsedResponse::MemoryLimitExceeded(_) => "Memory Limit Exceeded".to_string(),
+                    ParsedResponse::OutputLimitExceed(_) => "Output Limit Exceeded".to_string(),
+                    ParsedResponse::TimeLimitExceeded(_) => "Time Limit Exceeded".to_string(),
+                    ParsedResponse::InternalError(_) => "Internal Error".to_string(),
+                    ParsedResponse::TimeOut(_) => "Timout".to_string(),
+                    ParsedResponse::Success(Success::Run {
+                        status_runtime,
+                        code_answer,
+                        expected_code_answer,
+                        correct_answer,
+                        total_correct,
+                        total_testcases,
+                        status_memory,
+                        ..
+                    }) => {
+                        let is_accepted_symbol = if correct_answer { "✅" } else { "❌" };
+                        let mut ans_compare = String::new();
+                        for (output, expected_output) in
+                            code_answer.into_iter().zip(expected_code_answer)
+                        {
+                            let emoji = if output == expected_output {
+                                "✅"
+                            } else {
+                                "❌"
+                            };
+                            let compare = format!(
+                                "{emoji}\nOuput: {}\nExpected: {}\n\n",
+                                output, expected_output
+                            );
+                            ans_compare.push_str(compare.as_str())
+                        }
+                        let result_string = vec![
+                            format!("Accepted: {}", is_accepted_symbol),
+                            if let Some(correct) = total_correct {
+                                let mut x = format!("Correct: {correct}");
+                                if let Some(total) = total_testcases {
+                                    x = format!("{x}/{}", total);
+                                }
+                                x
+                            } else {
+                                String::new()
+                            },
+                            format!("Memory Used: {status_memory}"),
+                            format!("Status Runtime: {status_runtime}"),
+                            ans_compare,
+                        ];
+                        result_string.join("\n")
+                    }
+                    ParsedResponse::Success(Success::Submit {
+                        status_runtime,
+                        total_correct,
+                        total_testcases,
+                        status_memory,
+                        ..
+                    }) => {
+                        let is_accepted_symbol = "✅";
+                        let result_string = vec![
+                            format!("Accepted: {}", is_accepted_symbol),
+                            if let Some(correct) = total_correct {
+                                let mut x = format!("Correct: {correct}");
+                                if let Some(total) = total_testcases {
+                                    x = format!("{x}/{}", total);
+                                }
+                                x
+                            } else {
+                                String::new()
+                            },
+                            format!("Memory Used: {status_memory}"),
+                            format!("Status Runtime: {status_runtime}"),
+                        ];
+                        result_string.join("\n")
+                    }
+                    ParsedResponse::Unknown(_) => "Unknown Error".to_string(),
+                };
+                let notification = self.popup_paragraph_notification(
+                    k.to_string(),
+                    "Run Status".to_string(),
+                    IndexSet::new(),
+                );
+                self.get_notification_queue().push_back(notification);
             }
             TaskResponse::Error(e) => {
                 let src_wid = self.get_widget_name();
@@ -523,31 +705,54 @@ impl super::Widget for QuestionListWidget {
             }
             Notification::SelectedItem(NotifContent { content, .. }) => {
                 let (lookup_key, index) = content;
-                let question = self.task_map.remove(&lookup_key).unwrap();
-                let question_id = question.as_ref().frontend_question_id.as_str();
-                let cached_question = self.cache.get(&question).unwrap();
-                let editor_data = cached_question
-                    .editor_data
-                    .as_ref()
-                    .expect("no editor data found");
-                let question_data = cached_question.qd.as_ref().expect("no question data found");
-                let description = question_data.html_to_text();
-                let slug = question_data.title_slug.as_str().to_string();
+                match self.task_map.remove(&lookup_key).unwrap() {
+                    (question, TaskType::Edit) => {
+                        let question_id = question.as_ref().frontend_question_id.as_str();
+                        let cached_question = self.cache.get(&question).unwrap();
+                        let editor_data = cached_question
+                            .editor_data
+                            .as_ref()
+                            .expect("no editor data found");
+                        let question_data =
+                            cached_question.qd.as_ref().expect("no question data found");
+                        let description = question_data.html_to_text();
+                        let slug = question_data.title_slug.as_str().to_string();
 
-                let snippets = &editor_data.code_snippets;
-                let selected_snippet = snippets[index].code.as_str().to_string();
-                let selected_lang = snippets[index].lang_slug.clone();
-                let dir = self.config.questions_dir.clone();
+                        let snippets = &editor_data.code_snippets;
+                        let selected_snippet = snippets[index].code.as_str().to_string();
+                        let selected_lang = snippets[index].lang_slug.clone();
+                        let dir = self.config.questions_dir.clone();
 
-                let sf = SolutionFile::new(
-                    slug.as_str(),
-                    &selected_lang,
-                    Some(description.as_str()),
-                    Some(&selected_snippet),
-                    question_id,
-                );
-                sf.create_if_not_exists(&dir)?;
-                self.open_vim_editor(&sf.get_save_path(&dir));
+                        let sf = SolutionFile::new(
+                            slug,
+                            selected_lang,
+                            Some(description),
+                            Some(selected_snippet),
+                            question_id.to_string(),
+                        );
+                        sf.create_if_not_exists(&dir)?;
+                        self.open_vim_editor(&sf.get_save_path(&dir));
+                        self.files
+                            .entry(sf.question_id.parse().unwrap())
+                            .or_default()
+                            .insert(sf);
+                    }
+                    (question, TaskType::Run) => {
+                        let solution_files = self
+                            .files
+                            .get(&question.frontend_question_id.clone().parse().unwrap())
+                            .expect("Question id does not exist in the solutions mapping");
+                        let solution_file = solution_files.iter().nth(index).unwrap();
+                        let typed_code =
+                            solution_file.read_file_contents(&self.config.questions_dir);
+                        self.send_fetch_solution_run_details(
+                            question,
+                            solution_file.lang.clone(),
+                            typed_code,
+                        )?;
+                    }
+                    (_, _) => {}
+                }
             }
 
             Notification::Event(NotifContent {

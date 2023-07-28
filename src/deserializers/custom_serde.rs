@@ -14,20 +14,9 @@ where
     }
 }
 
-pub(crate) fn status_from_string<'de, D>(deserializer: D) -> Result<StatusMessage, D::Error>
+pub(crate) fn status_from_id<'de, D>(deserializer: D) -> Result<Option<StatusMessage>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Ok(match String::deserialize(deserializer)?.as_str() {
-        "Accepted" => StatusMessage::Accepted,
-        "Wrong Answer" => StatusMessage::WrongAnswer,
-        "Memory Limit Exceeded" => StatusMessage::MemoryLimitExceeded,
-        "Output Limit Exceeded" => StatusMessage::OutputLimitExceeded,
-        "Time Limit Exceeded" => StatusMessage::TimeLimitExceeded,
-        "Runtime Error" => StatusMessage::RuntimeError,
-        "Internal Error" => StatusMessage::InternalError,
-        "Compile Error" => StatusMessage::CompileError,
-        "Timeout" => StatusMessage::Timeout,
-        unknown => StatusMessage::Unknown(unknown.to_string()),
-    })
+    Ok(Option::<u32>::deserialize(deserializer)?.map(StatusMessage::from_status_code))
 }

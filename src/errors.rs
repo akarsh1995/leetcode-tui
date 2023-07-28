@@ -14,7 +14,7 @@ pub enum LcAppError {
     SyncReceiveError(#[from] std::sync::mpsc::RecvError),
 
     #[error("Task request send error sync to async context: {0}")]
-    RequestSendError(#[from] RequestSendError),
+    RequestSendError(#[from] Box<RequestSendError>),
 
     #[error("Task request receive error sync to async context: {0}")]
     RequestRecvError(#[from] RequestRecvError),
