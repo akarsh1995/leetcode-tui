@@ -27,6 +27,7 @@ impl ParagraphPopup {
                     CommonHelpText::ScrollDown.into(),
                 ]),
                 title,
+                show: true,
             },
             content,
             scroll_x: 0,
@@ -40,6 +41,11 @@ impl Component for ParagraphPopup {
         match event.code {
             KeyCode::Up => self.scroll_y = self.scroll_y.saturating_sub(1),
             KeyCode::Down => self.scroll_y += 1,
+            KeyCode::Esc => self.hide(),
+            KeyCode::Enter => {
+                self.hide();
+                return Some(event);
+            }
             _ => return Some(event),
         }
         None

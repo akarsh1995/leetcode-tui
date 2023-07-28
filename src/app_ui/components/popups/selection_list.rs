@@ -26,6 +26,7 @@ impl SelectionListPopup {
                     CommonHelpText::Select.into(),
                 ]),
                 title,
+                show: true,
             },
             list: StatefulList::with_items(list_items),
         }
@@ -37,11 +38,17 @@ impl SelectionListPopup {
 }
 
 impl Component for SelectionListPopup {
+    // selection list specific events
     fn event_handler(&mut self, event: KeyEvent) -> Option<KeyEvent> {
         match event.code {
+            KeyCode::Esc => self.hide(),
             KeyCode::Up => self.list.previous(),
             KeyCode::Down => self.list.next(),
-            // select event is passed to parent event to process
+            // only escape key get passed to the parent event
+            KeyCode::Enter => {
+                self.hide();
+                return Some(event);
+            }
             _ => return Some(event),
         }
         None

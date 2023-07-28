@@ -21,10 +21,22 @@ pub(crate) trait Component {
     fn get_key_set(&self) -> IndexSet<HelpText> {
         self.get_common_state().help_text.clone()
     }
+    fn set_show(&mut self) {
+        self.get_common_state_mut().show = true
+    }
+
+    fn hide(&mut self) {
+        self.get_common_state_mut().show = false
+    }
+
+    fn is_showing(&self) -> bool {
+        self.get_common_state().show
+    }
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct CommonState {
     help_text: IndexSet<HelpText>,
     title: String,
+    show: bool,
 }

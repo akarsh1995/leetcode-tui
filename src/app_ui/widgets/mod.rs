@@ -17,7 +17,7 @@ use ratatui::{prelude::Rect, prelude::*, Frame};
 
 use crate::errors::AppResult;
 
-use self::notification::{Notification, WidgetName, WidgetVariant};
+use self::notification::{NotifContent, Notification, WidgetName, WidgetVariant};
 
 use super::{
     channel::{ChannelRequestSender, TaskResponse},
@@ -59,13 +59,21 @@ impl CommonState {
 }
 
 pub trait Widget: Debug {
+    fn get_help_text_notif(&self) -> AppResult<Option<Notification>> {
+        Ok(Some(Notification::HelpText(NotifContent {
+            src_wid: self.get_common_state().widget_name.clone(),
+            dest_wid: WidgetName::HelpLine,
+            content: self.get_help_texts().clone(),
+        })))
+    }
+
     fn can_handle_key_set(&self) -> IndexSet<&KeyCode> {
         self.get_common_state().get_key_set()
     }
 
     fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.get_common_state_mut().active = true;
-        Ok(None)
+        self.get_help_text_notif()
     }
     fn is_active(&self) -> bool {
         self.get_common_state().active

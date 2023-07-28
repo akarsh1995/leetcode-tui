@@ -162,7 +162,12 @@ impl App {
         if let Some(popup) = self.get_current_popup_mut() {
             if !popup.is_active() {
                 self.popup_stack.pop();
-                let maybe_notif = self.get_current_widget_mut().set_active()?;
+                let maybe_notif;
+                if let Some(popup) = self.get_current_popup_mut() {
+                    maybe_notif = popup.set_active()?;
+                } else {
+                    maybe_notif = self.get_current_widget_mut().set_active()?;
+                }
                 self.push_notif(maybe_notif);
             };
         }
@@ -195,8 +200,8 @@ impl App {
                 if let WidgetName::Popup = wid_name {
                     let mut popup_instance =
                         Popup::new(wid_name.clone(), self.task_request_sender.clone());
-                    self.push_notif(popup_instance.set_active()?);
                     let maybe_notif = popup_instance.process_notification(notif)?;
+                    self.push_notif(popup_instance.set_active()?);
                     self.pending_notifications.push_back(maybe_notif);
                     self.popup_stack.push(popup_instance);
                 } else {

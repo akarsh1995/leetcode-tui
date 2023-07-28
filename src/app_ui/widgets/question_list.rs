@@ -318,15 +318,6 @@ impl QuestionListWidget {
 }
 
 impl super::Widget for QuestionListWidget {
-    fn set_active(&mut self) -> AppResult<Option<Notification>> {
-        self.get_common_state_mut().active = true;
-        Ok(Some(Notification::HelpText(NotifContent::new(
-            WidgetName::QuestionList,
-            WidgetName::HelpLine,
-            self.get_help_texts().clone(),
-        ))))
-    }
-
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self
             .questions
