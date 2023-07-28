@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::process::Stdio;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -155,17 +154,14 @@ impl QuestionListWidget {
         let mut output = std::process::Command::new("sh")
             .arg("-c")
             .arg(&vim_cmd)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
             .spawn()
-            .expect("Can run vim cmd");
+            .expect("Can't run vim cmd");
         self.vim_running
             .store(true, std::sync::atomic::Ordering::Relaxed);
         let vim_cmd_result = output.wait().expect("Run exits ok");
-        self.vim_tx.blocking_send(1).unwrap();
         self.vim_running
             .store(false, std::sync::atomic::Ordering::Relaxed);
+        self.vim_tx.blocking_send(1).unwrap();
         if !vim_cmd_result.success() {
             println!("error vim");
         }

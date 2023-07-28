@@ -67,6 +67,7 @@ impl Tui {
     ///
     /// It disables the raw mode and reverts back the terminal properties.
     pub fn exit(&mut self) -> AppResult<()> {
+        self.terminal.resize(self.terminal.size()?)?;
         terminal::disable_raw_mode().map_err(|e| {
             LcAppError::CrossTermError(format!("Error while disabling raw mode. {e}"))
         })?;
