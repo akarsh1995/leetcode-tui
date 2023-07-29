@@ -109,7 +109,6 @@ impl<'a> From<question::Stats<'a>> for StatState {
         StatState {
             accepted: val.get_accepted(),
             total: val.get_total_question(),
-            not_acepted: val.get_not_accepted(),
             not_attempted: val.get_not_attempted(),
             easy: val.get_easy_count(),
             medium: val.get_medium_count(),
@@ -125,7 +124,6 @@ impl<'a> From<question::Stats<'a>> for StatState {
 struct StatState {
     pub accepted: usize,
     pub total: usize,
-    pub not_acepted: usize,
     pub not_attempted: usize,
     pub easy: usize,
     pub medium: usize,
