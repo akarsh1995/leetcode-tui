@@ -48,25 +48,26 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn get_base_directory() -> AppResult<BaseDirectories> {
-        Ok(xdg::BaseDirectories::with_prefix("leetcode_tui")?)
+    #[cfg(target_os = "linux")]
+    pub fn get_base_directory() -> AppResult<PathBuf> {
+        Ok(xdg::BaseDirectories::with_prefix("leetcode_tui")?.place_config_file("config.toml")?)
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn get_base_directory() -> AppResult<PathBuf> {
+        let mut config_path = PathBuf::from_str(
+            get_home_directory()
+                .expect("ENV var USERPROFILE read failed")
+                .as_str(),
+        )
+        .unwrap();
+        config_path.push("leetcode_tui");
+        config_path.push("config.toml");
+        Ok(config_path)
     }
 
     pub fn get_base_config() -> AppResult<PathBuf> {
-        let mut config_path;
-        if cfg!(target_os = "windows") {
-            config_path = PathBuf::from_str(
-                get_home_directory()
-                    .expect("cannot find the USERPROFILE variable")
-                    .as_str(),
-            )
-            .expect("Cannot create directory");
-            config_path.push("leetcode_tui");
-            config_path.push("config.toml");
-        } else {
-            config_path = Self::get_base_directory()?.place_config_file("config.toml")?;
-        }
-        Ok(config_path)
+        Ok(Self::get_base_directory()?)
     }
 
     pub async fn read_config(path: PathBuf) -> AppResult<Self> {
@@ -88,9 +89,19 @@ pub struct Db {
 }
 
 impl Db {
+    #[cfg(target_os = "linux")]
     pub fn get_base_sqlite_data_path() -> AppResult<PathBuf> {
-        let base_dirs = Config::get_base_directory()?;
+        let base_dirs = xdg::BaseDirectories::with_prefix("leetcode_tui")?;
         let data_file_path = base_dirs.place_data_file("data.sqlite")?;
+        Ok(data_file_path)
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn get_base_sqlite_data_path() -> AppResult<PathBuf> {
+        let mut base_dirs = Config::get_base_directory()?;
+        base_dirs.pop();
+        base_dirs.push("data.sqlite");
+        let data_file_path = base_dirs;
         Ok(data_file_path)
     }
 

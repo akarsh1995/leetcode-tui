@@ -40,6 +40,7 @@ pub enum LcAppError {
     #[error("Database Error encountered {0}")]
     DatabaseError(#[from] DbErr),
 
+    #[cfg(target_os = "linux")]
     #[error("Maybe could not find xdg dirs {0}")]
     XDGError(#[from] xdg::BaseDirectoriesError),
 
