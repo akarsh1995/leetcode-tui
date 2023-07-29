@@ -59,7 +59,7 @@ impl super::Widget for HelpBar {
                         LOADING_CHARS[self.loading_state].to_string(),
                     )])
                     .title_position(Position::Top)
-                    .title_alignment(Alignment::Left),
+                    .title_alignment(Alignment::Right),
                 rect,
             );
         }
