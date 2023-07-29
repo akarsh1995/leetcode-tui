@@ -40,6 +40,10 @@ All notable changes to this project will be documented in this file.
 - Submission stats upon successful submit
 - Added gif demo using [vhs tape](https://github.com/charmbracelet/vhs)
 
+### Fixed
+
+- Failing build windows
+
 ## [0.1.0] - 2023-07-19
 
 ### Added
