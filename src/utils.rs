@@ -73,17 +73,20 @@ pub async fn get_reqwest_client(config: &Config) -> AppResult<reqwest::Client> {
 use crate::config::Db;
 
 pub async fn get_config() -> AppResult<Option<Config>> {
-    let config_path = Config::get_base_config()?;
+    let config_path = Config::get_config_base_file()?;
     let config: Config;
 
     if !config_path.exists() {
         config = Config::default();
-        config.write_config(Config::get_base_config()?).await?;
+        config.write_config(config_path.clone()).await?;
         println!("\nConfig is created at config_path {}.\n\nKindly set LEETCODE_SESSION and csrftoken in the config file. These can be obained from leetcode cookies in the browser.", config_path.display());
         let db_data_path = Db::get_base_sqlite_data_path()?;
         if !db_data_path.exists() {
             Db::touch_default_db().await?;
             println!("\nDatabase resides in {}", db_data_path.display());
+        }
+        if !Config::get_default_solutions_dir()?.exists() {
+            Config::create_solutions_dir().await?;
         }
         Ok(None)
     } else {
