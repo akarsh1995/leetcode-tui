@@ -18,6 +18,7 @@ use crate::deserializers::run_submit::{ParsedResponse, Success};
 use crate::entities::{QuestionModel, TopicTagModel};
 use crate::errors::AppResult;
 use crate::graphql::run_code::RunCode;
+use crate::graphql::submit_code::SubmitCode;
 use crate::graphql::{Language, RunOrSubmitCode};
 
 use crossterm::event::{KeyCode, KeyEvent};
@@ -75,6 +76,7 @@ enum TaskType {
     Run,
     Edit,
     Read,
+    Submit,
 }
 
 #[derive(Debug)]
@@ -128,6 +130,7 @@ impl QuestionListWidget {
                     CommonHelpText::Edit.into(),
                     CommonHelpText::ReadContent.into(),
                     CommonHelpText::Run.into(),
+                    CommonHelpText::Submit.into(),
                 ],
             ),
             all_questions: HashMap::new(),
@@ -170,27 +173,68 @@ impl QuestionListWidget {
         question: Rc<QuestionModel>,
         lang: Language,
         typed_code: String,
+        is_submit: bool,
     ) -> AppResult<()> {
         let random_key = generate_random_string(10);
         self.task_map
             .insert(random_key.clone(), (question.clone(), TaskType::Run));
+
+        let content = if is_submit {
+            let submit_code = SubmitCode {
+                lang,
+                question_id: question.frontend_question_id.clone(),
+                typed_code,
+                slug: question.title_slug.as_ref().unwrap().clone(),
+            };
+
+            RunOrSubmitCode::Submit(submit_code)
+        } else {
+            let run_code = RunCode {
+                lang,
+                question_id: question.frontend_question_id.clone(),
+                typed_code,
+                test_cases_stdin: None, // automatically fetches sample test cases from the server
+                slug: question.title_slug.as_ref().unwrap().clone(),
+            };
+
+            RunOrSubmitCode::Run(run_code)
+        };
 
         self.get_task_sender()
             .send(
                 crate::app_ui::async_task_channel::TaskRequest::CodeRunRequest(Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key.clone(),
-                    content: RunOrSubmitCode::Run(RunCode {
-                        lang,
-                        question_id: question.frontend_question_id.clone(),
-                        typed_code,
-                        test_cases_stdin: None,
-                        slug: question.title_slug.as_ref().unwrap().clone(),
-                    }),
+                    content,
                 }),
             )
             .map_err(Box::new)?;
         Ok(())
+    }
+
+    fn solution_file_popup_action(
+        &mut self,
+        question: Rc<QuestionModel>,
+        task_type: TaskType,
+        index: usize,
+    ) -> AppResult<()> {
+        let solution_files = self
+            .files
+            .get(&question.frontend_question_id.clone().parse().unwrap())
+            .expect("Question id does not exist in the solutions mapping");
+        let solution_file = solution_files.iter().nth(index).unwrap();
+        let typed_code = solution_file.read_file_contents(&self.config.questions_dir);
+        let is_submit = match task_type {
+            TaskType::Run => false,
+            TaskType::Submit => true,
+            _ => unimplemented!(),
+        };
+        self.send_fetch_solution_run_details(
+            question,
+            solution_file.lang.clone(),
+            typed_code,
+            is_submit,
+        )
     }
 
     fn send_fetch_question_details(&mut self, question: Rc<QuestionModel>) -> AppResult<()> {
@@ -378,6 +422,33 @@ impl QuestionListWidget {
             .get_or_insert_mut(model.clone(), CachedQuestion::default);
         (k, model.clone())
     }
+
+    fn run_or_submit_code_event_handler(
+        &mut self,
+        task_type: TaskType,
+    ) -> AppResult<Option<Notification>> {
+        let selected_question = self
+            .questions
+            .get_selected_item()
+            .expect("no question selected");
+        let id: i32 = selected_question.frontend_question_id.parse().unwrap();
+        if let Some(files) = self.files.get(&id) {
+            let langs = files
+                .iter()
+                .map(|f| f.lang.clone().to_string())
+                .collect::<Vec<_>>();
+            let key = generate_random_string(10);
+            self.task_map
+                .insert(key.clone(), (selected_question.clone(), task_type));
+            return Ok(Some(self.popup_list_notification(
+                langs,
+                "Select Language".to_string(),
+                key,
+                IndexSet::new(),
+            )));
+        }
+        Ok(None)
+    }
 }
 
 impl super::Widget for QuestionListWidget {
@@ -466,26 +537,10 @@ impl super::Widget for QuestionListWidget {
             }
 
             KeyCode::Char('r') | KeyCode::Char('R') => {
-                let selected_question = self
-                    .questions
-                    .get_selected_item()
-                    .expect("no question selected");
-                let id: i32 = selected_question.frontend_question_id.parse().unwrap();
-                if let Some(files) = self.files.get(&id) {
-                    let langs = files
-                        .iter()
-                        .map(|f| f.lang.clone().to_string())
-                        .collect::<Vec<_>>();
-                    let key = generate_random_string(10);
-                    self.task_map
-                        .insert(key.clone(), (selected_question.clone(), TaskType::Run));
-                    return Ok(Some(self.popup_list_notification(
-                        langs,
-                        "Select Language".to_string(),
-                        key,
-                        IndexSet::new(),
-                    )));
-                }
+                return self.run_or_submit_code_event_handler(TaskType::Run);
+            }
+            KeyCode::Char('s') => {
+                return self.run_or_submit_code_event_handler(TaskType::Submit);
             }
             _ => {}
         };
@@ -556,6 +611,7 @@ impl super::Widget for QuestionListWidget {
                 cached_q.editor_data = Some(ed.content);
             }
             TaskResponse::RunResponseData(run_res) => {
+                let mut is_submit = false;
                 let k = match run_res.content {
                     ParsedResponse::Pending => "Pending".to_string(),
                     ParsedResponse::CompileError(_) => "Compile Error".to_string(),
@@ -618,6 +674,7 @@ impl super::Widget for QuestionListWidget {
                         status_memory,
                         ..
                     }) => {
+                        is_submit = true;
                         let is_accepted_symbol = "✅";
                         let result_string = vec![
                             format!("Accepted: {}", is_accepted_symbol),
@@ -639,7 +696,7 @@ impl super::Widget for QuestionListWidget {
                 };
                 let notification = self.popup_paragraph_notification(
                     k.to_string(),
-                    "Run Status".to_string(),
+                    format!("{} Status", (if is_submit { "Submit" } else { "Run" })),
                     IndexSet::new(),
                 );
                 self.get_notification_queue().push_back(notification);
@@ -739,21 +796,9 @@ impl super::Widget for QuestionListWidget {
                             .or_default()
                             .insert(sf);
                     }
-                    (question, TaskType::Run) => {
-                        let solution_files = self
-                            .files
-                            .get(&question.frontend_question_id.clone().parse().unwrap())
-                            .expect("Question id does not exist in the solutions mapping");
-                        let solution_file = solution_files.iter().nth(index).unwrap();
-                        let typed_code =
-                            solution_file.read_file_contents(&self.config.questions_dir);
-                        self.send_fetch_solution_run_details(
-                            question,
-                            solution_file.lang.clone(),
-                            typed_code,
-                        )?;
+                    (question, tt) => {
+                        self.solution_file_popup_action(question, tt, index)?;
                     }
-                    (_, _) => {}
                 }
             }
 

@@ -99,7 +99,7 @@ pub(crate) enum CommonHelpText {
     SwitchPane,
     Edit,
     ReadContent,
-    // Submit,
+    Submit,
     Run,
     Close,
     Select,
@@ -115,13 +115,7 @@ impl From<CommonHelpText> for HelpText {
             CommonHelpText::ReadContent => (vec![KeyCode::Enter], "Read Content"),
             CommonHelpText::Close => (vec![KeyCode::Esc], "Close"),
             CommonHelpText::Select => (vec![KeyCode::Enter], "Select"),
-            // CommonHelpText::Submit => (
-            //     vec![
-            //         KeyCode::Modifier(ModifierKeyCode::LeftControl),
-            //         KeyCode::Enter,
-            //     ],
-            //     "Submit",
-            // ),
+            CommonHelpText::Submit => (vec![KeyCode::Char('s')], "Submit"),
             CommonHelpText::Run => (vec![KeyCode::Char('R'), KeyCode::Char('r')], "Run"),
         };
         HelpText {

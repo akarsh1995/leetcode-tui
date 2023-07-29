@@ -5,11 +5,11 @@ use crate::deserializers::run_submit::RunResponse;
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct SubmitCode {
-    lang: Language,
-    question_id: String,
-    typed_code: String,
+    pub lang: Language,
+    pub question_id: String,
+    pub typed_code: String,
     #[serde(skip_serializing, skip_deserializing)]
-    slug: String,
+    pub slug: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]

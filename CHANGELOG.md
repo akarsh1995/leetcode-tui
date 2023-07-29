@@ -4,8 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Submit question file
-    - Update table question if solution accepted
+- Update table question if solution accepted
 
 - Sort questions by:
     - likes dislikes ratio.
@@ -43,7 +42,7 @@ All notable changes to this project will be documented in this file.
 - Create solution file in the preferred language
 - Run/test the solution against test cases
     - show test case submission stats in the popup
-
+- Submit question file
 
 ## [0.1.0] - 2023-07-19
 
