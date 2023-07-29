@@ -10,6 +10,7 @@ homepage = "https://github.com/akarsh1995/leetcode-tui"
 license = "MIT"
 keywords = ["tui", "leetcode", "terminal", "algorithms", "cli"]
 categories = ["algorithms", "command-line-utilities"]
+exclude = [".github", "vhs_tapes"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
