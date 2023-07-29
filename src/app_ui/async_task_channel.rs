@@ -19,6 +19,7 @@ pub enum TaskRequest {
     GetAllTopicTags(Request<()>),
     GetQuestionEditorData(Request<String>),
     CodeRunRequest(Request<RunOrSubmitCode>),
+    DbUpdateQuestion(Request<QuestionModel>),
 }
 
 impl TaskRequest {
@@ -53,6 +54,11 @@ impl TaskRequest {
                 content,
                 widget_name,
             }) => run_or_submit_question(request_id, widget_name, content, client).await,
+            TaskRequest::DbUpdateQuestion(Request {
+                request_id,
+                content,
+                widget_name,
+            }) => update_status_to_accepted(request_id, widget_name, content, conn).await,
         }
     }
 }
@@ -71,6 +77,7 @@ pub enum TaskResponse {
     AllTopicTags(Response<Vec<TopicTagModel>>),
     QuestionEditorData(Response<deserializers::editor_data::Question>),
     RunResponseData(Response<deserializers::run_submit::ParsedResponse>),
+    DbUpdateStatus(Response<()>),
     Error(Response<String>),
 }
 
@@ -83,6 +90,7 @@ impl TaskResponse {
             TaskResponse::Error(Response { widget_name, .. }) => widget_name,
             TaskResponse::QuestionEditorData(Response { widget_name, .. }) => widget_name,
             TaskResponse::RunResponseData(Response { widget_name, .. }) => widget_name,
+            TaskResponse::DbUpdateStatus(Response { widget_name, .. }) => widget_name,
         }
         .clone()
     }

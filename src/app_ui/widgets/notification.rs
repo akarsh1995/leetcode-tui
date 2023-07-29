@@ -1,9 +1,12 @@
+use std::rc::Rc;
+
+use crate::app_ui::helpers::question::QuestionModelContainer;
 use crate::{
     app_ui::components::{
         help_text::HelpText,
         popups::{paragraph::ParagraphPopup, selection_list::SelectionListPopup},
     },
-    entities::{QuestionModel, TopicTagModel},
+    entities::TopicTagModel,
 };
 
 #[derive(Debug, Clone)]
@@ -51,7 +54,7 @@ impl<T> NotifContent<T> {
 #[derive(Debug, Clone)]
 pub enum Notification {
     Questions(NotifContent<Vec<TopicTagModel>>),
-    Stats(NotifContent<Vec<QuestionModel>>),
+    Stats(NotifContent<Vec<Rc<QuestionModelContainer>>>),
     Popup(NotifContent<PopupMessage>),
     HelpText(NotifContent<IndexSet<HelpText>>),
     Event(NotifContent<KeyEvent>),

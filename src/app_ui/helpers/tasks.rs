@@ -1,8 +1,8 @@
-use sea_orm::DatabaseConnection;
+use sea_orm::{prelude::*, DatabaseConnection, IntoActiveModel, Set};
 
 use crate::app_ui::async_task_channel::{Response, TaskResponse};
 use crate::app_ui::widgets::notification::WidgetName;
-use crate::entities::TopicTagEntity;
+use crate::entities::{QuestionModel, TopicTagEntity};
 use crate::graphql::editor_data::Query as QuestionEditorDataQuery;
 use crate::graphql::question_content::Query as QuestionGQLQuery;
 use crate::graphql::run_code::RunCode;
@@ -123,6 +123,28 @@ pub async fn run_or_submit_question(
         Ok(run_response_body) => TaskResponse::RunResponseData(Response {
             request_id,
             content: run_response_body,
+            widget_name,
+        }),
+        Err(e) => TaskResponse::Error(Response {
+            request_id,
+            content: e.to_string(),
+            widget_name,
+        }),
+    }
+}
+
+pub async fn update_status_to_accepted(
+    request_id: String,
+    widget_name: WidgetName,
+    question: QuestionModel,
+    db: &DatabaseConnection,
+) -> TaskResponse {
+    let mut am = question.into_active_model();
+    am.status = Set(Some("ac".to_string()));
+    match am.update(db).await {
+        Ok(_) => TaskResponse::DbUpdateStatus(Response {
+            request_id,
+            content: (),
             widget_name,
         }),
         Err(e) => TaskResponse::Error(Response {

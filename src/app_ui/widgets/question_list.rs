@@ -1,3 +1,5 @@
+use crate::app_ui::helpers::question::QuestionModelContainer;
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::rc::Rc;
@@ -15,7 +17,7 @@ use crate::config::Config;
 use crate::deserializers;
 use crate::deserializers::editor_data::CodeSnippet;
 use crate::deserializers::run_submit::{ParsedResponse, Success};
-use crate::entities::{QuestionModel, TopicTagModel};
+use crate::entities::TopicTagModel;
 use crate::errors::AppResult;
 use crate::graphql::run_code::RunCode;
 use crate::graphql::submit_code::SubmitCode;
@@ -79,16 +81,18 @@ enum TaskType {
     Submit,
 }
 
+type Question = Rc<QuestionModelContainer>;
+
 #[derive(Debug)]
 pub struct QuestionListWidget {
     pub common_state: CommonState,
-    pub questions: StatefulList<QuestionModel>,
-    pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Rc<QuestionModel>>>,
+    pub questions: StatefulList<QuestionModelContainer>,
+    pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Question>>,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
-    cache: lru::LruCache<Rc<QuestionModel>, CachedQuestion>,
-    task_map: HashMap<String, (Rc<QuestionModel>, TaskType)>,
-    pending_event_actions: IndexSet<(KeyEvent, Rc<QuestionModel>)>,
+    cache: lru::LruCache<Question, CachedQuestion>,
+    task_map: HashMap<String, (Question, TaskType)>,
+    pending_event_actions: IndexSet<(KeyEvent, Question)>,
     config: Rc<Config>,
     files: HashMap<i32, HashSet<SolutionFile>>,
 }
@@ -147,7 +151,7 @@ impl QuestionListWidget {
 }
 
 impl QuestionListWidget {
-    fn send_fetch_question_editor_details(&mut self, question: Rc<QuestionModel>) -> AppResult<()> {
+    fn send_fetch_question_editor_details(&mut self, question: Question) -> AppResult<()> {
         if let Some(cached_q) = self.cache.peek(&question) {
             if !cached_q.question_data_received() {
                 self.send_fetch_question_details(question.clone())?;
@@ -161,7 +165,13 @@ impl QuestionListWidget {
                 crate::app_ui::async_task_channel::TaskRequest::GetQuestionEditorData(Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key,
-                    content: question.title_slug.as_ref().unwrap().clone(),
+                    content: question
+                        .question
+                        .borrow()
+                        .title_slug
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
                 }),
             )
             .map_err(Box::new)?;
@@ -170,7 +180,7 @@ impl QuestionListWidget {
 
     fn send_fetch_solution_run_details(
         &mut self,
-        question: Rc<QuestionModel>,
+        question: Question,
         lang: Language,
         typed_code: String,
         is_submit: bool,
@@ -182,19 +192,31 @@ impl QuestionListWidget {
         let content = if is_submit {
             let submit_code = SubmitCode {
                 lang,
-                question_id: question.frontend_question_id.clone(),
+                question_id: question.question.borrow().frontend_question_id.clone(),
                 typed_code,
-                slug: question.title_slug.as_ref().unwrap().clone(),
+                slug: question
+                    .question
+                    .borrow()
+                    .title_slug
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
             };
 
             RunOrSubmitCode::Submit(submit_code)
         } else {
             let run_code = RunCode {
                 lang,
-                question_id: question.frontend_question_id.clone(),
+                question_id: question.question.borrow().frontend_question_id.clone(),
                 typed_code,
                 test_cases_stdin: None, // automatically fetches sample test cases from the server
-                slug: question.title_slug.as_ref().unwrap().clone(),
+                slug: question
+                    .question
+                    .borrow()
+                    .title_slug
+                    .as_ref()
+                    .unwrap()
+                    .clone(),
             };
 
             RunOrSubmitCode::Run(run_code)
@@ -214,13 +236,21 @@ impl QuestionListWidget {
 
     fn solution_file_popup_action(
         &mut self,
-        question: Rc<QuestionModel>,
+        question: Question,
         task_type: TaskType,
         index: usize,
     ) -> AppResult<()> {
         let solution_files = self
             .files
-            .get(&question.frontend_question_id.clone().parse().unwrap())
+            .get(
+                &question
+                    .question
+                    .borrow()
+                    .frontend_question_id
+                    .clone()
+                    .parse()
+                    .unwrap(),
+            )
             .expect("Question id does not exist in the solutions mapping");
         let solution_file = solution_files.iter().nth(index).unwrap();
         let typed_code = solution_file.read_file_contents(&self.config.questions_dir);
@@ -237,7 +267,7 @@ impl QuestionListWidget {
         )
     }
 
-    fn send_fetch_question_details(&mut self, question: Rc<QuestionModel>) -> AppResult<()> {
+    fn send_fetch_question_details(&mut self, question: Question) -> AppResult<()> {
         let random_key = generate_random_string(10);
         self.task_map
             .insert(random_key.clone(), (question.clone(), TaskType::Read));
@@ -246,16 +276,33 @@ impl QuestionListWidget {
                 crate::app_ui::async_task_channel::TaskRequest::QuestionDetail(Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key,
-                    content: question.title_slug.as_ref().unwrap().clone(),
+                    content: question
+                        .question
+                        .borrow()
+                        .title_slug
+                        .as_ref()
+                        .unwrap()
+                        .clone(),
                 }),
             )
             .map_err(Box::new)?;
         Ok(())
     }
 
-    // fn send_fetch_run_response(&mut self, question)
+    fn sync_db_solution_submit_status(&mut self, question: Question) -> AppResult<()> {
+        self.get_task_sender()
+            .send(
+                crate::app_ui::async_task_channel::TaskRequest::DbUpdateQuestion(Request {
+                    widget_name: self.get_widget_name(),
+                    request_id: "".to_string(),
+                    content: question.question.borrow().to_owned(),
+                }),
+            )
+            .map_err(Box::new)?;
+        Ok(())
+    }
 
-    fn is_notif_pending(&self, key: &(KeyEvent, Rc<QuestionModel>)) -> bool {
+    fn is_notif_pending(&self, key: &(KeyEvent, Question)) -> bool {
         self.pending_event_actions.contains(key)
     }
 
@@ -313,15 +360,19 @@ impl QuestionListWidget {
         })
     }
 
-    fn get_item(question: &QuestionModel) -> ListItem {
-        let number = question.frontend_question_id.clone();
+    fn get_item(question: &Rc<QuestionModelContainer>) -> ListItem {
+        let number = question.question.borrow().frontend_question_id.clone();
         let title = question
+            .question
+            .borrow()
             .title
             .as_ref()
             .unwrap_or(&"No title".to_string())
             .to_string();
 
         let is_accepted = question
+            .question
+            .borrow()
             .status
             .as_ref()
             .map_or(false, |v| v.as_str() == "ac");
@@ -340,6 +391,8 @@ impl QuestionListWidget {
         );
 
         let qs_diff = question
+            .question
+            .borrow()
             .difficulty
             .as_ref()
             .unwrap_or(&"Disabled".to_string())
@@ -358,7 +411,7 @@ impl QuestionListWidget {
         ListItem::new(styled_title)
     }
 
-    fn add_event_to_event_queue(&mut self, data: (KeyEvent, Rc<QuestionModel>)) -> bool {
+    fn add_event_to_event_queue(&mut self, data: (KeyEvent, Question)) -> bool {
         self.pending_event_actions.insert(data)
     }
 
@@ -372,7 +425,7 @@ impl QuestionListWidget {
                 KeyCode::Enter => {
                     if let Some(cache_ques) = &ques_in_cache.qd {
                         let content = cache_ques.html_to_text();
-                        let title = qm.title.as_ref().unwrap().to_string();
+                        let title = qm.question.borrow().title.as_ref().unwrap().to_string();
                         let notif = self.popup_paragraph_notification(
                             content,
                             title,
@@ -413,7 +466,7 @@ impl QuestionListWidget {
         }
     }
 
-    fn get_selected_question_from_cache(&mut self) -> (&mut CachedQuestion, Rc<QuestionModel>) {
+    fn get_selected_question_from_cache(&mut self) -> (&mut CachedQuestion, Question) {
         let selected_question = self.questions.get_selected_item();
         let sel = selected_question.expect("no question selected");
         let model = sel.clone();
@@ -431,7 +484,12 @@ impl QuestionListWidget {
             .questions
             .get_selected_item()
             .expect("no question selected");
-        let id: i32 = selected_question.frontend_question_id.parse().unwrap();
+        let id: i32 = selected_question
+            .question
+            .borrow()
+            .frontend_question_id
+            .parse()
+            .unwrap();
         if let Some(files) = self.files.get(&id) {
             let langs = files
                 .iter()
@@ -457,7 +515,7 @@ impl super::Widget for QuestionListWidget {
             .questions
             .items
             .iter()
-            .map(|q| Self::get_item(q))
+            .map(Self::get_item)
             .collect::<Vec<_>>();
 
         let mut border_style = Style::default();
@@ -490,7 +548,7 @@ impl super::Widget for QuestionListWidget {
 
                 if question_data_in_cache {
                     let content = cache.get_question_content().unwrap();
-                    let title = model.title.as_ref().unwrap().clone();
+                    let title = model.question.borrow().title.as_ref().unwrap().clone();
                     return Ok(Some(self.popup_paragraph_notification(
                         content,
                         title,
@@ -569,12 +627,30 @@ impl super::Widget for QuestionListWidget {
                 content,
                 ..
             }) => {
+                // creating rc cloned question as one question can appear in multiple topics
+                let question_set = content
+                    .iter()
+                    .flat_map(|x| {
+                        x.1.iter().map(|x| {
+                            (
+                                x.frontend_question_id.clone(),
+                                Rc::new(QuestionModelContainer {
+                                    question: RefCell::new(x.clone()),
+                                }),
+                            )
+                        })
+                    })
+                    .collect::<HashMap<_, _>>();
+
                 let map_iter = content.into_iter().map(|v| {
                     (
                         Rc::new(v.0),
-                        (v.1.into_iter().map(Rc::new)).collect::<Vec<_>>(),
+                        (v.1.into_iter()
+                            .map(|x| question_set.get(&x.frontend_question_id).unwrap().clone()))
+                        .collect::<Vec<_>>(),
                     )
                 });
+
                 self.all_questions.extend(map_iter);
                 for ql in &mut self.all_questions.values_mut() {
                     ql.sort_unstable()
@@ -674,6 +750,21 @@ impl super::Widget for QuestionListWidget {
                         status_memory,
                         ..
                     }) => {
+                        // upon successful submit of the question update the question accepted status
+                        // also update the db
+                        {
+                            let question_model_container = self
+                                .task_map
+                                .get(&run_res.request_id)
+                                .expect(
+                                "Cannot get the question model container from the sent task map.",
+                            );
+                            question_model_container.0.question.borrow_mut().status =
+                                Some("ac".to_string());
+                            self.sync_db_solution_submit_status(
+                                question_model_container.0.clone(),
+                            )?;
+                        }
                         is_submit = true;
                         let is_accepted_symbol = "✅";
                         let result_string = vec![
@@ -699,6 +790,8 @@ impl super::Widget for QuestionListWidget {
                     format!("{} Status", (if is_submit { "Submit" } else { "Run" })),
                     IndexSet::new(),
                 );
+                // post submit remove the reference_task_key from task_map
+                self.task_map.remove(&run_res.request_id).unwrap();
                 self.get_notification_queue().push_back(notification);
             }
             TaskResponse::Error(e) => {
@@ -731,20 +824,23 @@ impl super::Widget for QuestionListWidget {
                 self.questions.items = vec![];
                 if let Some(tag) = tags.into_iter().next() {
                     if tag.id == "all" {
-                        let mut question_set = HashSet::new();
+                        let mut unique_question_map = HashMap::new();
                         for val in self.all_questions.values().flatten() {
-                            question_set.insert(val.clone());
+                            unique_question_map.insert(
+                                val.question.borrow().frontend_question_id.clone(),
+                                val.clone(),
+                            );
                         }
+                        let unique_questions = unique_question_map
+                            .drain()
+                            .map(|(_, v)| v)
+                            .collect::<Vec<_>>();
                         let notif = Notification::Stats(NotifContent::new(
                             WidgetName::QuestionList,
                             WidgetName::Stats,
-                            question_set
-                                .clone()
-                                .into_iter()
-                                .map(|q| q.as_ref().clone())
-                                .collect::<Vec<_>>(),
+                            unique_questions.clone(),
                         ));
-                        self.questions.items.extend(question_set.into_iter());
+                        self.questions.items.extend(unique_questions);
                         self.questions.items.sort_unstable();
                         return Ok(Some(notif));
                     } else {
@@ -752,10 +848,7 @@ impl super::Widget for QuestionListWidget {
                         let notif = Notification::Stats(NotifContent::new(
                             WidgetName::QuestionList,
                             WidgetName::Stats,
-                            values
-                                .iter()
-                                .map(|x| x.as_ref().clone())
-                                .collect::<Vec<_>>(),
+                            values.to_vec(),
                         ));
                         self.questions.items.extend(values.iter().cloned());
                         return Ok(Some(notif));
@@ -766,7 +859,7 @@ impl super::Widget for QuestionListWidget {
                 let (lookup_key, index) = content;
                 match self.task_map.remove(&lookup_key).unwrap() {
                     (question, TaskType::Edit) => {
-                        let question_id = question.as_ref().frontend_question_id.as_str();
+                        let question_id = question.question.borrow().frontend_question_id.clone();
                         let cached_question = self.cache.get(&question).unwrap();
                         let editor_data = cached_question
                             .editor_data
