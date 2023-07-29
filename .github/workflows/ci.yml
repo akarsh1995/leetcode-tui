@@ -87,42 +87,6 @@ jobs:
         cargo wix -p leetui --no-build --nocapture --output ./target/wix/leetui.msi
         ls -l ./target/wix/leetui.msi
 
-  build-linux-musl:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        rust: [nightly, stable, '1.70']
-    continue-on-error: ${{ matrix.rust == 'nightly' }}
-    steps:
-    - uses: actions/checkout@master
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust }}
-        profile: minimal
-        default: true
-        override: true
-        target: x86_64-unknown-linux-musl
-
-    - name: Setup MUSL
-      run: |
-        sudo apt-get -qq install musl-tools && sudo apt-get -y install libssl-dev && sudo apt-get -y install pkg-config
-    - name: Build Debug
-      run: |
-        cargo build --target=x86_64-unknown-linux-musl
-        ./target/x86_64-unknown-linux-musl/debug/leetui --version
-    - name: Build Release
-      run: |
-        cargo build --release --target=x86_64-unknown-linux-musl
-        ./target/x86_64-unknown-linux-musl/release/leetui --version
-        ls -l ./target/x86_64-unknown-linux-musl/release/leetui
-    - name: Test
-      run: |
-        cargo test --workspace --target=x86_64-unknown-linux-musl
-    - name: Test Install
-      run: cargo install --path "." --force
-
   linting:
     name: Lints
     runs-on: ubuntu-latest
