@@ -14,10 +14,10 @@ use crate::app_ui::{channel::ChannelRequestSender, components::list::StatefulLis
 use crate::config::Config;
 use crate::deserializers;
 use crate::deserializers::editor_data::CodeSnippet;
+use crate::deserializers::run_submit::{ParsedResponse, Success};
 use crate::entities::{QuestionModel, TopicTagModel};
 use crate::errors::AppResult;
-use crate::graphql::check_run_submit::{ParsedResponse, Success};
-use crate::graphql::run_code::RunSolutionBody;
+use crate::graphql::run_code::RunCode;
 use crate::graphql::{Language, RunOrSubmitCode};
 
 use crossterm::event::{KeyCode, KeyEvent};
@@ -179,7 +179,7 @@ impl QuestionListWidget {
                 Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key.clone(),
-                    content: RunOrSubmitCode::Run(RunSolutionBody {
+                    content: RunOrSubmitCode::Run(RunCode {
                         lang,
                         question_id: question.frontend_question_id.clone(),
                         typed_code,

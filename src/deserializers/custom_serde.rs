@@ -2,7 +2,7 @@ use serde;
 
 use serde::de::{Deserialize, Deserializer};
 
-use crate::graphql::check_run_submit::StatusMessage;
+use crate::deserializers::run_submit::StatusMessage;
 
 pub(crate) fn int_from_bool<'de, D>(deserializer: D) -> Result<Option<i32>, D::Error>
 where

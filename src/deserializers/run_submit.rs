@@ -1,4 +1,4 @@
-use super::Language;
+use crate::graphql::Language;
 use crate::{deserializers::custom_serde::status_from_id, errors::AppResult};
 use serde::{Deserialize, Serialize};
 use serde_json::from_value;

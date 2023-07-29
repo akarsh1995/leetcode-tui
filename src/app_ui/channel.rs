@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::app_ui::helpers::tasks::*;
-use crate::graphql::{self, RunOrSubmitCode};
+use crate::graphql::RunOrSubmitCode;
 use crate::{
     deserializers,
     entities::{QuestionModel, TopicTagModel},
@@ -70,7 +70,7 @@ pub enum TaskResponse {
     GetAllQuestionsMap(Response<HashMap<TopicTagModel, Vec<QuestionModel>>>),
     AllTopicTags(Response<Vec<TopicTagModel>>),
     QuestionEditorData(Response<deserializers::editor_data::Question>),
-    RunResponseData(Response<graphql::check_run_submit::ParsedResponse>),
+    RunResponseData(Response<deserializers::run_submit::ParsedResponse>),
     Error(Response<String>),
 }
 

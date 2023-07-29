@@ -3,13 +3,12 @@ use std::fmt::Display;
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
-pub mod check_run_submit;
 pub mod console_panel_config;
 pub mod editor_data;
 pub mod problemset_question_list;
 pub mod question_content;
 pub mod run_code;
-pub mod submit;
+pub mod submit_code;
 use crate::errors::AppResult;
 
 pub type QuestionContentQuery = question_content::Query;
@@ -48,8 +47,8 @@ pub trait GQLLeetcodeQuery: Serialize + Sync {
 
 #[derive(Debug)]
 pub enum RunOrSubmitCode {
-    Run(RunSolutionBody),
-    Submit(SubmitRequestBody),
+    Run(RunCode),
+    Submit(SubmitCode),
 }
 
 impl RunOrSubmitCode {
@@ -79,11 +78,8 @@ impl RunOrSubmitCode {
 
 use serde::Deserialize;
 
-use self::{
-    check_run_submit::{ParsedResponse, RunResponse},
-    run_code::RunSolutionBody,
-    submit::SubmitRequestBody,
-};
+use self::{run_code::RunCode, submit_code::SubmitCode};
+use crate::deserializers::run_submit::{ParsedResponse, RunResponse};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct LanguageInfo {

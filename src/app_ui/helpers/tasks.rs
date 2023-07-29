@@ -5,7 +5,7 @@ use crate::app_ui::widgets::notification::WidgetName;
 use crate::entities::TopicTagEntity;
 use crate::graphql::editor_data::Query as QuestionEditorDataQuery;
 use crate::graphql::question_content::Query as QuestionGQLQuery;
-use crate::graphql::run_code::RunSolutionBody;
+use crate::graphql::run_code::RunCode;
 use crate::graphql::{self, GQLLeetcodeQuery, RunOrSubmitCode};
 
 pub async fn get_question_details(
@@ -95,7 +95,7 @@ pub async fn run_or_submit_question(
     mut run_or_submit_code: graphql::RunOrSubmitCode,
     client: &reqwest::Client,
 ) -> TaskResponse {
-    if let RunOrSubmitCode::Run(RunSolutionBody {
+    if let RunOrSubmitCode::Run(RunCode {
         test_cases_stdin,
         slug,
         ..

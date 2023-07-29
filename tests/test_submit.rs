@@ -1,4 +1,4 @@
-use leetcode_tui_rs::graphql::check_run_submit::{ParsedResponse, RunResponse};
+use leetcode_tui_rs::deserializers::run_submit::{ParsedResponse, RunResponse};
 use serde_json::{self, Value};
 
 const JSONS_STR: &str = include_str!("./test_submit.json");
