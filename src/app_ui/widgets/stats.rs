@@ -1,4 +1,5 @@
 use super::{notification::NotifContent, *};
+use crate::app_ui::components::color::Callout;
 use crate::app_ui::{async_task_channel::ChannelRequestSender, helpers::question};
 use ratatui::{
     prelude::*,

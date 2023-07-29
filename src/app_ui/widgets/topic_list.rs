@@ -20,8 +20,9 @@ use super::{
         NotifContent, Notification,
         WidgetName::{self, QuestionList},
     },
-    Callout, CommonState, CrosstermStderr, Widget,
+    CommonState, CrosstermStderr, Widget,
 };
+use crate::app_ui::components::color::Callout;
 
 #[derive(Debug)]
 pub struct TopicTagListWidget {

@@ -28,7 +28,8 @@ use ratatui::{
 };
 
 use super::notification::{NotifContent, Notification, PopupMessage, PopupType, WidgetName};
-use super::{Callout, CommonState, CrosstermStderr, Widget, CHECK_MARK};
+use super::{CommonState, CrosstermStderr, Widget};
+use crate::app_ui::components::color::{Callout, CHECK_MARK};
 use lru;
 use std::num::NonZeroUsize;
 
