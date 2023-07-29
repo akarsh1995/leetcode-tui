@@ -1,11 +1,15 @@
-pub(crate) mod footer;
+pub(crate) mod help_bar;
 pub(crate) mod notification;
 pub(crate) mod popup;
 pub mod question_list;
 pub mod stats;
 pub mod topic_list;
 
-use std::{collections::HashMap, fmt::Debug, io::Stderr};
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::Debug,
+    io::Stderr,
+};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use indexmap::IndexSet;
@@ -13,12 +17,15 @@ use ratatui::{prelude::Rect, prelude::*, Frame};
 
 use crate::errors::AppResult;
 
-use self::notification::{Notification, WidgetName, WidgetVariant};
+use self::notification::{NotifContent, Notification, WidgetName, WidgetVariant};
 
 use super::{
-    channel::{ChannelRequestSender, TaskResponse},
+    async_task_channel::{ChannelRequestSender, TaskResponse},
     components::help_text::HelpText,
 };
+
+// pub fn loading_notification(src_wid: WidgetName, show: bool) -> Notification {
+// }
 
 #[derive(Debug)]
 pub struct CommonState {
@@ -27,6 +34,7 @@ pub struct CommonState {
     pub task_sender: ChannelRequestSender,
     pub is_navigable: bool,
     help_texts: IndexSet<HelpText>,
+    pub notification_queue: VecDeque<Notification>,
 }
 
 impl CommonState {
@@ -41,6 +49,7 @@ impl CommonState {
             task_sender,
             is_navigable: true,
             help_texts: IndexSet::from_iter(help_texts),
+            notification_queue: Default::default(),
         }
     }
 
@@ -53,13 +62,21 @@ impl CommonState {
 }
 
 pub trait Widget: Debug {
+    fn get_help_text_notif(&self) -> AppResult<Option<Notification>> {
+        Ok(Some(Notification::HelpText(NotifContent {
+            src_wid: self.get_common_state().widget_name.clone(),
+            dest_wid: WidgetName::HelpLine,
+            content: self.get_help_texts().clone(),
+        })))
+    }
+
     fn can_handle_key_set(&self) -> IndexSet<&KeyCode> {
         self.get_common_state().get_key_set()
     }
 
     fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.get_common_state_mut().active = true;
-        Ok(None)
+        self.get_help_text_notif()
     }
     fn is_active(&self) -> bool {
         self.get_common_state().active
@@ -84,13 +101,35 @@ pub trait Widget: Debug {
     fn get_widget_name(&self) -> WidgetName {
         self.get_common_state().widget_name.clone()
     }
+
     fn get_task_sender(&self) -> &ChannelRequestSender {
         &self.get_common_state().task_sender
+    }
+
+    fn show_spinner(&mut self) -> AppResult<()> {
+        self.spinner_notif(true)
+    }
+
+    fn hide_spinner(&mut self) -> AppResult<()> {
+        self.spinner_notif(false)
+    }
+
+    fn spinner_notif(&mut self, show: bool) -> AppResult<()> {
+        let src_wid = self.get_widget_name();
+        self.get_notification_queue()
+            .push_back(Notification::Loading(NotifContent {
+                src_wid,
+                dest_wid: WidgetName::HelpLine,
+                content: show,
+            }));
+        Ok(())
     }
 
     fn get_common_state_mut(&mut self) -> &mut CommonState;
 
     fn get_common_state(&self) -> &CommonState;
+
+    fn get_notification_queue(&mut self) -> &mut VecDeque<Notification>;
 
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);
 
@@ -98,20 +137,17 @@ pub trait Widget: Debug {
         Ok(None)
     }
 
-    fn process_task_response(
-        &mut self,
-        _response: TaskResponse,
-    ) -> AppResult<Option<Notification>> {
-        Ok(None)
+    fn process_task_response(&mut self, _response: TaskResponse) -> AppResult<()> {
+        Ok(())
     }
 
-    fn setup(&mut self) -> AppResult<Option<Notification>> {
-        Ok(None)
+    fn setup(&mut self) -> AppResult<()> {
+        Ok(())
     }
 
     fn process_notification(
         &mut self,
-        _notification: &Notification,
+        _notification: Notification,
     ) -> AppResult<Option<Notification>> {
         Ok(None)
     }
@@ -129,7 +165,6 @@ macro_rules! gen_methods {
                     WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
                     WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
                     WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::Popup(v) => v.$fn_name($($arg),*),
                     WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
                 }
             }
@@ -147,7 +182,6 @@ macro_rules! gen_methods {
                     WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
                     WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
                     WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::Popup(v) => v.$fn_name($($arg),*),
                     WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
                 }
             }
@@ -156,15 +190,16 @@ macro_rules! gen_methods {
 }
 
 impl WidgetVariant {
-    gen_methods!((is_navigable, nm, (), bool), (is_active, nm, (), bool));
+    gen_methods!((is_navigable, nm, (), bool));
+    gen_methods!((get_notification_queue, (), &mut VecDeque<Notification>));
     gen_methods!(
         (set_active, (), AppResult<Option<Notification>>),
         (set_inactive, (), ()),
-        (setup, (), AppResult<Option<Notification>>),
+        (setup, (), AppResult<()>),
         (
             process_task_response,
             ((response, TaskResponse)),
-            AppResult<Option<Notification>>
+            AppResult<()>
         ),
         (
             handler,
@@ -173,7 +208,7 @@ impl WidgetVariant {
         ),
         (
             process_notification,
-            ((notification, &Notification)),
+            ((notification, Notification)),
             AppResult<Option<Notification>>
         ),
         (
@@ -187,83 +222,3 @@ impl WidgetVariant {
 pub type WidgetList = Vec<Box<dyn Widget>>;
 pub type NameWidgetMap = HashMap<WidgetName, Box<dyn Widget>>;
 pub type CrosstermStderr<'a> = Frame<'a, CrosstermBackend<Stderr>>;
-
-pub struct Colour {
-    r: u8,
-    g: u8,
-    b: u8,
-}
-
-impl From<Colour> for Style {
-    /// sets fg color and returns the style
-    fn from(val: Colour) -> Self {
-        let pair = val;
-        let Colour { r, g, b } = pair;
-        Style::default().fg(style::Color::Rgb(r, g, b))
-    }
-}
-
-pub struct Pair {
-    pub fg: Colour,
-    pub bg: Colour,
-}
-
-pub const CHECK_MARK: &str = "✔️";
-
-pub enum Callout {
-    Success,
-    Info,
-    Warning,
-    Error,
-    Disabled,
-}
-
-impl Callout {
-    // Method to get the corresponding Pair for each ColorCombination variant
-    pub fn get_pair(&self) -> Pair {
-        match self {
-            Callout::Success => Pair {
-                fg: Colour { r: 0, g: 255, b: 0 }, // Green foreground
-                bg: Colour { r: 0, g: 0, b: 0 },   // Black background
-            },
-            Callout::Info => Pair {
-                fg: Colour {
-                    r: 0,
-                    g: 255,
-                    b: 255,
-                }, // Cyan foreground
-                bg: Colour { r: 0, g: 0, b: 0 }, // Black background
-            },
-            Callout::Warning => Pair {
-                fg: Colour {
-                    r: 255,
-                    g: 255,
-                    b: 0,
-                }, // Yellow foreground
-                bg: Colour { r: 0, g: 0, b: 0 }, // Black background
-            },
-            Callout::Error => Pair {
-                fg: Colour { r: 255, g: 0, b: 0 }, // Red foreground
-                bg: Colour { r: 0, g: 0, b: 0 },   // Black background
-            },
-            Callout::Disabled => Pair {
-                fg: Colour {
-                    r: 128,
-                    g: 128,
-                    b: 128,
-                }, // Gray foreground (disabled)
-                bg: Colour { r: 0, g: 0, b: 0 }, // Black background
-            },
-        }
-    }
-}
-
-impl From<Callout> for Style {
-    /// gets you the style object directly. sets bg and fg
-    fn from(val: Callout) -> Self {
-        let pair = val.get_pair();
-        let style: Style = pair.fg.into();
-        let Colour { r, g, b } = pair.bg;
-        style.bg(style::Color::Rgb(r, g, b))
-    }
-}

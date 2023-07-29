@@ -1,5 +1,5 @@
-use leetcode_tui_rs::app_ui::channel::{request_channel, response_channel};
-use leetcode_tui_rs::app_ui::channel::{ChannelRequestSender, ChannelResponseReceiver};
+use leetcode_tui_rs::app_ui::async_task_channel::{request_channel, response_channel};
+use leetcode_tui_rs::app_ui::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
 use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::config::Config;
 use leetcode_tui_rs::entities::QuestionEntity;
@@ -14,11 +14,12 @@ use leetcode_tui_rs::app_ui::event::{
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
 
 use leetcode_tui_rs::utils::{
-    do_migrations, get_config, get_reqwest_client, tasks_executor, update_database_questions,
+    async_tasks_executor, do_migrations, get_config, get_reqwest_client, update_database_questions,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
@@ -52,7 +53,7 @@ async fn main() -> AppResult<()> {
     let client = client.clone();
 
     let task_receiver_from_app: JoinHandle<AppResult<()>> = tokio::spawn(async move {
-        tasks_executor(rx_request, tx_response, &client, &database_client).await?;
+        async_tasks_executor(rx_request, tx_response, &client, &database_client).await?;
         Ok(())
     });
 
@@ -74,7 +75,7 @@ async fn main() -> AppResult<()> {
     let (vim_tx, vim_rx) = vim_ping_channel(10);
 
     tokio::task::spawn_blocking(move || {
-        run_app(tx_request, rx_response, tui, vim_tx, vim_running).unwrap()
+        run_app(tx_request, rx_response, tui, vim_tx, vim_running, config).unwrap()
     });
 
     // blog post does not work in separate thread
@@ -97,9 +98,11 @@ fn run_app(
     mut tui: Tui,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
+    config: Config,
 ) -> AppResult<()> {
+    let config = Rc::new(config);
     tui.init()?;
-    let mut app = App::new(tx_request, rx_response, vim_tx, vim_running)?;
+    let mut app = App::new(tx_request, rx_response, vim_tx, vim_running, config)?;
 
     // Start the main loop.
     while app.running {

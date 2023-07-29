@@ -1,16 +1,18 @@
 use std::collections::VecDeque;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
-use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
+use super::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
 use super::event::VimPingSender;
-use super::widgets::footer::Footer;
+use super::widgets::help_bar::HelpBar;
 use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
 use super::widgets::popup::Popup;
 use super::widgets::question_list::QuestionListWidget;
 use super::widgets::stats::Stats;
 use super::widgets::topic_list::TopicTagListWidget;
 use super::widgets::Widget;
+use crate::config::Config;
 use crate::errors::AppResult;
 use indexmap::IndexMap;
 
@@ -20,7 +22,7 @@ pub struct App {
     /// Is the application running?
     pub running: bool,
 
-    pub widget_map: indexmap::IndexMap<WidgetName, WidgetVariant>,
+    pub(crate) widget_map: indexmap::IndexMap<WidgetName, WidgetVariant>,
 
     selected_wid_idx: i32,
 
@@ -30,11 +32,13 @@ pub struct App {
 
     pub pending_notifications: VecDeque<Option<Notification>>,
 
-    pub popup_stack: Vec<Popup>,
+    pub(crate) popup_stack: Vec<Popup>,
 
     pub vim_tx: VimPingSender,
 
     pub vim_running: Arc<AtomicBool>,
+
+    pub config: Rc<Config>,
 }
 
 impl App {
@@ -44,6 +48,7 @@ impl App {
         task_response_recv: ChannelResponseReceiver,
         vim_tx: VimPingSender,
         vim_running: Arc<AtomicBool>,
+        config: Rc<Config>,
     ) -> AppResult<Self> {
         let w0 = WidgetVariant::TopicList(TopicTagListWidget::new(
             WidgetName::TopicList,
@@ -54,11 +59,12 @@ impl App {
             task_request_sender.clone(),
             vim_tx.clone(),
             vim_running.clone(),
+            config.clone(),
         ));
 
         let w2 = WidgetVariant::Stats(Stats::new(WidgetName::Stats, task_request_sender.clone()));
 
-        let w3 = WidgetVariant::HelpLine(Footer::new(
+        let w3 = WidgetVariant::HelpLine(HelpBar::new(
             WidgetName::HelpLine,
             task_request_sender.clone(),
         ));
@@ -71,6 +77,7 @@ impl App {
         ];
 
         let mut app = Self {
+            config,
             running: true,
             widget_map: IndexMap::from(order),
             selected_wid_idx: 0,
@@ -105,10 +112,6 @@ impl App {
         Ok(None)
     }
 
-    pub fn get_widget(&mut self, v: &WidgetName) -> &mut WidgetVariant {
-        self.widget_map.get_mut(v).unwrap()
-    }
-
     pub fn next_widget(&mut self) -> AppResult<Option<Notification>> {
         self.navigate(1)
     }
@@ -117,7 +120,7 @@ impl App {
         self.navigate(-1)
     }
 
-    pub fn get_current_widget(&self) -> &WidgetVariant {
+    pub(crate) fn get_current_widget(&self) -> &WidgetVariant {
         let (_, v) = self
             .widget_map
             .get_index(self.selected_wid_idx as usize)
@@ -125,7 +128,7 @@ impl App {
         v
     }
 
-    pub fn get_current_widget_mut(&mut self) -> &mut WidgetVariant {
+    pub(crate) fn get_current_widget_mut(&mut self) -> &mut WidgetVariant {
         let (_, v) = self
             .widget_map
             .get_index_mut(self.selected_wid_idx as usize)
@@ -133,22 +136,20 @@ impl App {
         v
     }
 
-    pub fn get_current_popup(&self) -> Option<&Popup> {
+    pub(crate) fn get_current_popup(&self) -> Option<&Popup> {
         self.popup_stack.last()
     }
 
-    pub fn get_current_popup_mut(&mut self) -> Option<&mut Popup> {
+    pub(crate) fn get_current_popup_mut(&mut self) -> Option<&mut Popup> {
         self.popup_stack.last_mut()
     }
 
     pub fn setup(&mut self) -> AppResult<()> {
         let maybe_notif = self.get_current_widget_mut().set_active()?;
         self.push_notif(maybe_notif);
-        let mut v = vec![];
         for (_, widget) in self.widget_map.iter_mut() {
-            v.push(widget.setup()?);
+            widget.setup()?;
         }
-        self.pending_notifications.extend(v);
         Ok(())
     }
 
@@ -161,10 +162,22 @@ impl App {
         if let Some(popup) = self.get_current_popup_mut() {
             if !popup.is_active() {
                 self.popup_stack.pop();
-                let maybe_notif = self.get_current_widget_mut().set_active()?;
+                let maybe_notif;
+                if let Some(popup) = self.get_current_popup_mut() {
+                    maybe_notif = popup.set_active()?;
+                } else {
+                    maybe_notif = self.get_current_widget_mut().set_active()?;
+                }
                 self.push_notif(maybe_notif);
             };
         }
+
+        for wid in self.widget_map.values_mut() {
+            while let Some(notif) = wid.get_notification_queue().pop_front() {
+                self.pending_notifications.push_back(Some(notif));
+            }
+        }
+
         self.check_for_task()?;
         self.process_pending_notification()?;
         Ok(())
@@ -172,12 +185,10 @@ impl App {
 
     fn check_for_task(&mut self) -> AppResult<()> {
         if let Ok(task_result) = self.task_response_recv.try_recv() {
-            self.pending_notifications.push_back(
-                self.widget_map
-                    .get_mut(&task_result.get_widget_name())
-                    .unwrap()
-                    .process_task_response(task_result)?,
-            );
+            self.widget_map
+                .get_mut(&task_result.get_widget_name())
+                .unwrap()
+                .process_task_response(task_result)?;
         }
         Ok(())
     }
@@ -189,13 +200,13 @@ impl App {
                 if let WidgetName::Popup = wid_name {
                     let mut popup_instance =
                         Popup::new(wid_name.clone(), self.task_request_sender.clone());
+                    let maybe_notif = popup_instance.process_notification(notif)?;
                     self.push_notif(popup_instance.set_active()?);
-                    let maybe_notif = popup_instance.process_notification(&notif)?;
                     self.pending_notifications.push_back(maybe_notif);
                     self.popup_stack.push(popup_instance);
                 } else {
                     let widget_var = self.widget_map.get_mut(wid_name).unwrap();
-                    let more_notif = widget_var.process_notification(&notif)?;
+                    let more_notif = widget_var.process_notification(notif)?;
                     self.pending_notifications.push_back(more_notif);
                 }
             }

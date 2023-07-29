@@ -7,6 +7,7 @@ use toml;
 use xdg::{self, BaseDirectories};
 
 use crate::errors::AppResult;
+use std::env;
 
 pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
     let mut file = File::create(path).await?;
@@ -14,10 +15,33 @@ pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
     Ok(())
 }
 
-#[derive(Deserialize, Serialize, Default)]
+fn get_home_directory() -> Option<String> {
+    if cfg!(target_os = "windows") {
+        env::var("USERPROFILE").ok()
+    } else {
+        env::var("HOME").ok().or_else(|| env::var("HOMEPATH").ok())
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
     pub db: Db,
     pub leetcode: Leetcode,
+    pub questions_dir: PathBuf,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        let home_path = get_home_directory().unwrap();
+        let mut pb = PathBuf::new();
+        pb.push(home_path);
+        pb.push("leetcode");
+        Self {
+            db: Default::default(),
+            leetcode: Default::default(),
+            questions_dir: pb,
+        }
+    }
 }
 
 impl Config {
@@ -43,7 +67,7 @@ impl Config {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Db {
     pub url: String,
 }
@@ -75,7 +99,7 @@ impl Default for Db {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct Leetcode {
     #[serde(rename = "LEETCODE_SESSION")]
     pub leetcode_session: String,
@@ -98,6 +122,7 @@ mod tests {
     #[test]
     fn test() {
         let sample_config = [
+            "questions_dir = '/some/xyz/path'",
             "[db]",
             "url = 'sqlite://leetcode.sqlite'",
             "[leetcode]",
@@ -106,7 +131,13 @@ mod tests {
         ]
         .join("\n");
 
+        let mut pathbuf = PathBuf::new();
+        pathbuf.push("/");
+        pathbuf.push("some");
+        pathbuf.push("xyz");
+        pathbuf.push("path");
         let config: Config = toml::from_str(sample_config.as_str()).unwrap();
+        assert_eq!(config.questions_dir, pathbuf);
         assert_eq!(config.leetcode.csrftoken, "ctoken".to_string());
         assert_eq!(config.leetcode.leetcode_session, "lsession".to_string());
 

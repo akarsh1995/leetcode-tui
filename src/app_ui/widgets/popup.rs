@@ -1,58 +1,34 @@
 use crate::{
     app_ui::{
-        channel::ChannelRequestSender,
-        components::{help_text::CommonHelpText, rect::centered_rect},
+        async_task_channel::ChannelRequestSender,
+        components::{popups::Component, rect::centered_rect},
     },
     errors::AppResult,
 };
 
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{
-    prelude::*,
-    widgets::{Block, Borders, Clear, Paragraph, Wrap},
-};
+
+use ratatui::prelude::*;
 
 use super::{
-    notification::{NotifContent, Notification, WidgetName},
+    notification::{NotifContent, Notification, PopupType, WidgetName},
     CommonState, CrosstermStderr, Widget,
 };
 
 #[derive(Debug)]
-pub struct Popup {
+pub(crate) struct Popup {
     pub common_state: CommonState,
-    pub message: String,
-    pub title: String,
-    pub scroll_x: u16,
-    pub scroll_y: u16,
     pub callee_wid: Option<WidgetName>,
+    pub popup_type: Option<PopupType>,
 }
 
 impl Popup {
     pub fn new(widget_name: WidgetName, task_sender: ChannelRequestSender) -> Self {
         Self {
-            common_state: CommonState::new(
-                widget_name,
-                task_sender,
-                vec![CommonHelpText::Close.into()],
-            ),
-            message: "No message so far".to_string(),
-            title: "Popup".to_string(),
-            scroll_x: 0,
+            common_state: CommonState::new(widget_name, task_sender, vec![]),
+            popup_type: None,
             callee_wid: None,
-            scroll_y: 0,
         }
-    }
-}
-
-impl Popup {
-    fn create_block(&self) -> Block {
-        Block::default()
-            .borders(Borders::ALL)
-            .style(Style::default().fg(Color::Gray))
-            .title(Span::styled(
-                self.title.clone(),
-                Style::default().add_modifier(Modifier::BOLD),
-            ))
     }
 }
 
@@ -60,35 +36,54 @@ impl Widget for Popup {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         if self.is_active() {
             let size = rect;
-
             let size = centered_rect(60, 50, size);
-
-            let block = self.create_block();
-            let content = Paragraph::new(self.message.to_owned())
-                .wrap(Wrap { trim: true })
-                .scroll((self.scroll_y, self.scroll_x))
-                .block(block);
-
-            frame.render_widget(Clear, size);
-            frame.render_widget(content, size); // frame.render_widget(block, area);
+            if let Some(pt) = &mut self.popup_type {
+                match pt {
+                    PopupType::Paragraph(p) => p.render(frame, size),
+                    PopupType::List { popup: l, .. } => l.render(frame, size),
+                }
+            }
         }
     }
 
     fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
-        match event.code {
-            crossterm::event::KeyCode::Enter | crossterm::event::KeyCode::Esc => {
-                self.set_inactive()
-            }
-            KeyCode::Up => self.scroll_y = self.scroll_y.saturating_sub(1),
-            KeyCode::Down => self.scroll_y += 1,
-            _ => {
-                // in case popup has helptext to take the event but does not have associated key in
-                // the handler mapping pass it to the popup callee
-                return Ok(Some(Notification::Event(NotifContent {
-                    src_wid: self.get_widget_name(),
-                    dest_wid: self.callee_wid.as_ref().unwrap().clone(),
-                    content: event,
-                })));
+        let src_wid = self.get_widget_name();
+        if let Some(popup) = &mut self.popup_type {
+            match popup {
+                PopupType::Paragraph(para_popup) => {
+                    let notif: Option<KeyEvent> = para_popup.event_handler(event);
+
+                    if !para_popup.is_showing() {
+                        self.set_inactive();
+                    }
+
+                    if let Some(n) = notif {
+                        if self.can_handle_key_set().contains(&n.code) {
+                            return Ok(Some(Notification::Event(NotifContent {
+                                src_wid,
+                                dest_wid: self.callee_wid.as_ref().unwrap().clone(),
+                                content: n,
+                            })));
+                        }
+                    }
+                }
+                PopupType::List { popup, key } => {
+                    let mut notif = None;
+                    if let Some(key_event) = popup.event_handler(event) {
+                        if let KeyCode::Enter = key_event.code {
+                            let i = popup.get_selected_index();
+                            notif = Some(Notification::SelectedItem(NotifContent {
+                                src_wid,
+                                dest_wid: self.callee_wid.as_ref().unwrap().clone(),
+                                content: (key.to_string(), i),
+                            }));
+                        }
+                    }
+                    if !popup.is_showing() {
+                        self.set_inactive();
+                    }
+                    return Ok(notif);
+                }
             }
         }
         Ok(None)
@@ -96,7 +91,7 @@ impl Widget for Popup {
 
     fn process_notification(
         &mut self,
-        notification: &Notification,
+        notification: Notification,
     ) -> AppResult<Option<Notification>> {
         if let Notification::Popup(NotifContent {
             src_wid,
@@ -104,15 +99,15 @@ impl Widget for Popup {
             content,
         }) = notification
         {
-            self.message = content.message.to_owned();
-            self.title = content.title.to_owned();
-            self.callee_wid = Some(src_wid.clone());
+            self.callee_wid = Some(src_wid);
+            let extended_help = match &content.popup {
+                PopupType::Paragraph(p) => p.get_key_set(),
+                PopupType::List { popup: l, .. } => l.get_key_set(),
+            };
+            self.popup_type = Some(content.popup);
             self.get_help_texts_mut().extend(content.help_texts.clone());
-            return Ok(Some(Notification::HelpText(NotifContent {
-                src_wid: self.common_state.widget_name.clone(),
-                dest_wid: WidgetName::HelpLine,
-                content: self.get_help_texts().clone(),
-            })));
+            // extend help specific to the popup recieved
+            self.get_help_texts_mut().extend(extended_help);
         }
         Ok(None)
     }
@@ -123,5 +118,9 @@ impl Widget for Popup {
 
     fn get_common_state_mut(&mut self) -> &mut CommonState {
         &mut self.common_state
+    }
+
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
     }
 }

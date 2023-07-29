@@ -4,14 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Create solution file in the preferred language
-
-- Run/test the solution against test cases
-    - show test case submission stats in the popup
-
-- Submit question file
-    - Update table question if solution accepted
-
 - Sort questions by:
     - likes dislikes ratio.
 
@@ -44,8 +36,13 @@ All notable changes to this project will be documented in this file.
 - Read question view is scrollable using up and down keys.
 - Question line is colored by easy => green, medium => yellow, hard => red.
 - Show helps at the bottom/top.
-- Open file in the editor to solve by pressing the key S.
-
+- Open file in the editor to solve by pressing the key e.
+- Create solution file in the preferred language
+- Run/test the solution against test cases
+    - show test case submission stats in the popup
+- Submit question file
+- Update table question if solution accepted
+- Loading spinner at the top.
 
 ## [0.1.0] - 2023-07-19
 

@@ -3,12 +3,12 @@ use std::fmt::Display;
 use async_trait::async_trait;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
-pub mod check_run_submit;
+pub mod console_panel_config;
 pub mod editor_data;
 pub mod problemset_question_list;
 pub mod question_content;
 pub mod run_code;
-pub mod submit;
+pub mod submit_code;
 use crate::errors::AppResult;
 
 pub type QuestionContentQuery = question_content::Query;
@@ -45,13 +45,14 @@ pub trait GQLLeetcodeQuery: Serialize + Sync {
     }
 }
 
+#[derive(Debug)]
 pub enum RunOrSubmitCode {
-    Run(RunSolutionBody),
-    Submit(SubmitRequestBody),
+    Run(RunCode),
+    Submit(SubmitCode),
 }
 
 impl RunOrSubmitCode {
-    pub async fn post(&self, client: &reqwest::Client) -> AppResult<RunResponse> {
+    pub async fn post(&self, client: &reqwest::Client) -> AppResult<ParsedResponse> {
         match self {
             RunOrSubmitCode::Run(run) => self.poll_check_response(client, run).await,
             RunOrSubmitCode::Submit(submit) => self.poll_check_response(client, submit).await,
@@ -62,13 +63,14 @@ impl RunOrSubmitCode {
         &self,
         client: &reqwest::Client,
         body: &impl GQLLeetcodeQuery<T = T>,
-    ) -> AppResult<RunResponse> {
+    ) -> AppResult<ParsedResponse> {
         let run_response: T = body.post(client).await?;
         loop {
             let status_check = run_response.post(client).await?;
-            match status_check {
-                RunResponse::State { .. } => {}
-                _ => return Ok(status_check),
+            let parsed_response = status_check.to_parsed_response()?;
+            match parsed_response {
+                ParsedResponse::Pending => {}
+                _ => return Ok(parsed_response),
             }
         }
     }
@@ -76,7 +78,8 @@ impl RunOrSubmitCode {
 
 use serde::Deserialize;
 
-use self::{check_run_submit::RunResponse, run_code::RunSolutionBody, submit::SubmitRequestBody};
+use self::{run_code::RunCode, submit_code::SubmitCode};
+use crate::deserializers::run_submit::{ParsedResponse, RunResponse};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct LanguageInfo {
@@ -97,7 +100,7 @@ struct Languages {
 }
 
 // Generate the enum for languages
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     Cpp,
@@ -136,10 +139,7 @@ impl Language {
             0 => Language::Cpp,
             1 => Language::Java,
             2 => Language::Python,
-            11 => Language::Python3,
             3 => Language::Mysql,
-            14 => Language::Mssql,
-            15 => Language::Oraclesql,
             4 => Language::C,
             5 => Language::Csharp,
             6 => Language::Javascript,
@@ -147,10 +147,13 @@ impl Language {
             8 => Language::Bash,
             9 => Language::Swift,
             10 => Language::Golang,
+            11 => Language::Python3,
             12 => Language::Scala,
+            13 => Language::Kotlin,
+            14 => Language::Mssql,
+            15 => Language::Oraclesql,
             16 => Language::Html,
             17 => Language::Pythonml,
-            13 => Language::Kotlin,
             18 => Language::Rust,
             19 => Language::Php,
             20 => Language::Typescript,
@@ -163,12 +166,132 @@ impl Language {
             _ => Language::Unknown(id),
         }
     }
+
+    pub fn to_id(&self) -> u32 {
+        match self {
+            Language::Cpp => 0,
+            Language::Java => 1,
+            Language::Python => 2,
+            Language::Mysql => 3,
+            Language::C => 4,
+            Language::Csharp => 5,
+            Language::Javascript => 6,
+            Language::Ruby => 7,
+            Language::Bash => 8,
+            Language::Swift => 9,
+            Language::Golang => 10,
+            Language::Python3 => 11,
+            Language::Scala => 12,
+            Language::Kotlin => 13,
+            Language::Mssql => 14,
+            Language::Oraclesql => 15,
+            Language::Html => 16,
+            Language::Pythonml => 17,
+            Language::Rust => 18,
+            Language::Php => 19,
+            Language::Typescript => 20,
+            Language::Racket => 21,
+            Language::Erlang => 22,
+            Language::Elixir => 23,
+            Language::Dart => 24,
+            Language::Pythondata => 25,
+            Language::React => 26,
+            Language::Unknown(id) => *id,
+        }
+    }
+
+    pub fn comment_text(&self, input_text: &str) -> String {
+        let (comment_start, comment_end) = match self {
+            Language::Cpp
+            | Language::C
+            | Language::Scala
+            | Language::Java
+            | Language::Javascript
+            | Language::Swift
+            | Language::Golang
+            | Language::Rust
+            | Language::Kotlin => ("/*\n", "\n*/"),
+            Language::Python | Language::Python3 => ("'''\n", "\n'''"),
+            Language::Mysql | Language::Mssql | Language::Oraclesql => ("-- ", ""),
+            Language::Csharp => ("// ", ""),
+            Language::Ruby => ("=begin\n", "\n=end"),
+            Language::Bash => ("# ", ""),
+            Language::Html => ("<!--\n", "\n-->"),
+            Language::Pythonml => ("# ", ""),
+            // => ("// ", ""),
+            Language::Php => ("// ", ""),
+            Language::Typescript => ("// ", ""),
+            Language::Racket => ("; ", ""),
+            Language::Erlang => ("% ", ""),
+            Language::Elixir => ("# ", ""),
+            Language::Dart => ("// ", ""),
+            Language::Pythondata => ("# ", ""),
+            Language::React => ("// ", ""),
+            Language::Unknown(_) => ("", ""),
+        };
+
+        match self {
+            Language::C
+            | Language::Html
+            | Language::Cpp
+            | Language::Python
+            | Language::Python3
+            | Language::Ruby
+            | Language::Javascript
+            | Language::Scala
+            | Language::Java
+            | Language::Swift
+            | Language::Golang
+            | Language::Kotlin
+            | Language::Rust => {
+                format!("{}{}{}", comment_start, input_text, comment_end)
+            }
+            _ => {
+                let commented_lines: Vec<String> = input_text
+                    .lines()
+                    .map(|line| format!("{}{}", comment_start, line))
+                    .collect();
+
+                commented_lines.join("\n")
+            }
+        }
+    }
+
+    pub fn get_extension(&self) -> &str {
+        match self {
+            Language::Cpp => "cpp",
+            Language::Java => "java",
+            Language::Python => "py",
+            Language::Python3 => "py",
+            Language::Mysql => "sql",
+            Language::Mssql => "sql",
+            Language::Oraclesql => "sql",
+            Language::C => "c",
+            Language::Csharp => "cs",
+            Language::Javascript => "js",
+            Language::Ruby => "rb",
+            Language::Bash => "sh",
+            Language::Swift => "swift",
+            Language::Golang => "go",
+            Language::Scala => "scala",
+            Language::Html => "html",
+            Language::Pythonml => "py",
+            Language::Kotlin => "kt",
+            Language::Rust => "rs",
+            Language::Php => "php",
+            Language::Typescript => "ts",
+            Language::Racket => "rkt",
+            Language::Erlang => "erl",
+            Language::Elixir => "ex",
+            Language::Dart => "dart",
+            Language::Pythondata => "py",
+            Language::React => "jsx",
+            Language::Unknown(_) => "",
+        }
+    }
 }
 
 impl Display for Language {
-    // pub fn to_string(&self) -> String {
-    // }
-
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let k = match self {
             Language::Cpp => "cpp".to_string(),
@@ -198,7 +321,7 @@ impl Display for Language {
             Language::Dart => "dart".to_string(),
             Language::Pythondata => "pythondata".to_string(),
             Language::React => "react".to_string(),
-            Language::Unknown(id) => format!("Unknown({})", id),
+            Language::Unknown(id) => format!("{}", id),
         };
         f.write_str(k.as_str())
     }
@@ -207,6 +330,70 @@ impl Display for Language {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_comment_text() {
+        let test_cases = [
+            // Test for C++
+            (
+                Language::Cpp,
+                "This is a single-line comment.",
+                "/*\nThis is a single-line comment.\n*/",
+            ),
+            (
+                Language::Cpp,
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "/*\nThis is a multi-line text.\nIt can have multiple lines.\n*/",
+            ),
+            (
+                Language::Python,
+                "This is a single-line comment.",
+                "'''\nThis is a single-line comment.\n'''",
+            ),
+            (
+                Language::Python,
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "'''\nThis is a multi-line text.\nIt can have multiple lines.\n'''",
+            ),
+            // Test for C
+            (
+                Language::C,
+                "This is a single-line comment.",
+                "/*\nThis is a single-line comment.\n*/",
+            ),
+            (
+                Language::C,
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "/*\nThis is a multi-line text.\nIt can have multiple lines.\n*/",
+            ),
+            // Test for HTML
+            (
+                Language::Html,
+                "This is a single-line comment.",
+                "<!--\nThis is a single-line comment.\n-->",
+            ),
+            (
+                Language::Html,
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "<!--\nThis is a multi-line text.\nIt can have multiple lines.\n-->",
+            ),
+            // Test for Unknown language
+            (
+                Language::Unknown(999),
+                "This is a single-line comment.",
+                "This is a single-line comment.",
+            ),
+            (
+                Language::Unknown(999),
+                "This is a multi-line text.\nIt can have multiple lines.",
+                "This is a multi-line text.\nIt can have multiple lines.",
+            ),
+        ];
+
+        for (language, input_text, expected_output) in &test_cases {
+            assert_eq!(language.comment_text(input_text), *expected_output);
+        }
+    }
 
     use std::collections::HashMap;
     #[test]

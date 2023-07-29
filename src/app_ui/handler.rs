@@ -10,9 +10,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<Option<Notification>> {
     // if ui has active popups then send only events registered with popup
     if let Some(popup) = app.get_current_popup_mut() {
-        if popup.can_handle_key_set().contains(&key_event.code) {
-            return popup.handler(key_event);
-        }
+        return popup.handler(key_event);
     }
 
     match key_event.code {

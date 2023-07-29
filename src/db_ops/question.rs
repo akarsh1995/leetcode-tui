@@ -6,7 +6,7 @@ use crate::entities::{
 };
 use crate::errors::AppResult;
 use crate::{
-    deserializers::question::{Question, TopicTag},
+    deserializers::problemset_question_list::{Question, TopicTag},
     entities::{
         prelude::QuestionTopicTag,
         prelude::TopicTag as TopicTagEntity,

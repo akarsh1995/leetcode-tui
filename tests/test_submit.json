@@ -182,5 +182,31 @@
   },
   "started": {
     "state": "STARTED"
+  },
+  "submit_successful": {
+    "status_code": 10,
+    "lang": "rust",
+    "run_success": true,
+    "status_runtime": "2 ms",
+    "memory": 2348000,
+    "question_id": "1",
+    "elapsed_time": 16,
+    "compare_result": "111111111111111111111111111111111111111111111111111111111",
+    "code_output": "",
+    "std_output": "",
+    "last_testcase": "",
+    "expected_output": "",
+    "task_finish_time": 1690563958315,
+    "task_name": "judger.judgetask.Judge",
+    "finished": true,
+    "total_correct": 57,
+    "total_testcases": 57,
+    "runtime_percentile": 83.9281,
+    "status_memory": "2.3 MB",
+    "memory_percentile": 39.723299999999995,
+    "pretty_lang": "Rust",
+    "submission_id": "1006307118",
+    "status_msg": "Accepted",
+    "state": "SUCCESS"
   }
 }

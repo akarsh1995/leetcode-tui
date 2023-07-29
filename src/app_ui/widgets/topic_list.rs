@@ -1,6 +1,8 @@
 use crate::{
     app_ui::{
-        channel::{ChannelRequestSender, Response, TaskRequest, TaskResponse},
+        async_task_channel::{
+            ChannelRequestSender, Request as TaskRequestFormat, Response, TaskRequest, TaskResponse,
+        },
         components::{help_text::CommonHelpText, list::StatefulList},
     },
     entities::TopicTagModel,
@@ -18,8 +20,9 @@ use super::{
         NotifContent, Notification,
         WidgetName::{self, QuestionList},
     },
-    Callout, CommonState, CrosstermStderr, Widget,
+    CommonState, CrosstermStderr, Widget,
 };
+use crate::app_ui::components::color::Callout;
 
 #[derive(Debug)]
 pub struct TopicTagListWidget {
@@ -118,12 +121,8 @@ impl Widget for TopicTagListWidget {
         Ok(None)
     }
 
-    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<Option<Notification>> {
-        if let TaskResponse::AllTopicTags(Response {
-            content,
-            widget_name: _,
-        }) = response
-        {
+    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()> {
+        if let TaskResponse::AllTopicTags(Response { content, .. }) = response {
             self.topics.add_item(TopicTagModel {
                 name: Some("All".to_owned()),
                 id: "all".to_owned(),
@@ -133,14 +132,19 @@ impl Widget for TopicTagListWidget {
                 self.topics.add_item(tt)
             }
         }
-        self.update_questions()
+        self.update_questions()?;
+        Ok(())
     }
 
-    fn setup(&mut self) -> AppResult<Option<Notification>> {
-        self.get_task_sender().send(TaskRequest::GetAllTopicTags {
-            widget_name: self.get_widget_name(),
-        })?;
-        Ok(None)
+    fn setup(&mut self) -> AppResult<()> {
+        self.get_task_sender()
+            .send(TaskRequest::GetAllTopicTags(TaskRequestFormat {
+                widget_name: self.get_widget_name(),
+                request_id: "".to_string(),
+                content: (),
+            }))
+            .map_err(Box::new)?;
+        Ok(())
     }
 
     fn get_common_state(&self) -> &CommonState {
@@ -149,5 +153,9 @@ impl Widget for TopicTagListWidget {
 
     fn get_common_state_mut(&mut self) -> &mut CommonState {
         &mut self.common_state
+    }
+
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
     }
 }

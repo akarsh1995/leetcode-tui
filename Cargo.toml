@@ -21,11 +21,14 @@ futures-timer = "3.0.2"
 html2text = "0.6.0"
 indexmap = "2.0.0"
 kdam = "0.3.0"
+lru = "0.11.0"
+rand = "0.8.5"
 ratatui = { version = "0.22.0", features = ["all-widgets"] }
 reqwest = { version = "0.11.18", features = ["json", "cookie_crate", "cookie_store", "cookies", ] }
 sea-orm = { version = "^0", features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros", "with-json"] }
 serde = { version = "1.0.171", features = ["derive"] }
 serde_json = "1.0.102"
+strum = { version = "0.25", features = ["derive"] }
 thiserror = "1.0.43"
 tokio ={ version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 toml = "0.7.6"

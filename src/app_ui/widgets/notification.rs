@@ -1,13 +1,28 @@
+use std::rc::Rc;
+
+use crate::app_ui::helpers::question::QuestionModelContainer;
 use crate::{
-    app_ui::components::help_text::HelpText,
-    entities::{QuestionModel, TopicTagModel},
+    app_ui::components::{
+        help_text::HelpText,
+        popups::{paragraph::ParagraphPopup, selection_list::SelectionListPopup},
+    },
+    entities::TopicTagModel,
 };
 
 #[derive(Debug, Clone)]
+pub(crate) enum PopupType {
+    Paragraph(ParagraphPopup),
+    List {
+        popup: SelectionListPopup,
+        // to catch the reference back to the parent widget
+        key: String,
+    },
+}
+
+#[derive(Debug, Clone)]
 pub struct PopupMessage {
-    pub(crate) title: String,
-    pub(crate) message: String,
     pub(crate) help_texts: IndexSet<HelpText>,
+    pub(crate) popup: PopupType,
 }
 
 #[derive(Debug, Hash, Eq, Clone, PartialEq)]
@@ -39,10 +54,12 @@ impl<T> NotifContent<T> {
 #[derive(Debug, Clone)]
 pub enum Notification {
     Questions(NotifContent<Vec<TopicTagModel>>),
-    Stats(NotifContent<Vec<QuestionModel>>),
+    Stats(NotifContent<Vec<Rc<QuestionModelContainer>>>),
     Popup(NotifContent<PopupMessage>),
     HelpText(NotifContent<IndexSet<HelpText>>),
     Event(NotifContent<KeyEvent>),
+    SelectedItem(NotifContent<(String, usize)>),
+    Loading(NotifContent<bool>),
 }
 
 macro_rules! dest_widname {
@@ -50,11 +67,7 @@ macro_rules! dest_widname {
         pub fn get_wid_name(&self) -> &WidgetName {
             match self {
                 $(
-                    Notification::$variant(NotifContent {
-                        src_wid: _,
-                        dest_wid,
-                        content: _,
-                    }) => dest_wid,
+                    Notification::$variant(NotifContent { dest_wid, .. }) => dest_wid,
                 )*
             }
         }
@@ -62,16 +75,23 @@ macro_rules! dest_widname {
 }
 
 impl Notification {
-    dest_widname!(Questions, Stats, Popup, HelpText, Event);
+    dest_widname!(
+        Questions,
+        Stats,
+        Popup,
+        HelpText,
+        Event,
+        SelectedItem,
+        Loading
+    );
 }
 
 #[derive(Debug)]
-pub enum WidgetVariant {
+pub(crate) enum WidgetVariant {
     QuestionList(QuestionListWidget),
     TopicList(TopicTagListWidget),
     Stats(Stats),
-    Popup(Popup),
-    HelpLine(Footer),
+    HelpLine(HelpBar),
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;
@@ -79,6 +99,6 @@ use crossterm::event::KeyEvent;
 use indexmap::IndexSet;
 
 use super::{
-    footer::Footer, popup::Popup, question_list::QuestionListWidget, stats::Stats,
+    help_bar::HelpBar, question_list::QuestionListWidget, stats::Stats,
     topic_list::TopicTagListWidget,
 };
