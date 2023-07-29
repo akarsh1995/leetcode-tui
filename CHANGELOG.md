@@ -13,18 +13,11 @@ All notable changes to this project will be documented in this file.
 
 - Scroll bar visible list
 
-- Fix config directories setup for windows
-
 - Take input directly from the user lc session
-
-- Color question by accepted.
 
 - Select multiple tags.
 
-- Submit directly.
-
 - Summary of the question
-    - Submission stats
     - View more question details
 
 - Invalidate questions cache through `userSessionProgress`
@@ -40,9 +33,11 @@ All notable changes to this project will be documented in this file.
 - Create solution file in the preferred language
 - Run/test the solution against test cases
     - show test case submission stats in the popup
-- Submit question file
+- Submit solution file
 - Update table question if solution accepted
 - Loading spinner at the top.
+- Fix config directories setup for windows
+- Submission stats upon successful submit
 
 ## [0.1.0] - 2023-07-19
 
