@@ -1,6 +1,6 @@
 use sea_orm::DatabaseConnection;
 
-use crate::app_ui::channel::{Response, TaskResponse};
+use crate::app_ui::async_task_channel::{Response, TaskResponse};
 use crate::app_ui::widgets::notification::WidgetName;
 use crate::entities::TopicTagEntity;
 use crate::graphql::editor_data::Query as QuestionEditorDataQuery;

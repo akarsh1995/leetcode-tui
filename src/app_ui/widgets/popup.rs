@@ -1,6 +1,6 @@
 use crate::{
     app_ui::{
-        channel::ChannelRequestSender,
+        async_task_channel::ChannelRequestSender,
         components::{popups::Component, rect::centered_rect},
     },
     errors::AppResult,

@@ -1,6 +1,6 @@
 use crate::{
     app_ui::{
-        channel::{
+        async_task_channel::{
             ChannelRequestSender, Request as TaskRequestFormat, Response, TaskRequest, TaskResponse,
         },
         components::{help_text::CommonHelpText, list::StatefulList},

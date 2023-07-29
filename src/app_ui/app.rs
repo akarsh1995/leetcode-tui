@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
-use super::channel::{ChannelRequestSender, ChannelResponseReceiver};
+use super::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
 use super::event::VimPingSender;
 use super::widgets::footer::Footer;
 use super::widgets::notification::{Notification, WidgetName, WidgetVariant};

@@ -2,7 +2,7 @@ use sea_orm::error::DbErr;
 
 use thiserror::Error;
 
-use crate::app_ui::channel::*;
+use crate::app_ui::async_task_channel::*;
 use crate::app_ui::event::Event;
 
 #[derive(Error, Debug)]

@@ -1,5 +1,5 @@
 use super::{notification::NotifContent, *};
-use crate::app_ui::{channel::ChannelRequestSender, helpers::question};
+use crate::app_ui::{async_task_channel::ChannelRequestSender, helpers::question};
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Gauge},

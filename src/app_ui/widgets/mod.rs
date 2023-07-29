@@ -20,7 +20,7 @@ use crate::errors::AppResult;
 use self::notification::{NotifContent, Notification, WidgetName, WidgetVariant};
 
 use super::{
-    channel::{ChannelRequestSender, TaskResponse},
+    async_task_channel::{ChannelRequestSender, TaskResponse},
     components::help_text::HelpText,
 };
 

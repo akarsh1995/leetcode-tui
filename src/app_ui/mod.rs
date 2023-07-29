@@ -13,7 +13,7 @@ pub mod tui;
 /// Event handler.
 pub mod handler;
 
-pub mod channel;
+pub mod async_task_channel;
 pub mod components;
 pub mod helpers;
 pub mod widgets;

@@ -1,5 +1,5 @@
-use leetcode_tui_rs::app_ui::channel::{request_channel, response_channel};
-use leetcode_tui_rs::app_ui::channel::{ChannelRequestSender, ChannelResponseReceiver};
+use leetcode_tui_rs::app_ui::async_task_channel::{request_channel, response_channel};
+use leetcode_tui_rs::app_ui::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
 use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::config::Config;
 use leetcode_tui_rs::entities::QuestionEntity;
@@ -14,7 +14,7 @@ use leetcode_tui_rs::app_ui::event::{
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
 
 use leetcode_tui_rs::utils::{
-    do_migrations, get_config, get_reqwest_client, tasks_executor, update_database_questions,
+    async_tasks_executor, do_migrations, get_config, get_reqwest_client, update_database_questions,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
@@ -53,7 +53,7 @@ async fn main() -> AppResult<()> {
     let client = client.clone();
 
     let task_receiver_from_app: JoinHandle<AppResult<()>> = tokio::spawn(async move {
-        tasks_executor(rx_request, tx_response, &client, &database_client).await?;
+        async_tasks_executor(rx_request, tx_response, &client, &database_client).await?;
         Ok(())
     });
 

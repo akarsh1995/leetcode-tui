@@ -1,4 +1,4 @@
-use crate::app_ui::channel::ChannelRequestSender;
+use crate::app_ui::async_task_channel::ChannelRequestSender;
 
 use crate::errors::AppResult;
 

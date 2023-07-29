@@ -93,9 +93,9 @@ pub async fn get_config() -> AppResult<Option<Config>> {
     }
 }
 
-use crate::app_ui::channel::{ChannelRequestReceiver, ChannelResponseSender};
+use crate::app_ui::async_task_channel::{ChannelRequestReceiver, ChannelResponseSender};
 
-pub async fn tasks_executor(
+pub async fn async_tasks_executor(
     mut rx_request: ChannelRequestReceiver,
     tx_response: ChannelResponseSender,
     client: &reqwest::Client,

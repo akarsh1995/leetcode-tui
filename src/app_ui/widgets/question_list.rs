@@ -4,13 +4,13 @@ use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
-use crate::app_ui::channel::{Request, Response, TaskResponse};
+use crate::app_ui::async_task_channel::{Request, Response, TaskResponse};
 use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
 use crate::app_ui::components::popups::paragraph::ParagraphPopup;
 use crate::app_ui::components::popups::selection_list::SelectionListPopup;
 use crate::app_ui::event::VimPingSender;
 use crate::app_ui::helpers::utils::{generate_random_string, SolutionFile};
-use crate::app_ui::{channel::ChannelRequestSender, components::list::StatefulList};
+use crate::app_ui::{async_task_channel::ChannelRequestSender, components::list::StatefulList};
 use crate::config::Config;
 use crate::deserializers;
 use crate::deserializers::editor_data::CodeSnippet;
@@ -153,13 +153,13 @@ impl QuestionListWidget {
         self.task_map
             .insert(random_key.clone(), (question.clone(), TaskType::Edit));
         self.get_task_sender()
-            .send(crate::app_ui::channel::TaskRequest::GetQuestionEditorData(
-                Request {
+            .send(
+                crate::app_ui::async_task_channel::TaskRequest::GetQuestionEditorData(Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key,
                     content: question.title_slug.as_ref().unwrap().clone(),
-                },
-            ))
+                }),
+            )
             .map_err(Box::new)?;
         Ok(())
     }
@@ -175,8 +175,8 @@ impl QuestionListWidget {
             .insert(random_key.clone(), (question.clone(), TaskType::Run));
 
         self.get_task_sender()
-            .send(crate::app_ui::channel::TaskRequest::CodeRunRequest(
-                Request {
+            .send(
+                crate::app_ui::async_task_channel::TaskRequest::CodeRunRequest(Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key.clone(),
                     content: RunOrSubmitCode::Run(RunCode {
@@ -186,8 +186,8 @@ impl QuestionListWidget {
                         test_cases_stdin: None,
                         slug: question.title_slug.as_ref().unwrap().clone(),
                     }),
-                },
-            ))
+                }),
+            )
             .map_err(Box::new)?;
         Ok(())
     }
@@ -197,13 +197,13 @@ impl QuestionListWidget {
         self.task_map
             .insert(random_key.clone(), (question.clone(), TaskType::Read));
         self.get_task_sender()
-            .send(crate::app_ui::channel::TaskRequest::QuestionDetail(
-                Request {
+            .send(
+                crate::app_ui::async_task_channel::TaskRequest::QuestionDetail(Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key,
                     content: question.title_slug.as_ref().unwrap().clone(),
-                },
-            ))
+                }),
+            )
             .map_err(Box::new)?;
         Ok(())
     }
@@ -493,24 +493,25 @@ impl super::Widget for QuestionListWidget {
 
     fn setup(&mut self) -> AppResult<()> {
         self.get_task_sender()
-            .send(crate::app_ui::channel::TaskRequest::GetAllQuestionsMap(
-                Request {
+            .send(
+                crate::app_ui::async_task_channel::TaskRequest::GetAllQuestionsMap(Request {
                     widget_name: self.get_widget_name(),
                     request_id: "".to_string(),
                     content: (),
-                },
-            ))
+                }),
+            )
             .map_err(Box::new)?;
         Ok(())
     }
 
     fn process_task_response(
         &mut self,
-        response: crate::app_ui::channel::TaskResponse,
+        response: crate::app_ui::async_task_channel::TaskResponse,
     ) -> AppResult<()> {
         match response {
-            crate::app_ui::channel::TaskResponse::GetAllQuestionsMap(Response {
-                content, ..
+            crate::app_ui::async_task_channel::TaskResponse::GetAllQuestionsMap(Response {
+                content,
+                ..
             }) => {
                 let map_iter = content.into_iter().map(|v| {
                     (
@@ -533,7 +534,7 @@ impl super::Widget for QuestionListWidget {
                         }],
                     )));
             }
-            crate::app_ui::channel::TaskResponse::QuestionDetail(qd) => {
+            crate::app_ui::async_task_channel::TaskResponse::QuestionDetail(qd) => {
                 let cached_q = self.cache.get_or_insert_mut(
                     self.task_map
                         .remove(&qd.request_id)
