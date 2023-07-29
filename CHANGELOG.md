@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Update table question if solution accepted
-
 - Sort questions by:
     - likes dislikes ratio.
 
@@ -43,6 +41,8 @@ All notable changes to this project will be documented in this file.
 - Run/test the solution against test cases
     - show test case submission stats in the popup
 - Submit question file
+- Update table question if solution accepted
+- Loading spinner at the top.
 
 ## [0.1.0] - 2023-07-19
 
