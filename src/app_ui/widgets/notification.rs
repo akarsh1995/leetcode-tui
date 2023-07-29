@@ -79,7 +79,7 @@ pub(crate) enum WidgetVariant {
     QuestionList(QuestionListWidget),
     TopicList(TopicTagListWidget),
     Stats(Stats),
-    HelpLine(Footer),
+    HelpLine(HelpBar),
 }
 
 pub use crossbeam::channel::unbounded as notification_channel;
@@ -87,5 +87,6 @@ use crossterm::event::KeyEvent;
 use indexmap::IndexSet;
 
 use super::{
-    footer::Footer, question_list::QuestionListWidget, stats::Stats, topic_list::TopicTagListWidget,
+    help_bar::HelpBar, question_list::QuestionListWidget, stats::Stats,
+    topic_list::TopicTagListWidget,
 };

@@ -1,4 +1,4 @@
-pub(crate) mod footer;
+pub(crate) mod help_bar;
 pub(crate) mod notification;
 pub(crate) mod popup;
 pub mod question_list;

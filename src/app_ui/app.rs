@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use super::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
 use super::event::VimPingSender;
-use super::widgets::footer::Footer;
+use super::widgets::help_bar::HelpBar;
 use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
 use super::widgets::popup::Popup;
 use super::widgets::question_list::QuestionListWidget;
@@ -64,7 +64,7 @@ impl App {
 
         let w2 = WidgetVariant::Stats(Stats::new(WidgetName::Stats, task_request_sender.clone()));
 
-        let w3 = WidgetVariant::HelpLine(Footer::new(
+        let w3 = WidgetVariant::HelpLine(HelpBar::new(
             WidgetName::HelpLine,
             task_request_sender.clone(),
         ));

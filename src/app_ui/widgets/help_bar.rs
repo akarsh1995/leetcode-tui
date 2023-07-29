@@ -9,11 +9,11 @@ use super::notification::{NotifContent, Notification, WidgetName};
 use super::{CommonState, CrosstermStderr};
 
 #[derive(Debug)]
-pub struct Footer {
+pub struct HelpBar {
     pub common_state: CommonState,
 }
 
-impl Footer {
+impl HelpBar {
     pub fn new(widget_name: WidgetName, task_sender: ChannelRequestSender) -> Self {
         let mut cs = CommonState::new(widget_name, task_sender, vec![]);
         cs.is_navigable = false;
@@ -21,7 +21,7 @@ impl Footer {
     }
 }
 
-impl super::Widget for Footer {
+impl super::Widget for HelpBar {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let mut spans = vec![];
         for (i, ht) in self.get_help_texts().iter().enumerate() {
