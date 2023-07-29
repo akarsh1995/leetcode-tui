@@ -59,6 +59,7 @@ pub enum Notification {
     HelpText(NotifContent<IndexSet<HelpText>>),
     Event(NotifContent<KeyEvent>),
     SelectedItem(NotifContent<(String, usize)>),
+    Loading(NotifContent<bool>),
 }
 
 macro_rules! dest_widname {
@@ -74,7 +75,15 @@ macro_rules! dest_widname {
 }
 
 impl Notification {
-    dest_widname!(Questions, Stats, Popup, HelpText, Event, SelectedItem);
+    dest_widname!(
+        Questions,
+        Stats,
+        Popup,
+        HelpText,
+        Event,
+        SelectedItem,
+        Loading
+    );
 }
 
 #[derive(Debug)]

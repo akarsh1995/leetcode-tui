@@ -157,6 +157,7 @@ impl QuestionListWidget {
                 self.send_fetch_question_details(question.clone())?;
             }
         }
+        self.show_spinner()?;
         let random_key = generate_random_string(10);
         self.task_map
             .insert(random_key.clone(), (question.clone(), TaskType::Edit));
@@ -185,6 +186,7 @@ impl QuestionListWidget {
         typed_code: String,
         is_submit: bool,
     ) -> AppResult<()> {
+        self.show_spinner()?;
         let random_key = generate_random_string(10);
         self.task_map
             .insert(random_key.clone(), (question.clone(), TaskType::Run));
@@ -240,6 +242,7 @@ impl QuestionListWidget {
         task_type: TaskType,
         index: usize,
     ) -> AppResult<()> {
+        self.show_spinner()?;
         let solution_files = self
             .files
             .get(
@@ -268,6 +271,7 @@ impl QuestionListWidget {
     }
 
     fn send_fetch_question_details(&mut self, question: Question) -> AppResult<()> {
+        self.show_spinner()?;
         let random_key = generate_random_string(10);
         self.task_map
             .insert(random_key.clone(), (question.clone(), TaskType::Read));
@@ -290,6 +294,7 @@ impl QuestionListWidget {
     }
 
     fn sync_db_solution_submit_status(&mut self, question: Question) -> AppResult<()> {
+        self.show_spinner()?;
         self.get_task_sender()
             .send(
                 crate::app_ui::async_task_channel::TaskRequest::DbUpdateQuestion(Request {
@@ -811,6 +816,7 @@ impl super::Widget for QuestionListWidget {
             }
             _ => {}
         }
+        self.hide_spinner()?;
         self.process_pending_events();
         Ok(())
     }

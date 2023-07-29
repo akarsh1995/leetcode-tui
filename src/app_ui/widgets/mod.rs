@@ -24,6 +24,9 @@ use super::{
     components::help_text::HelpText,
 };
 
+// pub fn loading_notification(src_wid: WidgetName, show: bool) -> Notification {
+// }
+
 #[derive(Debug)]
 pub struct CommonState {
     pub widget_name: WidgetName,
@@ -98,8 +101,28 @@ pub trait Widget: Debug {
     fn get_widget_name(&self) -> WidgetName {
         self.get_common_state().widget_name.clone()
     }
+
     fn get_task_sender(&self) -> &ChannelRequestSender {
         &self.get_common_state().task_sender
+    }
+
+    fn show_spinner(&mut self) -> AppResult<()> {
+        self.spinner_notif(true)
+    }
+
+    fn hide_spinner(&mut self) -> AppResult<()> {
+        self.spinner_notif(false)
+    }
+
+    fn spinner_notif(&mut self, show: bool) -> AppResult<()> {
+        let src_wid = self.get_widget_name();
+        self.get_notification_queue()
+            .push_back(Notification::Loading(NotifContent {
+                src_wid,
+                dest_wid: WidgetName::HelpLine,
+                content: show,
+            }));
+        Ok(())
     }
 
     fn get_common_state_mut(&mut self) -> &mut CommonState;

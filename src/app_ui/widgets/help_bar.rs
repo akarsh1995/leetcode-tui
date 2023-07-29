@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use crate::app_ui::async_task_channel::ChannelRequestSender;
 
 use crate::errors::AppResult;
@@ -8,16 +10,27 @@ use ratatui::{prelude::*, widgets::Block};
 use super::notification::{NotifContent, Notification, WidgetName};
 use super::{CommonState, CrosstermStderr};
 
+// Loading animation characters
+const LOADING_CHARS: [char; 8] = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
+
 #[derive(Debug)]
 pub struct HelpBar {
     pub common_state: CommonState,
+    loading_state: usize,
+    show_loading: bool,
+    instant: Instant,
 }
 
 impl HelpBar {
     pub fn new(widget_name: WidgetName, task_sender: ChannelRequestSender) -> Self {
         let mut cs = CommonState::new(widget_name, task_sender, vec![]);
         cs.is_navigable = false;
-        Self { common_state: cs }
+        Self {
+            common_state: cs,
+            loading_state: 0,
+            show_loading: false,
+            instant: Instant::now(),
+        }
     }
 }
 
@@ -30,6 +43,25 @@ impl super::Widget for HelpBar {
             if i < self.get_help_texts().len() - 1 {
                 spans.push(Span::from(" "))
             }
+        }
+
+        if self.show_loading {
+            let elapsed = std::time::Instant::now() - self.instant;
+
+            if elapsed > Duration::from_millis(80) {
+                self.loading_state = (self.loading_state + 1) % LOADING_CHARS.len();
+                self.instant = std::time::Instant::now();
+            }
+
+            frame.render_widget(
+                Block::default()
+                    .title(vec![Span::from(
+                        LOADING_CHARS[self.loading_state].to_string(),
+                    )])
+                    .title_position(Position::Top)
+                    .title_alignment(Alignment::Left),
+                rect,
+            );
         }
 
         if !spans.is_empty() {
@@ -46,13 +78,16 @@ impl super::Widget for HelpBar {
         &mut self,
         notification: Notification,
     ) -> AppResult<Option<Notification>> {
-        if let Notification::HelpText(NotifContent {
-            src_wid: _,
-            dest_wid: _,
-            content,
-        }) = notification
-        {
-            *self.get_help_texts_mut() = content;
+        match notification {
+            Notification::HelpText(NotifContent {
+                src_wid: _,
+                dest_wid: _,
+                content,
+            }) => {
+                *self.get_help_texts_mut() = content;
+            }
+            Notification::Loading(NotifContent { content, .. }) => self.show_loading = content,
+            _ => (),
         }
         Ok(None)
     }
