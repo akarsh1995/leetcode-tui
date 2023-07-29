@@ -1,13 +1,17 @@
 use std::path::PathBuf;
+use tokio::fs::create_dir_all;
 use tokio::io::AsyncWriteExt;
 use tokio::{fs::File, io::AsyncReadExt};
 
 use serde::{self, Deserialize, Serialize};
 use toml;
-use xdg::{self, BaseDirectories};
+
+#[cfg(target_os = "windows")]
+use std::env;
+#[cfg(target_os = "linux")]
+use xdg;
 
 use crate::errors::AppResult;
-use std::env;
 
 pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
     let mut file = File::create(path).await?;
@@ -15,43 +19,74 @@ pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
     Ok(())
 }
 
-fn get_home_directory() -> Option<String> {
-    if cfg!(target_os = "windows") {
-        env::var("USERPROFILE").ok()
-    } else {
-        env::var("HOME").ok().or_else(|| env::var("HOMEPATH").ok())
-    }
+#[cfg(target_os = "windows")]
+fn get_home_directory() -> String {
+    env::var("USERPROFILE")
+        .ok()
+        .expect("Cannot find the env var USERPROFILE")
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
     pub db: Db,
     pub leetcode: Leetcode,
-    pub questions_dir: PathBuf,
+    pub solutions_dir: PathBuf,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let home_path = get_home_directory().unwrap();
-        let mut pb = PathBuf::new();
-        pb.push(home_path);
-        pb.push("leetcode");
+        let solutions_dir = Self::get_default_solutions_dir().expect("Cannot config base dir");
         Self {
             db: Default::default(),
             leetcode: Default::default(),
-            questions_dir: pb,
+            solutions_dir,
         }
     }
 }
 
 impl Config {
-    pub fn get_base_directory() -> AppResult<BaseDirectories> {
-        Ok(xdg::BaseDirectories::with_prefix("leetcode_tui")?)
+    #[cfg(target_os = "windows")]
+    pub fn get_config_base_directory() -> AppResult<PathBuf> {
+        let mut home = PathBuf::new();
+        home.push(get_home_directory());
+        home.push(Self::get_base_name());
+        Ok(home)
     }
 
-    pub fn get_base_config() -> AppResult<PathBuf> {
-        let config_path = Self::get_base_directory()?.place_config_file("config.toml")?;
-        Ok(config_path)
+    #[cfg(target_os = "windows")]
+    pub fn get_data_base_directory() -> AppResult<PathBuf> {
+        Self::get_config_base_directory()
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn get_config_base_directory() -> AppResult<PathBuf> {
+        Ok(xdg::BaseDirectories::with_prefix(Self::get_base_name())?.get_config_home())
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn get_data_base_directory() -> AppResult<PathBuf> {
+        Ok(xdg::BaseDirectories::with_prefix(Self::get_base_name())?.get_data_home())
+    }
+
+    pub fn get_base_name() -> &'static str {
+        "leetcode_tui"
+    }
+
+    pub fn get_default_solutions_dir() -> AppResult<PathBuf> {
+        let mut path = Self::get_config_base_directory()?;
+        path.push("solutions");
+        Ok(path)
+    }
+
+    pub async fn create_solutions_dir() -> AppResult<()> {
+        let default = Self::get_default_solutions_dir()?;
+        Ok(create_dir_all(default).await?)
+    }
+
+    pub fn get_config_base_file() -> AppResult<PathBuf> {
+        let mut base_config_dir = Self::get_config_base_directory()?;
+        base_config_dir.push("config.toml");
+        Ok(base_config_dir)
     }
 
     pub async fn read_config(path: PathBuf) -> AppResult<Self> {
@@ -62,6 +97,11 @@ impl Config {
     }
 
     pub async fn write_config(&self, path: PathBuf) -> AppResult<()> {
+        create_dir_all(
+            path.parent()
+                .unwrap_or_else(|| panic!("Cannot get parent dir of: {}", path.display())),
+        )
+        .await?;
         write_file(path, toml::to_string(self)?.as_str()).await?;
         Ok(())
     }
@@ -74,13 +114,19 @@ pub struct Db {
 
 impl Db {
     pub fn get_base_sqlite_data_path() -> AppResult<PathBuf> {
-        let base_dirs = Config::get_base_directory()?;
-        let data_file_path = base_dirs.place_data_file("data.sqlite")?;
-        Ok(data_file_path)
+        let mut db_path = Config::get_data_base_directory()?;
+        db_path.push("data.sqlite");
+        Ok(db_path)
     }
 
     pub async fn touch_default_db() -> AppResult<()> {
         let path = Self::get_base_sqlite_data_path()?;
+        create_dir_all(
+            path.clone()
+                .parent()
+                .expect("cannot get the parent directory"),
+        )
+        .await?;
         write_file(path, "").await?;
         Ok(())
     }
@@ -122,7 +168,7 @@ mod tests {
     #[test]
     fn test() {
         let sample_config = [
-            "questions_dir = '/some/xyz/path'",
+            "solutions_dir = '/some/xyz/path'",
             "[db]",
             "url = 'sqlite://leetcode.sqlite'",
             "[leetcode]",
@@ -137,7 +183,7 @@ mod tests {
         pathbuf.push("xyz");
         pathbuf.push("path");
         let config: Config = toml::from_str(sample_config.as_str()).unwrap();
-        assert_eq!(config.questions_dir, pathbuf);
+        assert_eq!(config.solutions_dir, pathbuf);
         assert_eq!(config.leetcode.csrftoken, "ctoken".to_string());
         assert_eq!(config.leetcode.leetcode_session, "lsession".to_string());
 

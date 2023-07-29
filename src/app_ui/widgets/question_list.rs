@@ -107,7 +107,7 @@ impl QuestionListWidget {
     ) -> Self {
         let mut files: HashMap<i32, HashSet<SolutionFile>> = HashMap::new();
         for file in config
-            .questions_dir
+            .solutions_dir
             .read_dir()
             .expect("Cannot read the solutions directory")
             .flatten()
@@ -256,7 +256,7 @@ impl QuestionListWidget {
             )
             .expect("Question id does not exist in the solutions mapping");
         let solution_file = solution_files.iter().nth(index).unwrap();
-        let typed_code = solution_file.read_file_contents(&self.config.questions_dir);
+        let typed_code = solution_file.read_file_contents(&self.config.solutions_dir);
         let is_submit = match task_type {
             TaskType::Run => false,
             TaskType::Submit => true,
@@ -879,7 +879,7 @@ impl super::Widget for QuestionListWidget {
                         let snippets = &editor_data.code_snippets;
                         let selected_snippet = snippets[index].code.as_str().to_string();
                         let selected_lang = snippets[index].lang_slug.clone();
-                        let dir = self.config.questions_dir.clone();
+                        let dir = self.config.solutions_dir.clone();
 
                         let sf = SolutionFile::new(
                             slug,
