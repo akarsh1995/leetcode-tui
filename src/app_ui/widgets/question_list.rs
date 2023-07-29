@@ -510,7 +510,11 @@ impl QuestionListWidget {
                 IndexSet::new(),
             )));
         }
-        Ok(None)
+        Ok(Some(self.popup_paragraph_notification(
+            "Kindly press key 'e' to create the solution file first.".to_string(),
+            "Help".to_string(),
+            IndexSet::new(),
+        )))
     }
 }
 
