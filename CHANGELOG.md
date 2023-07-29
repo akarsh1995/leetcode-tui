@@ -38,6 +38,7 @@ All notable changes to this project will be documented in this file.
 - Loading spinner at the top.
 - Fix config directories setup for windows
 - Submission stats upon successful submit
+- Added gif demo using [vhs tape](https://github.com/charmbracelet/vhs)
 
 ## [0.1.0] - 2023-07-19
 

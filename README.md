@@ -2,7 +2,7 @@
 
 # Use Leetcode in your terminal.
 
-![Demo](demo.gif)
+![Demo](https://vhs.charm.sh/vhs-7mc1SjatwAFIfEpRjylgaO.gif)
 
 
 > **Warning**
