@@ -1,9 +1,12 @@
 use std::path::PathBuf;
+use std::str::FromStr;
 use tokio::io::AsyncWriteExt;
 use tokio::{fs::File, io::AsyncReadExt};
 
 use serde::{self, Deserialize, Serialize};
 use toml;
+
+#[cfg(target_os = "linux")]
 use xdg::{self, BaseDirectories};
 
 use crate::errors::AppResult;
@@ -50,7 +53,19 @@ impl Config {
     }
 
     pub fn get_base_config() -> AppResult<PathBuf> {
-        let config_path = Self::get_base_directory()?.place_config_file("config.toml")?;
+        let mut config_path;
+        if cfg!(target_os = "windows") {
+            config_path = PathBuf::from_str(
+                get_home_directory()
+                    .expect("cannot find the USERPROFILE variable")
+                    .as_str(),
+            )
+            .expect("Cannot create directory");
+            config_path.push("leetcode_tui");
+            config_path.push("config.toml");
+        } else {
+            config_path = Self::get_base_directory()?.place_config_file("config.toml")?;
+        }
         Ok(config_path)
     }
 
