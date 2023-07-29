@@ -6,9 +6,10 @@ use tokio::{fs::File, io::AsyncReadExt};
 use serde::{self, Deserialize, Serialize};
 use toml;
 
-#[cfg(target_os = "windows")]
+#[cfg(target_family = "windows")]
 use std::env;
-#[cfg(target_os = "linux")]
+
+#[cfg(target_family = "unix")]
 use xdg;
 
 use crate::errors::AppResult;
@@ -19,7 +20,7 @@ pub async fn write_file(path: PathBuf, contents: &str) -> AppResult<()> {
     Ok(())
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(target_family = "windows")]
 fn get_home_directory() -> String {
     env::var("USERPROFILE")
         .ok()
@@ -45,7 +46,7 @@ impl Default for Config {
 }
 
 impl Config {
-    #[cfg(target_os = "windows")]
+    #[cfg(target_family = "windows")]
     pub fn get_config_base_directory() -> AppResult<PathBuf> {
         let mut home = PathBuf::new();
         home.push(get_home_directory());
@@ -53,17 +54,17 @@ impl Config {
         Ok(home)
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(target_family = "windows")]
     pub fn get_data_base_directory() -> AppResult<PathBuf> {
         Self::get_config_base_directory()
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     pub fn get_config_base_directory() -> AppResult<PathBuf> {
         Ok(xdg::BaseDirectories::with_prefix(Self::get_base_name())?.get_config_home())
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     pub fn get_data_base_directory() -> AppResult<PathBuf> {
         Ok(xdg::BaseDirectories::with_prefix(Self::get_base_name())?.get_data_home())
     }
