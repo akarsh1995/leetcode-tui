@@ -1,4 +1,4 @@
-use crate::deserializers::question::Question;
+use crate::deserializers::problemset_question_list::Question;
 use crate::errors::AppResult;
 use crate::graphql::problemset_question_list::Query as QuestionDbQuery;
 use crate::graphql::GQLLeetcodeQuery;
