@@ -81,6 +81,12 @@ enum TaskType {
     Submit,
 }
 
+#[derive(Debug)]
+enum State {
+    JumpingTo,
+    Normal,
+}
+
 type Question = Rc<QuestionModelContainer>;
 
 #[derive(Debug)]
@@ -95,6 +101,9 @@ pub struct QuestionListWidget {
     pending_event_actions: IndexSet<(KeyEvent, Question)>,
     config: Rc<Config>,
     files: HashMap<i32, HashSet<SolutionFile>>,
+    jump_to: usize,
+    state: State,
+    selected_topic_all: bool,
 }
 
 impl QuestionListWidget {
@@ -146,6 +155,9 @@ impl QuestionListWidget {
             pending_event_actions: Default::default(),
             config,
             files,
+            jump_to: 0,
+            state: State::Normal,
+            selected_topic_all: false,
         }
     }
 }
@@ -609,6 +621,55 @@ impl super::Widget for QuestionListWidget {
             KeyCode::Char('s') => {
                 return self.run_or_submit_code_event_handler(TaskType::Submit);
             }
+            KeyCode::Char(c) => match self.state {
+                State::Normal => {
+                    if c.is_numeric() {
+                        self.state = State::JumpingTo;
+                        self.jump_to = 0;
+                        let digit = c.to_digit(10).unwrap() as usize;
+                        self.jump_to *= 10;
+                        self.jump_to += digit;
+                    }
+                }
+                State::JumpingTo => {
+                    if c.is_numeric() {
+                        let digit = c.to_digit(10).unwrap() as usize;
+                        self.jump_to *= 10;
+                        self.jump_to += digit;
+                    } else if c == 'G' {
+                        if !self.selected_topic_all {
+                            return Ok(Some(self.popup_paragraph_notification(
+                                "Can only use jump to in all topic section".to_string(),
+                                "Jump Info".to_string(),
+                                IndexSet::new(),
+                            )));
+                        }
+                        let mut failed_notif_msg = None;
+                        if self.jump_to > self.questions.items.len() {
+                            failed_notif_msg = Some(format!(
+                                "Max range {}. You entered {}.",
+                                self.questions.items.len(),
+                                self.jump_to
+                            ));
+                        } else if self.jump_to != 0 {
+                            self.questions.state.select(Some(self.jump_to - 1));
+                        } else if self.jump_to == 0 {
+                            failed_notif_msg = Some("No Question with id = 0".to_string());
+                        }
+                        self.jump_to = 0;
+                        return Ok(failed_notif_msg.map(|msg| {
+                            self.popup_paragraph_notification(
+                                msg,
+                                "Jump failed".to_string(),
+                                IndexSet::new(),
+                            )
+                        }));
+                    } else {
+                        self.state = State::Normal;
+                        self.jump_to = 0;
+                    }
+                }
+            },
             _ => {}
         };
         Ok(None)
@@ -833,6 +894,7 @@ impl super::Widget for QuestionListWidget {
             Notification::Questions(NotifContent { content: tags, .. }) => {
                 self.questions.items = vec![];
                 if let Some(tag) = tags.into_iter().next() {
+                    // if any topic change notification is received set jump to state to 0
                     if tag.id == "all" {
                         let mut unique_question_map = HashMap::new();
                         for val in self.all_questions.values().flatten() {
@@ -852,6 +914,8 @@ impl super::Widget for QuestionListWidget {
                         ));
                         self.questions.items.extend(unique_questions);
                         self.questions.items.sort_unstable();
+                        self.selected_topic_all = true;
+                        self.jump_to = 0;
                         return Ok(Some(notif));
                     } else {
                         let values = self.all_questions.get(&tag).unwrap();
@@ -861,6 +925,7 @@ impl super::Widget for QuestionListWidget {
                             values.to_vec(),
                         ));
                         self.questions.items.extend(values.iter().cloned());
+                        self.selected_topic_all = false;
                         return Ok(Some(notif));
                     };
                 }

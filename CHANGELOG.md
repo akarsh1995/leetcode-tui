@@ -39,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - Fix config directories setup for windows
 - Submission stats upon successful submit
 - Added gif demo using [vhs tape](https://github.com/charmbracelet/vhs)
+- Vim like keybinding to jump to a problem (number followed by G (123G) in topic tag "all" questions)
 
 ### Fixed
 
