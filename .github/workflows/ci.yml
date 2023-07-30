@@ -18,10 +18,10 @@ jobs:
         rust: [stable, "1.70"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Restore cargo cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: ci
         with:
@@ -37,7 +37,7 @@ jobs:
         run: cargo clean -p serde_derive -p thiserror
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
           default: true
@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           override: true
@@ -100,10 +100,6 @@ jobs:
         run: |
           cargo install --locked cargo-deny
 
-      # - name: cargo-deny licenses
-      #   run: |
-      #     cargo deny check licenses
-
       - name: cargo-deny bans
         run: |
           cargo deny check bans
@@ -114,37 +110,27 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: nightly
           override: true
 
       - name: cargo-udeps
         run: |
-          # cargo install --locked cargo-udeps
           cargo install --git https://github.com/est31/cargo-udeps --locked
           cargo +nightly udeps --all-targets
 
-  # sec:
-  #   name: Security audit
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - uses: actions-rs/audit-check@v1
-  #     with:
-  #       token: ${{ secrets.GITHUB_TOKEN }}
-
-  # log-test:
-  #   name: Changelog Test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@master
-  #   - name: Extract release notes
-  #     id: extract_release_notes
-  #     uses: ffurrer2/extract-release-notes@v1
-  #     with:
-  #       release_notes_file: ./release-notes.txt
-  #   - uses: actions/upload-artifact@v1
-  #     with:
-  #       name: release-notes.txt
-  #       path: ./release-notes.txt
+  log-test:
+    name: Changelog Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Extract release notes
+      id: extract_release_notes
+      uses: ffurrer2/extract-release-notes@v1
+      with:
+        release_notes_file: ./release-notes.txt
+    - uses: actions/upload-artifact@v1
+      with:
+        name: release-notes.txt
+        path: ./release-notes.txt
