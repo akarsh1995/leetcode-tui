@@ -2,10 +2,18 @@ use super::GQLLeetcodeQuery;
 use serde::Serialize;
 
 const QUERY: &str = r#"
-query questionContent($titleSlug: String!) {
+query questionEditorData($titleSlug: String!) {
   question(titleSlug: $titleSlug) {
-    content
+    questionId
     titleSlug
+    questionFrontendId
+    codeSnippets {
+      lang
+      langSlug
+      code
+    }
+    envInfo
+    enableRunCode
   }
 }
 "#;
@@ -33,5 +41,5 @@ impl Query {
 }
 
 impl GQLLeetcodeQuery for Query {
-    type T = crate::deserializers::question_content::Data;
+    type T = crate::deserializers::editor_data::QuestionData;
 }

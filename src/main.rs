@@ -1,23 +1,27 @@
-use leetcode_tui_rs::app_ui::channel::{request_channel, response_channel};
-use leetcode_tui_rs::app_ui::channel::{ChannelRequestSender, ChannelResponseReceiver};
-use leetcode_tui_rs::app_ui::list::StatefulList;
+use leetcode_tui_rs::app_ui::async_task_channel::{request_channel, response_channel};
+use leetcode_tui_rs::app_ui::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
 use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::config::Config;
-use leetcode_tui_rs::entities::{QuestionEntity, QuestionModel};
+use leetcode_tui_rs::entities::QuestionEntity;
 use leetcode_tui_rs::errors::AppResult;
 use sea_orm::Database;
 use tokio::task::JoinHandle;
 
-use leetcode_tui_rs::app_ui::app::{App, Widget};
-use leetcode_tui_rs::app_ui::event::{look_for_events, Event, EventHandler};
+use leetcode_tui_rs::app_ui::app::App;
+use leetcode_tui_rs::app_ui::event::{
+    look_for_events, vim_ping_channel, Event, EventHandler, VimPingSender,
+};
 use leetcode_tui_rs::app_ui::handler::handle_key_events;
-use leetcode_tui_rs::entities::topic_tag::Model as TopicTagModel;
+
 use leetcode_tui_rs::utils::{
-    do_migrations, get_config, get_reqwest_client, tasks_executor, update_database_questions,
+    async_tasks_executor, do_migrations, get_config, get_reqwest_client, update_database_questions,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use std::io::{self, Stderr};
+use std::io;
+use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
@@ -49,7 +53,7 @@ async fn main() -> AppResult<()> {
     let client = client.clone();
 
     let task_receiver_from_app: JoinHandle<AppResult<()>> = tokio::spawn(async move {
-        tasks_executor(rx_request, tx_response, &client, &database_client).await?;
+        async_tasks_executor(rx_request, tx_response, &client, &database_client).await?;
         Ok(())
     });
 
@@ -58,7 +62,7 @@ async fn main() -> AppResult<()> {
 
     let (ev_sender, ev_receiver) = std::sync::mpsc::channel();
 
-    let mut tui = Tui::new(
+    let tui = Tui::new(
         terminal,
         EventHandler {
             sender: ev_sender.clone(),
@@ -66,11 +70,16 @@ async fn main() -> AppResult<()> {
         },
     );
 
-    tui.init()?;
-    tokio::task::spawn_blocking(move || run_app(tx_request, rx_response, tui).unwrap());
+    let vim_running = Arc::new(AtomicBool::new(false));
+    let vim_running_loop_ref = vim_running.clone();
+    let (vim_tx, vim_rx) = vim_ping_channel(10);
+
+    tokio::task::spawn_blocking(move || {
+        run_app(tx_request, rx_response, tui, vim_tx, vim_running, config).unwrap()
+    });
 
     // blog post does not work in separate thread
-    match look_for_events(100, ev_sender).await {
+    match look_for_events(100, ev_sender, vim_running_loop_ref, vim_rx).await {
         Ok(_) => Ok(()),
         Err(e) => match e {
             leetcode_tui_rs::errors::LcAppError::SyncSendError(_) => Ok(()),
@@ -86,23 +95,14 @@ async fn main() -> AppResult<()> {
 fn run_app(
     tx_request: ChannelRequestSender,
     rx_response: ChannelResponseReceiver,
-    mut tui: Tui<CrosstermBackend<Stderr>>,
+    mut tui: Tui,
+    vim_tx: VimPingSender,
+    vim_running: Arc<AtomicBool>,
+    config: Config,
 ) -> AppResult<()> {
-    let topic_tags: Vec<TopicTagModel> = vec![TopicTagModel {
-        name: Some("All".to_string()),
-        id: "all".to_string(),
-        slug: Some("all".to_string()),
-    }];
-
-    let questions = vec![];
-
-    let mut qm: StatefulList<QuestionModel> = StatefulList::with_items(questions);
-    let mut ttm: StatefulList<TopicTagModel> = StatefulList::with_items(topic_tags);
-    let question_stateful = Widget::QuestionList(&mut qm);
-    let topic_tag_stateful = Widget::TopicTagList(&mut ttm);
-    let mut vw = vec![topic_tag_stateful, question_stateful];
-
-    let mut app = App::new(&mut vw, tx_request, rx_response)?;
+    let config = Rc::new(config);
+    tui.init()?;
+    let mut app = App::new(tx_request, rx_response, vim_tx, vim_running, config)?;
 
     // Start the main loop.
     while app.running {
@@ -110,10 +110,15 @@ fn run_app(
         tui.draw(&mut app)?;
         // Handle events.
         match tui.events.next()? {
-            Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
+            Event::Tick => app.tick()?,
+            Event::Key(key_event) => {
+                let notif = handle_key_events(key_event, &mut app)?;
+                app.pending_notifications.push_back(notif);
+                app.process_pending_notification()?;
+            }
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
+            Event::Redraw => tui.reinit()?,
         }
     }
 

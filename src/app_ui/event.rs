@@ -1,5 +1,8 @@
 use crossterm::event::{Event as CrosstermEvent, KeyEvent, MouseEvent};
-use std::time::Duration;
+use std::{
+    sync::{atomic::AtomicBool, Arc},
+    time::Duration,
+};
 
 use futures::{future::FutureExt, StreamExt};
 use futures_timer::Delay;
@@ -19,6 +22,9 @@ pub enum Event {
     Mouse(MouseEvent),
     /// Terminal resize.
     Resize(u16, u16),
+
+    /// redraws the terminal
+    Redraw,
 }
 
 /// Terminal event handler.
@@ -31,10 +37,16 @@ pub struct EventHandler {
     pub receiver: std::sync::mpsc::Receiver<Event>,
 }
 
+pub use tokio::sync::mpsc::channel as vim_ping_channel;
+pub type VimPingSender = tokio::sync::mpsc::Sender<i32>;
+pub type VimPingReceiver = tokio::sync::mpsc::Receiver<i32>;
+
 // should be in the main thread to funtion
 pub async fn look_for_events(
     tick_rate: u64,
     sender: std::sync::mpsc::Sender<Event>,
+    vim_running_loop_ref: Arc<AtomicBool>,
+    mut vim_rx: VimPingReceiver,
 ) -> AppResult<()> {
     let tick_rate = Duration::from_millis(tick_rate);
 
@@ -52,7 +64,14 @@ pub async fn look_for_events(
                 match maybe_event {
                     Some(event) => {
                         match event? {
-                            CrosstermEvent::Key(e) => sender.send(Event::Key(e))?,
+                            CrosstermEvent::Key(e) => {
+                                if vim_running_loop_ref.load(std::sync::atomic::Ordering::Relaxed) {
+                                    vim_rx.recv().await.unwrap();
+                                    sender.send(Event::Redraw)?
+                                } else {
+                                    sender.send(Event::Key(e))?
+                                }
+                            },
                             CrosstermEvent::Mouse(e) => sender.send(Event::Mouse(e))?,
                             CrosstermEvent::Resize(w, h) => sender.send(Event::Resize(w, h))?,
                             _ => unimplemented!()

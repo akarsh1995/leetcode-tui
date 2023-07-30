@@ -41,11 +41,11 @@ pub struct Data {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ProblemSetQuestionListQuery {
+pub struct Root {
     data: Data,
 }
 
-impl ProblemSetQuestionListQuery {
+impl Root {
     pub fn get_questions(self) -> Vec<Question> {
         self.data.problemset_question_list.questions
     }
@@ -58,7 +58,7 @@ impl ProblemSetQuestionListQuery {
 #[cfg(test)]
 mod tests {
 
-    use super::ProblemSetQuestionListQuery;
+    use super::Root;
     use serde_json;
 
     #[test]
@@ -93,7 +93,7 @@ mod tests {
             }
         }"#;
 
-        let root: ProblemSetQuestionListQuery = serde_json::from_str(json).unwrap();
+        let root: Root = serde_json::from_str(json).unwrap();
 
         // Validate the deserialized struct fields
         assert_eq!(root.data.problemset_question_list.total, 2777);

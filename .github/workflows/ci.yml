@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ '*' ]
+    branches: ["dev", "master"]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,183 +15,122 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [nightly, stable, '1.70']
+        rust: [stable, "1.70"]
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.rust == 'nightly' }}
-
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-    - name: Restore cargo cache
-      uses: actions/cache@v2
-      env:
-        cache-name: ci
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          ~/.cargo/bin
-          target
-        key: ${{ matrix.os }}-${{ env.cache-name }}-${{ matrix.rust }}-${{ hashFiles('Cargo.lock') }}
+      - name: Restore cargo cache
+        uses: actions/cache@v3
+        env:
+          cache-name: ci
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            target
+          key: ${{ matrix.os }}-${{ env.cache-name }}-${{ matrix.rust }}-${{ hashFiles('Cargo.lock') }}
 
-    - name: MacOS Workaround
-      if: matrix.os == 'macos-latest'
-      run: cargo clean -p serde_derive -p thiserror
+      - name: MacOS Workaround
+        if: matrix.os == 'macos-latest'
+        run: cargo clean -p serde_derive -p thiserror
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust }}
-        default: true
-        override: true
-        profile: minimal
-        components: clippy
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+          default: true
+          override: true
+          profile: minimal
+          components: clippy
 
-    - name: Build Debug
-      run: |
-        cargo build
+      - name: Build Debug
+        run: |
+          cargo build
 
-    - name: Run tests
-      run:  cargo test
+      - name: Run tests
+        run: cargo test
 
-    - name: Run clippy
-      run: |
-        cargo clippy --workspace --all-features
+      - name: Run clippy
+        run: |
+          cargo clippy --workspace --all-features
 
-    - name: Build Release
-      run: cargo build --release
+      - name: Build Release
+        run: cargo build --release
 
-    - name: Test Install
-      run: cargo install --path "." --force
+      - name: Test Install
+        run: cargo install --path "." --force
 
-    - name: Binary Size (unix)
-      if: matrix.os != 'windows-latest'
-      run: |
-        ls -l ./target/release/leetui
+      - name: Binary Size (unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          ls -l ./target/release/leetui
 
-    - name: Binary Size (win)
-      if: matrix.os == 'windows-latest'
-      run: |
-        ls -l ./target/release/leetui.exe
+      - name: Binary Size (win)
+        if: matrix.os == 'windows-latest'
+        run: |
+          ls -l ./target/release/leetui.exe
 
-    - name: Binary dependencies (mac)
-      if: matrix.os == 'macos-latest'
-      run: |
-        otool -L ./target/release/leetui
-
-    - name: Build MSI (windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        cargo install cargo-wix --version 0.3.3
-        cargo wix --version
-        cargo wix -p leetui --no-build --nocapture --output ./target/wix/leetui.msi
-        ls -l ./target/wix/leetui.msi
-
-  build-linux-musl:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        rust: [nightly, stable, '1.70']
-    continue-on-error: ${{ matrix.rust == 'nightly' }}
-    steps:
-    - uses: actions/checkout@master
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ matrix.rust }}
-        profile: minimal
-        default: true
-        override: true
-        target: x86_64-unknown-linux-musl
-
-    - name: Setup MUSL
-      run: |
-        sudo apt-get -qq install musl-tools && sudo apt-get -y install libssl-dev && sudo apt-get -y install pkg-config
-    - name: Build Debug
-      run: |
-        cargo build --target=x86_64-unknown-linux-musl
-        ./target/x86_64-unknown-linux-musl/debug/leetui --version
-    - name: Build Release
-      run: |
-        cargo build --release --target=x86_64-unknown-linux-musl
-        ./target/x86_64-unknown-linux-musl/release/leetui --version
-        ls -l ./target/x86_64-unknown-linux-musl/release/leetui
-    - name: Test
-      run: |
-        cargo test --workspace --target=x86_64-unknown-linux-musl
-    - name: Test Install
-      run: cargo install --path "." --force
+      - name: Binary dependencies (mac)
+        if: matrix.os == 'macos-latest'
+        run: |
+          otool -L ./target/release/leetui
 
   linting:
     name: Lints
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        components: rustfmt
+      - uses: actions/checkout@master
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt
 
-    - run: cargo fmt -- --check
+      - run: cargo fmt -- --check
 
-    - name: cargo-sort
-      run: |
-        cargo install cargo-sort --force
-        cargo sort -c -w
+      - name: cargo-sort
+        run: |
+          cargo install cargo-sort --force
+          cargo sort -c -w
 
-    - name: cargo-deny install
-      run: |
-        cargo install --locked cargo-deny
+      - name: cargo-deny install
+        run: |
+          cargo install --locked cargo-deny
 
-    # - name: cargo-deny licenses
-    #   run: |
-    #     cargo deny check licenses
-
-    - name: cargo-deny bans
-      run: |
-        cargo deny check bans
+      - name: cargo-deny bans
+        run: |
+          cargo deny check bans
 
   udeps:
     name: udeps
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@master
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+          override: true
+
+      - name: cargo-udeps
+        run: |
+          cargo install --git https://github.com/est31/cargo-udeps --locked
+          cargo +nightly udeps --all-targets
+
+  log-test:
+    name: Changelog Test
+    runs-on: ubuntu-latest
+    steps:
     - uses: actions/checkout@master
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
+    - name: Extract release notes
+      id: extract_release_notes
+      uses: ffurrer2/extract-release-notes@v1
       with:
-        toolchain: nightly
-        override: true
-        
-    - name: cargo-udeps
-      run: |
-        # cargo install --locked cargo-udeps
-        cargo install --git https://github.com/est31/cargo-udeps --locked
-        cargo +nightly udeps --all-targets
-
-
-  # sec:
-  #   name: Security audit
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@v2
-  #   - uses: actions-rs/audit-check@v1
-  #     with:
-  #       token: ${{ secrets.GITHUB_TOKEN }}
-
-  # log-test:
-  #   name: Changelog Test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@master
-  #   - name: Extract release notes
-  #     id: extract_release_notes
-  #     uses: ffurrer2/extract-release-notes@v1
-  #     with:
-  #       release_notes_file: ./release-notes.txt
-  #   - uses: actions/upload-artifact@v1
-  #     with:
-  #       name: release-notes.txt
-  #       path: ./release-notes.txt
+        release_notes_file: ./release-notes.txt
+    - uses: actions/upload-artifact@v1
+      with:
+        name: release-notes.txt
+        path: ./release-notes.txt

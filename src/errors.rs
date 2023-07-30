@@ -2,7 +2,7 @@ use sea_orm::error::DbErr;
 
 use thiserror::Error;
 
-use crate::app_ui::channel::*;
+use crate::app_ui::async_task_channel::*;
 use crate::app_ui::event::Event;
 
 #[derive(Error, Debug)]
@@ -14,13 +14,13 @@ pub enum LcAppError {
     SyncReceiveError(#[from] std::sync::mpsc::RecvError),
 
     #[error("Task request send error sync to async context: {0}")]
-    RequestSendError(#[from] RequestSendError),
+    RequestSendError(#[from] Box<RequestSendError>),
 
     #[error("Task request receive error sync to async context: {0}")]
     RequestRecvError(#[from] RequestRecvError),
 
     #[error("Task response send error async to sync context: {0}")]
-    ResponseSendError(#[from] ResponseSendError),
+    ResponseSendError(#[from] Box<ResponseSendError>),
 
     #[error("Task response receive error async to sync context: {0}")]
     ResponseReceiveError(#[from] ResponseReceiveError),
@@ -40,6 +40,7 @@ pub enum LcAppError {
     #[error("Database Error encountered {0}")]
     DatabaseError(#[from] DbErr),
 
+    #[cfg(target_family = "unix")]
     #[error("Maybe could not find xdg dirs {0}")]
     XDGError(#[from] xdg::BaseDirectoriesError),
 
@@ -55,13 +56,12 @@ pub enum LcAppError {
     #[error("Tokio join handle error")]
     TokioThreadJoinError(#[from] tokio::task::JoinError),
 
-    // #[error("Crossterm Error")]
-    // CrossTermError(#[from] crossterm::ErrorKind),
+    #[error("Key Combination already exists")]
+    KeyCombiExist(String),
 
-    // #[error("the data for key `{0}` is not available")]
-    // Redaction(String),
-    // #[error("invalid header (expected {expected:?}, found {found:?})")]
-    // InvalidHeader { expected: String, found: String },
+    #[error("Editor open error: {0}")]
+    EditorOpen(String),
+
     #[error("unknown lc app error")]
     Unknown,
 }

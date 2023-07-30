@@ -4,25 +4,25 @@ use super::ui;
 use crate::errors::{AppResult, LcAppError};
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
-use ratatui::backend::Backend;
+use ratatui::prelude::CrosstermBackend;
 use ratatui::Terminal;
-use std::io;
+use std::io::{self, Stderr};
 
 /// Representation of a terminal user interface.
 ///
 /// It is responsible for setting up the terminal,
 /// initializing the interface and handling the draw events.
-#[derive(Debug)]
-pub struct Tui<B: Backend> {
+
+pub struct Tui {
     /// Interface to the Terminal.
-    terminal: Terminal<B>,
+    terminal: Terminal<CrosstermBackend<Stderr>>,
     /// Terminal event handler.
     pub events: EventHandler,
 }
 
-impl<B: Backend> Tui<B> {
+impl Tui {
     /// Constructs a new instance of [`Tui`].
-    pub fn new(terminal: Terminal<B>, events: EventHandler) -> Self {
+    pub fn new(terminal: Terminal<CrosstermBackend<Stderr>>, events: EventHandler) -> Self {
         Self { terminal, events }
     }
 
@@ -58,10 +58,16 @@ impl<B: Backend> Tui<B> {
         Ok(())
     }
 
+    pub fn reinit(&mut self) -> AppResult<()> {
+        self.exit()?;
+        self.init()
+    }
+
     /// Exits the terminal interface.
     ///
     /// It disables the raw mode and reverts back the terminal properties.
-    pub fn exit(mut self) -> AppResult<()> {
+    pub fn exit(&mut self) -> AppResult<()> {
+        self.terminal.resize(self.terminal.size()?)?;
         terminal::disable_raw_mode().map_err(|e| {
             LcAppError::CrossTermError(format!("Error while disabling raw mode. {e}"))
         })?;
@@ -71,7 +77,6 @@ impl<B: Backend> Tui<B> {
         self.terminal
             .show_cursor()
             .map_err(|e| LcAppError::CrossTermError(format!("Error while show cursor. {e}")))?;
-        drop(self.events.receiver);
         Ok(())
     }
 }

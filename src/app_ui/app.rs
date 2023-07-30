@@ -1,169 +1,217 @@
-use ratatui::widgets::ListState;
+use std::collections::VecDeque;
+use std::rc::Rc;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
-use crate::entities::topic_tag::Model as TopicTagModel;
-use crate::{entities::question::Model as QuestionModel, errors::AppResult};
-use std::collections::{HashMap, HashSet};
-
-use super::{
-    channel::{ChannelRequestSender, ChannelResponseReceiver, TaskResponse},
-    list::StatefulList,
-};
-
-/// Application result type.
-
-pub type SS = (TopicTagModel, Vec<QuestionModel>);
-
-pub type TTReciever = crossbeam::channel::Receiver<SS>;
-pub type TTSender = crossbeam::channel::Sender<SS>;
-
-#[derive(Debug)]
-pub enum Widget<'a> {
-    QuestionList(&'a mut StatefulList<QuestionModel>),
-    TopicTagList(&'a mut StatefulList<TopicTagModel>),
-}
+use super::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
+use super::event::VimPingSender;
+use super::widgets::help_bar::HelpBar;
+use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
+use super::widgets::popup::Popup;
+use super::widgets::question_list::QuestionListWidget;
+use super::widgets::stats::Stats;
+use super::widgets::topic_list::TopicTagListWidget;
+use super::widgets::Widget;
+use crate::config::Config;
+use crate::errors::AppResult;
+use indexmap::IndexMap;
 
 /// Application.
 #[derive(Debug)]
-pub struct App<'a> {
+pub struct App {
     /// Is the application running?
     pub running: bool,
 
-    pub widgets: &'a mut Vec<Widget<'a>>,
+    pub(crate) widget_map: indexmap::IndexMap<WidgetName, WidgetVariant>,
 
-    pub questions_list: Option<HashMap<TopicTagModel, Vec<QuestionModel>>>,
-
-    pub widget_switcher: i32,
-
-    pub last_response: Option<TaskResponse>,
-
-    pub show_popup: bool,
+    selected_wid_idx: i32,
 
     pub task_request_sender: ChannelRequestSender,
 
     pub task_response_recv: ChannelResponseReceiver,
+
+    pub pending_notifications: VecDeque<Option<Notification>>,
+
+    pub(crate) popup_stack: Vec<Popup>,
+
+    pub vim_tx: VimPingSender,
+
+    pub vim_running: Arc<AtomicBool>,
+
+    pub config: Rc<Config>,
 }
 
-impl<'a> App<'a> {
+impl App {
     /// Constructs a new instance of [`App`].
     pub fn new(
-        wid: &'a mut Vec<Widget<'a>>,
         task_request_sender: ChannelRequestSender,
         task_response_recv: ChannelResponseReceiver,
+        vim_tx: VimPingSender,
+        vim_running: Arc<AtomicBool>,
+        config: Rc<Config>,
     ) -> AppResult<Self> {
-        task_request_sender.send(super::channel::TaskRequest::GetAllQuestionsMap)?;
-        task_request_sender.send(super::channel::TaskRequest::GetAllTopicTags)?;
+        let w0 = WidgetVariant::TopicList(TopicTagListWidget::new(
+            WidgetName::TopicList,
+            task_request_sender.clone(),
+        ));
+        let w1 = WidgetVariant::QuestionList(QuestionListWidget::new(
+            WidgetName::QuestionList,
+            task_request_sender.clone(),
+            vim_tx.clone(),
+            vim_running.clone(),
+            config.clone(),
+        ));
+
+        let w2 = WidgetVariant::Stats(Stats::new(WidgetName::Stats, task_request_sender.clone()));
+
+        let w3 = WidgetVariant::HelpLine(HelpBar::new(
+            WidgetName::HelpLine,
+            task_request_sender.clone(),
+        ));
+
+        let order = [
+            (WidgetName::TopicList, w0),
+            (WidgetName::QuestionList, w1),
+            (WidgetName::Stats, w2),
+            (WidgetName::HelpLine, w3),
+        ];
 
         let mut app = Self {
+            config,
             running: true,
-            questions_list: None,
-            widgets: wid,
-            widget_switcher: 0,
+            widget_map: IndexMap::from(order),
+            selected_wid_idx: 0,
             task_request_sender,
             task_response_recv,
-            last_response: None,
-            show_popup: false,
+            pending_notifications: vec![].into(),
+            popup_stack: vec![],
+            vim_running,
+            vim_tx,
         };
-        app.update_question_list();
+        app.setup()?;
         Ok(app)
     }
 
-    pub fn next_widget(&mut self) {
-        let a = self.widget_switcher + 1;
-        let b = self.widgets.len() as i32;
-        self.widget_switcher = ((a % b) + b) % b;
+    pub fn total_widgets_count(&self) -> usize {
+        self.widget_map.len()
     }
 
-    pub fn prev_widget(&mut self) {
-        let a = self.widget_switcher - 1;
-        let b = self.widgets.len() as i32;
-        self.widget_switcher = ((a % b) + b) % b;
+    pub fn navigate(&mut self, val: i32) -> AppResult<Option<Notification>> {
+        if self.get_current_popup().is_some() {
+            return Ok(None);
+        }
+        self.get_current_widget_mut().set_inactive();
+        let a = self.selected_wid_idx + val;
+        let b = self.total_widgets_count() as i32;
+        self.selected_wid_idx = ((a % b) + b) % b;
+        let maybe_notif = self.get_current_widget_mut().set_active()?;
+        self.push_notif(maybe_notif);
+        if !self.get_current_widget().is_navigable() {
+            self.navigate(val)?;
+        }
+        Ok(None)
     }
 
-    pub fn get_current_widget(&self) -> &Widget {
-        &self.widgets[self.widget_switcher as usize]
+    pub fn next_widget(&mut self) -> AppResult<Option<Notification>> {
+        self.navigate(1)
     }
 
-    pub fn update_question_in_popup(&self) -> AppResult<()> {
-        if self.show_popup {
-            if let Widget::QuestionList(s) = self.get_current_widget() {
-                if let Some(selected_item) = s.get_selected_item() {
-                    if let Some(slug) = &selected_item.title_slug {
-                        self.task_request_sender.send(
-                            super::channel::TaskRequest::QuestionDetail { slug: slug.clone() },
-                        )?;
-                    }
-                }
-            }
+    pub fn prev_widget(&mut self) -> AppResult<Option<Notification>> {
+        self.navigate(-1)
+    }
+
+    pub(crate) fn get_current_widget(&self) -> &WidgetVariant {
+        let (_, v) = self
+            .widget_map
+            .get_index(self.selected_wid_idx as usize)
+            .unwrap();
+        v
+    }
+
+    pub(crate) fn get_current_widget_mut(&mut self) -> &mut WidgetVariant {
+        let (_, v) = self
+            .widget_map
+            .get_index_mut(self.selected_wid_idx as usize)
+            .unwrap();
+        v
+    }
+
+    pub(crate) fn get_current_popup(&self) -> Option<&Popup> {
+        self.popup_stack.last()
+    }
+
+    pub(crate) fn get_current_popup_mut(&mut self) -> Option<&mut Popup> {
+        self.popup_stack.last_mut()
+    }
+
+    pub fn setup(&mut self) -> AppResult<()> {
+        let maybe_notif = self.get_current_widget_mut().set_active()?;
+        self.push_notif(maybe_notif);
+        for (_, widget) in self.widget_map.iter_mut() {
+            widget.setup()?;
         }
         Ok(())
     }
 
-    pub fn update_question_list(&mut self) {
-        let mut tt_model: Option<TopicTagModel> = None;
-
-        if let Widget::TopicTagList(ttl) = self.get_current_widget() {
-            if let Some(selected) = ttl.get_selected_item() {
-                tt_model = Some(selected.clone())
-            }
-        }
-
-        for w in self.widgets.iter_mut() {
-            if let Widget::QuestionList(ql) = w {
-                if let Some(selected_tt_model) = &tt_model {
-                    let mut items;
-                    if let Some(tt_ql_map) = &mut self.questions_list {
-                        if selected_tt_model.id.as_str() == "all" {
-                            let set = tt_ql_map
-                                .values()
-                                .flat_map(|q| q.clone())
-                                .collect::<HashSet<_>>();
-                            items = set.into_iter().collect::<Vec<_>>();
-                        } else {
-                            items = tt_ql_map.get(selected_tt_model).unwrap().clone();
-                        }
-                        items.sort();
-                        ql.items = items;
-                        ql.state = ListState::default();
-                    }
-                }
-            }
-        }
-    }
-
-    // pub fn find_widget(&mut self, wid_type: Widget) -> &mut Widget {
-    //     for wid in self.widgets {
-    //         if wid == Widget::
-    //     }
-
-    // }
-
-    pub fn toggle_popup(&mut self) {
-        self.show_popup = !self.show_popup;
+    pub fn push_notif(&mut self, value: Option<Notification>) {
+        self.pending_notifications.push_back(value)
     }
 
     /// Handles the tick event of the terminal.
-    pub fn tick(&mut self) {
-        if let Ok(response) = self.task_response_recv.try_recv() {
-            match response {
-                TaskResponse::GetAllQuestionsMap(map) => {
-                    if let Some(ql) = &mut self.questions_list {
-                        ql.extend(map)
-                    } else {
-                        self.questions_list = Some(map);
-                    }
-                    self.update_question_list()
+    pub fn tick(&mut self) -> AppResult<()> {
+        if let Some(popup) = self.get_current_popup_mut() {
+            if !popup.is_active() {
+                self.popup_stack.pop();
+                let maybe_notif;
+                if let Some(popup) = self.get_current_popup_mut() {
+                    maybe_notif = popup.set_active()?;
+                } else {
+                    maybe_notif = self.get_current_widget_mut().set_active()?;
                 }
-                TaskResponse::AllTopicTags(tts) => {
-                    for w in self.widgets.iter_mut() {
-                        if let Widget::TopicTagList(tt_list) = w {
-                            tt_list.items.extend(tts);
-                            break;
-                        }
-                    }
-                }
-                response => self.last_response = Some(response),
+                self.push_notif(maybe_notif);
+            };
+        }
+
+        for wid in self.widget_map.values_mut() {
+            while let Some(notif) = wid.get_notification_queue().pop_front() {
+                self.pending_notifications.push_back(Some(notif));
             }
         }
+
+        self.check_for_task()?;
+        self.process_pending_notification()?;
+        Ok(())
+    }
+
+    fn check_for_task(&mut self) -> AppResult<()> {
+        if let Ok(task_result) = self.task_response_recv.try_recv() {
+            self.widget_map
+                .get_mut(&task_result.get_widget_name())
+                .unwrap()
+                .process_task_response(task_result)?;
+        }
+        Ok(())
+    }
+
+    pub fn process_pending_notification(&mut self) -> AppResult<()> {
+        while let Some(elem) = self.pending_notifications.pop_front() {
+            if let Some(notif) = elem {
+                let wid_name = notif.get_wid_name();
+                if let WidgetName::Popup = wid_name {
+                    let mut popup_instance =
+                        Popup::new(wid_name.clone(), self.task_request_sender.clone());
+                    let maybe_notif = popup_instance.process_notification(notif)?;
+                    self.push_notif(popup_instance.set_active()?);
+                    self.pending_notifications.push_back(maybe_notif);
+                    self.popup_stack.push(popup_instance);
+                } else {
+                    let widget_var = self.widget_map.get_mut(wid_name).unwrap();
+                    let more_notif = widget_var.process_notification(notif)?;
+                    self.pending_notifications.push_back(more_notif);
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Set running to false to quit the application.

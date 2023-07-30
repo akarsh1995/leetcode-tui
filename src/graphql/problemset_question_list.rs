@@ -91,8 +91,8 @@ impl Default for Query {
         }
     }
 }
-use crate::deserializers::question::ProblemSetQuestionListQuery;
+use crate::deserializers::problemset_question_list::Root;
 
 impl GQLLeetcodeQuery for Query {
-    type T = ProblemSetQuestionListQuery;
+    type T = Root;
 }

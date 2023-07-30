@@ -2,7 +2,7 @@
 
 # Use Leetcode in your terminal.
 
-![Demo](demo.gif)
+![Demo](https://vhs.charm.sh/vhs-7mc1SjatwAFIfEpRjylgaO.gif)
 
 
 > **Warning**
@@ -23,6 +23,17 @@ leetui
 
 # Get the Cookies from the browser `LEETCODE_SESSION` and `csrftoken` and paste it in `~/.config/leetcode_tui/config.toml`
 
-# run the command again
+# run the command again to populate db
 leetui
 ```
+
+## Features
+
+- Question grouped by categories
+- Read Question
+- Jump to question using vim like keybinding (123G).
+- Open question in `EDITOR`
+- Solve question in multiple languages
+- Submit and run solution in multiple languages
+- Read Stats of your performance
+- Solved questions are marked with ✔️
