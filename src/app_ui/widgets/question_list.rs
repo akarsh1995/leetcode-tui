@@ -18,7 +18,7 @@ use crate::deserializers;
 use crate::deserializers::editor_data::CodeSnippet;
 use crate::deserializers::run_submit::{ParsedResponse, Success};
 use crate::entities::TopicTagModel;
-use crate::errors::AppResult;
+use crate::errors::{AppResult, LcAppError};
 use crate::graphql::run_code::RunCode;
 use crate::graphql::submit_code::SubmitCode;
 use crate::graphql::{Language, RunOrSubmitCode};
@@ -323,22 +323,44 @@ impl QuestionListWidget {
         self.pending_event_actions.contains(key)
     }
 
-    fn open_vim_editor(&mut self, file_name: &Path) {
-        let vim_cmd = format!("nvim {}", file_name.display());
+    fn open_vim_like_editor(&mut self, file_name: &Path, editor: &str) -> AppResult<()> {
         let mut output = std::process::Command::new("sh")
             .arg("-c")
-            .arg(&vim_cmd)
+            .arg(&format!("{} {}", editor, file_name.display()))
             .spawn()
-            .expect("Can't run vim cmd");
+            .map_err(|e| LcAppError::EditorOpen(format!("Can't spawn {} editor: {e}", editor)))?;
         self.vim_running
             .store(true, std::sync::atomic::Ordering::Relaxed);
-        let vim_cmd_result = output.wait().expect("Run exits ok");
+        let vim_cmd_result = output
+            .wait()
+            .map_err(|e| LcAppError::EditorOpen(format!("Editor Error: {e}")))?;
         self.vim_running
             .store(false, std::sync::atomic::Ordering::Relaxed);
         self.vim_tx.blocking_send(1).unwrap();
         if !vim_cmd_result.success() {
-            println!("error vim");
+            return Err(LcAppError::EditorOpen(
+                "Cannot open editor, Reason: Unknown".to_string(),
+            ));
         }
+        Ok(())
+    }
+
+    fn open_editor(&mut self, file_name: &Path) -> AppResult<()> {
+        if let Ok(editor) = std::env::var("EDITOR") {
+            if editor.contains("vim") || editor.contains("nano") {
+                self.open_vim_like_editor(file_name, editor.as_str())?;
+            } else {
+                std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&format!("{} {}", editor, file_name.display()))
+                    .spawn()?
+                    .wait()?;
+            }
+        } else {
+            // try open vim
+            self.open_vim_like_editor(file_name, "vim")?;
+        }
+        Ok(())
     }
 
     fn popup_list_notification(
@@ -957,12 +979,20 @@ impl super::Widget for QuestionListWidget {
                             Some(selected_snippet),
                             question_id.to_string(),
                         );
+                        let save_path = sf.get_save_path(&dir);
                         sf.create_if_not_exists(&dir)?;
-                        self.open_vim_editor(&sf.get_save_path(&dir));
                         self.files
                             .entry(sf.question_id.parse().unwrap())
                             .or_default()
                             .insert(sf);
+
+                        if let Err(e) = self.open_editor(&save_path) {
+                            return Ok(Some(self.popup_paragraph_notification(
+                                e.to_string(),
+                                "Error opening editor".to_string(),
+                                IndexSet::new(),
+                            )));
+                        };
                     }
                     (question, tt) => {
                         self.solution_file_popup_action(question, tt, index)?;

@@ -59,6 +59,9 @@ pub enum LcAppError {
     #[error("Key Combination already exists")]
     KeyCombiExist(String),
 
+    #[error("Editor open error: {0}")]
+    EditorOpen(String),
+
     #[error("unknown lc app error")]
     Unknown,
 }
