@@ -105,7 +105,7 @@ impl Widget for Popup {
                 PopupType::List { popup: l, .. } => l.get_key_set(),
             };
             self.popup_type = Some(content.popup);
-            self.get_help_texts_mut().extend(content.help_texts.clone());
+            self.get_help_texts_mut().extend(content.help_texts);
             // extend help specific to the popup recieved
             self.get_help_texts_mut().extend(extended_help);
         }

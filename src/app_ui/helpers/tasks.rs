@@ -106,8 +106,7 @@ pub async fn run_or_submit_question(
             .await
         {
             Ok(resp) => {
-                *test_cases_stdin =
-                    Some(resp.data.question.example_testcase_list.clone().join("\n"));
+                *test_cases_stdin = Some(resp.data.question.example_testcase_list.join("\n"));
             }
             Err(e) => {
                 return TaskResponse::Error(Response {

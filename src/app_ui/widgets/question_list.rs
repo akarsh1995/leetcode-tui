@@ -240,7 +240,7 @@ impl QuestionListWidget {
             .send(
                 crate::app_ui::async_task_channel::TaskRequest::CodeRunRequest(Request {
                     widget_name: self.get_widget_name(),
-                    request_id: random_key.clone(),
+                    request_id: random_key,
                     content,
                 }),
             )
@@ -512,7 +512,7 @@ impl QuestionListWidget {
         let k = self
             .cache
             .get_or_insert_mut(model.clone(), CachedQuestion::default);
-        (k, model.clone())
+        (k, model)
     }
 
     fn run_or_submit_code_event_handler(
@@ -620,7 +620,7 @@ impl super::Widget for QuestionListWidget {
                     let title = "Select Language".to_string();
                     let popup_key = generate_random_string(10);
                     self.task_map
-                        .insert(popup_key.clone(), (model.clone(), TaskType::Edit));
+                        .insert(popup_key.clone(), (model, TaskType::Edit));
                     let notif =
                         self.popup_list_notification(content, title, popup_key, IndexSet::new());
                     return Ok(Some(notif));
@@ -878,7 +878,7 @@ impl super::Widget for QuestionListWidget {
                     ParsedResponse::Unknown(_) => "Unknown Error".to_string(),
                 };
                 let notification = self.popup_paragraph_notification(
-                    k.to_string(),
+                    k,
                     format!("{} Status", (if is_submit { "Submit" } else { "Run" })),
                     IndexSet::new(),
                 );
@@ -977,7 +977,7 @@ impl super::Widget for QuestionListWidget {
                             selected_lang,
                             Some(description),
                             Some(selected_snippet),
-                            question_id.to_string(),
+                            question_id,
                         );
                         let save_path = sf.get_save_path(&dir);
                         sf.create_if_not_exists(&dir)?;
