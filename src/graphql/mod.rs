@@ -30,7 +30,7 @@ pub trait GQLLeetcodeQuery: Serialize + Sync {
         "https://leetcode.com/graphql".to_string()
     }
 
-    async fn post(&self, client: &reqwest::Client) -> AppResult<Self::T> {
+    async fn send(&self, client: &reqwest::Client) -> AppResult<Self::T> {
         let request = if self.is_post() {
             client.post(self.get_endpoint()).json(&self.get_body())
         } else {
@@ -64,9 +64,9 @@ impl RunOrSubmitCode {
         client: &reqwest::Client,
         body: &impl GQLLeetcodeQuery<T = T>,
     ) -> AppResult<ParsedResponse> {
-        let run_response: T = body.post(client).await?;
+        let run_response: T = body.send(client).await?;
         loop {
-            let status_check = run_response.post(client).await?;
+            let status_check = run_response.send(client).await?;
             let parsed_response = status_check.to_parsed_response()?;
             match parsed_response {
                 ParsedResponse::Pending => {}

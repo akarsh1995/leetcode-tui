@@ -10,7 +10,7 @@ pub async fn update_database_questions(
     database_client: &DatabaseConnection,
 ) -> AppResult<()> {
     let query = QuestionDbQuery::default();
-    let query_response = query.post(client).await?;
+    let query_response = query.send(client).await?;
     let total_questions = query_response.get_total_questions();
     let chunk_size: usize = 100;
     let total_range = (0..total_questions).collect::<Vec<_>>();
@@ -19,7 +19,7 @@ pub async fn update_database_questions(
             let client_copy = client.clone();
             let db_client_copy = database_client.clone();
             let resp = QuestionDbQuery::new(chunk.len() as i32, *skip)
-                .post(&client_copy)
+                .send(&client_copy)
                 .await?;
             let questions = resp.get_questions();
             Question::multi_insert(&db_client_copy, questions).await?;

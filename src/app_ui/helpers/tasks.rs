@@ -15,7 +15,7 @@ pub async fn get_question_details(
     client: &reqwest::Client,
     _conn: &DatabaseConnection,
 ) -> TaskResponse {
-    match QuestionGQLQuery::new(slug).post(client).await {
+    match QuestionGQLQuery::new(slug).send(client).await {
         Ok(resp) => {
             let query_response = resp;
             TaskResponse::QuestionDetail(Response {
@@ -39,7 +39,7 @@ pub async fn get_editor_data(
     client: &reqwest::Client,
     _conn: &DatabaseConnection,
 ) -> TaskResponse {
-    match QuestionEditorDataQuery::new(slug).post(client).await {
+    match QuestionEditorDataQuery::new(slug).send(client).await {
         Ok(data) => TaskResponse::QuestionEditorData(Response {
             request_id,
             content: data.data.question,
@@ -109,7 +109,7 @@ pub async fn run_or_submit_question(
     }) = &mut run_or_submit_code
     {
         match graphql::console_panel_config::Query::new(slug.clone())
-            .post(client)
+            .send(client)
             .await
         {
             Ok(resp) => {
