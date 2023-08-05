@@ -1,3 +1,5 @@
+mod tasks;
+
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
@@ -5,6 +7,7 @@ use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
+use crate::app_ui::async_task_channel::TaskRequest::DbUpdateQuestion;
 use crate::app_ui::async_task_channel::{Request, Response, TaskResponse};
 use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
 use crate::app_ui::components::popups::paragraph::ParagraphPopup;
@@ -29,11 +32,17 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
+use self::tasks::{
+    process_get_all_question_map_task_content, process_question_detail_response,
+    process_question_editor_data,
+};
+
 use super::notification::{NotifContent, Notification, PopupMessage, PopupType, WidgetName};
 use super::{CommonState, CrosstermStderr, Widget};
 use crate::app_ui::components::color::{Callout, TokyoNightColors, CHECK_MARK};
 use lru;
 use std::num::NonZeroUsize;
+use tasks::TaskType;
 
 #[derive(Debug, Default)]
 struct CachedQuestion {
@@ -70,14 +79,6 @@ impl CachedQuestion {
         }
         None
     }
-}
-
-#[derive(Debug)]
-enum TaskType {
-    Run,
-    Edit,
-    Read,
-    Submit,
 }
 
 #[derive(Debug)]
@@ -296,16 +297,14 @@ impl QuestionListWidget {
         Ok(())
     }
 
-    fn sync_db_solution_submit_status(&mut self, question: Question) -> AppResult<()> {
+    fn sync_db_solution_submit_status(&mut self, question: &Question) -> AppResult<()> {
         self.show_spinner()?;
         self.get_task_sender()
-            .send(
-                crate::app_ui::async_task_channel::TaskRequest::DbUpdateQuestion(Request {
-                    widget_name: self.get_widget_name(),
-                    request_id: "".to_string(),
-                    content: question.borrow().to_owned(),
-                }),
-            )
+            .send(DbUpdateQuestion(Request {
+                widget_name: self.get_widget_name(),
+                request_id: "".to_string(),
+                content: question.borrow().to_owned(),
+            }))
             .map_err(Box::new)?;
         Ok(())
     }
@@ -717,45 +716,14 @@ impl super::Widget for QuestionListWidget {
         Ok(())
     }
 
-    fn process_task_response(
-        &mut self,
-        response: crate::app_ui::async_task_channel::TaskResponse,
-    ) -> AppResult<()> {
+    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()> {
         match response {
-            crate::app_ui::async_task_channel::TaskResponse::GetAllQuestionsMap(Response {
-                content,
-                ..
-            }) => {
-                // creating rc cloned question as one question can appear in multiple topics
-                let question_set = content
-                    .iter()
-                    .flat_map(|x| {
-                        x.1.iter().map(|x| {
-                            (
-                                x.frontend_question_id.clone(),
-                                Rc::new(RefCell::new(x.clone())),
-                            )
-                        })
-                    })
-                    .collect::<HashMap<_, _>>();
-
-                let map_iter = content.into_iter().map(|v| {
-                    (
-                        Rc::new(v.0),
-                        (v.1.into_iter()
-                            .map(|x| question_set.get(&x.frontend_question_id).unwrap().clone()))
-                        .collect::<Vec<_>>(),
-                    )
-                });
-
-                for ql in &mut self.topic_tag_question_map.values_mut() {
-                    ql.sort_unstable()
-                }
-
-                self._fid_question_mapping =
-                    IndexMap::from_iter(question_set.iter().map(|(x, y)| (x.clone(), y.clone())));
-                self._fid_question_mapping.sort_by(|_, y, _, k| y.cmp(k));
-                self.topic_tag_question_map.extend(map_iter);
+            TaskResponse::GetAllQuestionsMap(Response { content, .. }) => {
+                process_get_all_question_map_task_content(
+                    content,
+                    &mut self.topic_tag_question_map,
+                    &mut self._fid_question_mapping,
+                );
 
                 self.process_neetcode_75_questions();
 
@@ -770,136 +738,36 @@ impl super::Widget for QuestionListWidget {
                         }],
                     )));
             }
-            crate::app_ui::async_task_channel::TaskResponse::QuestionDetail(qd) => {
-                let key = self
-                    .task_map
-                    .remove(&qd.request_id)
-                    .expect("sent task is not found in the task list.")
-                    .0
-                    .borrow()
-                    .frontend_question_id
-                    .clone();
-                let cached_q = self.cache.get_or_insert_mut(key, CachedQuestion::default);
-                cached_q.qd = Some(qd.content);
+            TaskResponse::QuestionDetail(qd) => {
+                process_question_detail_response(qd, &mut self.task_map, &mut self.cache);
             }
             TaskResponse::QuestionEditorData(ed) => {
-                let key = self
-                    .task_map
-                    .remove(&ed.request_id)
-                    .expect("sent task is not found in the task list.")
-                    .0
-                    .borrow()
-                    .frontend_question_id
-                    .clone();
-                let cached_q = self.cache.get_or_insert_mut(key, CachedQuestion::default);
-                cached_q.editor_data = Some(ed.content);
+                process_question_editor_data(ed, &mut self.task_map, &mut self.cache);
             }
             TaskResponse::RunResponseData(run_res) => {
+                let popup_content = run_res.content.to_string();
                 let mut is_submit = false;
-                let k = match run_res.content {
-                    ParsedResponse::Pending => "Pending".to_string(),
-                    ParsedResponse::CompileError(_) => "Compile Error".to_string(),
-                    ParsedResponse::RuntimeError(_) => {
-                        // } => format!("{status_msg}:\n\n{runtime_error}\n\n{full_runtime_error}"),
-                        "Runtime Error".to_string()
+                if matches!(
+                    run_res.content,
+                    ParsedResponse::Success(Success::Submit { .. })
+                ) {
+                    is_submit = true;
+                    // upon successful submit of the question update the question accepted status
+                    // also update the db
+                    {
+                        let (model, _) = &self.task_map[&run_res.request_id];
+                        model.borrow_mut().status = Some("ac".to_string());
+                        self.sync_db_solution_submit_status(&model.clone())?;
                     }
-                    ParsedResponse::MemoryLimitExceeded(_) => "Memory Limit Exceeded".to_string(),
-                    ParsedResponse::OutputLimitExceed(_) => "Output Limit Exceeded".to_string(),
-                    ParsedResponse::TimeLimitExceeded(_) => "Time Limit Exceeded".to_string(),
-                    ParsedResponse::InternalError(_) => "Internal Error".to_string(),
-                    ParsedResponse::TimeOut(_) => "Timout".to_string(),
-                    ParsedResponse::Success(Success::Run {
-                        status_runtime,
-                        code_answer,
-                        expected_code_answer,
-                        correct_answer,
-                        total_correct,
-                        total_testcases,
-                        status_memory,
-                        ..
-                    }) => {
-                        let is_accepted_symbol = if correct_answer { "✅" } else { "❌" };
-                        let mut ans_compare = String::new();
-                        for (output, expected_output) in
-                            code_answer.into_iter().zip(expected_code_answer)
-                        {
-                            let emoji = if output == expected_output {
-                                "✅"
-                            } else {
-                                "❌"
-                            };
-                            let compare = format!(
-                                "{emoji}\nOuput: {}\nExpected: {}\n\n",
-                                output, expected_output
-                            );
-                            ans_compare.push_str(compare.as_str())
-                        }
-                        let result_string = vec![
-                            format!("Accepted: {}", is_accepted_symbol),
-                            if let Some(correct) = total_correct {
-                                let mut x = format!("Correct: {correct}");
-                                if let Some(total) = total_testcases {
-                                    x = format!("{x}/{}", total);
-                                }
-                                x
-                            } else {
-                                String::new()
-                            },
-                            format!("Memory Used: {status_memory}"),
-                            format!("Status Runtime: {status_runtime}"),
-                            ans_compare,
-                        ];
-                        result_string.join("\n")
-                    }
-                    ParsedResponse::Success(Success::Submit {
-                        status_runtime,
-                        total_correct,
-                        total_testcases,
-                        status_memory,
-                        ..
-                    }) => {
-                        // upon successful submit of the question update the question accepted status
-                        // also update the db
-                        {
-                            let question_model_container = self
-                                .task_map
-                                .get(&run_res.request_id)
-                                .expect(
-                                "Cannot get the question model container from the sent task map.",
-                            );
-                            question_model_container.0.borrow_mut().status = Some("ac".to_string());
-                            self.sync_db_solution_submit_status(
-                                question_model_container.0.clone(),
-                            )?;
-                        }
-                        is_submit = true;
-                        let is_accepted_symbol = "✅";
-                        let result_string = vec![
-                            format!("Accepted: {}", is_accepted_symbol),
-                            if let Some(correct) = total_correct {
-                                let mut x = format!("Correct: {correct}");
-                                if let Some(total) = total_testcases {
-                                    x = format!("{x}/{}", total);
-                                }
-                                x
-                            } else {
-                                String::new()
-                            },
-                            format!("Memory Used: {status_memory}"),
-                            format!("Status Runtime: {status_runtime}"),
-                        ];
-                        result_string.join("\n")
-                    }
-                    ParsedResponse::Unknown(_) => "Unknown Error".to_string(),
-                };
+                }
                 let notification = self.popup_paragraph_notification(
-                    k,
+                    popup_content,
                     format!("{} Status", (if is_submit { "Submit" } else { "Run" })),
                     IndexSet::new(),
                 );
                 // post submit remove the reference_task_key from task_map
-                self.task_map.remove(&run_res.request_id).unwrap();
                 self.get_notification_queue().push_back(notification);
+                self.task_map.remove(&run_res.request_id).unwrap();
             }
             TaskResponse::Error(e) => {
                 let src_wid = self.get_widget_name();
