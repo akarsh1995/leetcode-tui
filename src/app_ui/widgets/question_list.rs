@@ -92,7 +92,7 @@ type Question = Rc<RefCell<QuestionModel>>;
 pub struct QuestionListWidget {
     pub common_state: CommonState,
     pub questions: StatefulList<Question>,
-    pub all_questions: HashMap<Rc<TopicTagModel>, Vec<Question>>,
+    pub topic_tag_question_map: HashMap<Rc<TopicTagModel>, Vec<Question>>,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
 
@@ -157,7 +157,7 @@ impl QuestionListWidget {
                     CommonHelpText::Submit.into(),
                 ],
             ),
-            all_questions: HashMap::new(),
+            topic_tag_question_map: HashMap::new(),
             questions: Default::default(),
             vim_tx,
             vim_running,
@@ -545,7 +545,7 @@ impl QuestionListWidget {
                     .replace(question.clone());
             }
         }
-        self.all_questions.insert(
+        self.topic_tag_question_map.insert(
             Rc::new(TopicTagModel {
                 id: "neetcode-75".to_string(),
                 name: "Neetcode 75".to_string(),
@@ -748,14 +748,14 @@ impl super::Widget for QuestionListWidget {
                     )
                 });
 
-                for ql in &mut self.all_questions.values_mut() {
+                for ql in &mut self.topic_tag_question_map.values_mut() {
                     ql.sort_unstable()
                 }
 
                 self._fid_question_mapping =
                     IndexMap::from_iter(question_set.iter().map(|(x, y)| (x.clone(), y.clone())));
                 self._fid_question_mapping.sort_by(|_, y, _, k| y.cmp(k));
-                self.all_questions.extend(map_iter);
+                self.topic_tag_question_map.extend(map_iter);
 
                 self.process_neetcode_75_questions();
 
@@ -944,7 +944,7 @@ impl super::Widget for QuestionListWidget {
                         self.jump_to = 0;
                         return Ok(Some(notif));
                     } else {
-                        let values = self.all_questions[&tag].clone();
+                        let values = self.topic_tag_question_map[&tag].clone();
                         let notif = Notification::Stats(NotifContent::new(
                             WidgetName::QuestionList,
                             WidgetName::Stats,
