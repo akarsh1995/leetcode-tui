@@ -1,10 +1,9 @@
 use ratatui::widgets::ListState;
-use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct StatefulList<T> {
     pub state: ListState,
-    pub items: Vec<Rc<T>>,
+    pub items: Vec<T>,
 }
 
 impl<T> Default for StatefulList<T> {
@@ -21,10 +20,10 @@ impl<T> StatefulList<T> {
         if self.items.is_empty() {
             self.state.select(Some(0))
         }
-        self.items.push(Rc::new(item))
+        self.items.push(item)
     }
 
-    pub fn get_selected_item(&self) -> Option<&Rc<T>> {
+    pub fn get_selected_item(&self) -> Option<&T> {
         match self.state.selected() {
             Some(i) => Some(&self.items[i]),
             None => None,
@@ -38,7 +37,7 @@ impl<T> StatefulList<T> {
         }
         StatefulList {
             state: list_state,
-            items: items.into_iter().map(|item| Rc::new(item)).collect(),
+            items,
         }
     }
 

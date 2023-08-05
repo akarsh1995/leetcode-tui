@@ -53,8 +53,8 @@ impl TopicTagListWidget {
     }
 
     fn update_questions(&mut self) -> AppResult<Option<Notification>> {
-        if let Some(sel) = self.topics.get_selected_item() {
-            let questions = vec![sel.as_ref().clone()];
+        if let Some(topic_tag) = self.topics.get_selected_item() {
+            let questions = vec![topic_tag.clone()];
             let notif = Notification::Questions(NotifContent::new(
                 WidgetName::TopicList,
                 QuestionList,
@@ -80,7 +80,7 @@ impl Widget for TopicTagListWidget {
             .topics
             .items
             .iter()
-            .map(|tt| Self::get_item(tt))
+            .map(Self::get_item)
             .collect::<Vec<_>>();
 
         let mut border_style = Style::default();
