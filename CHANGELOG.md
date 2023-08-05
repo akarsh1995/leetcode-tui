@@ -33,6 +33,7 @@ All notable changes to this project will be documented in this file.
 - Not null constraints on the fields that are never null from the server.
 - `QuestionModelContainer { question: RefCell<QuestionModel> }` changed to `Rc<RefCell<QuestionModel>>`
     - As prior implemented hash. Hashables should not be mutable.
+- Colorscheme as per tokyonight style.
 
 ## [0.2.0] - 2023-07-30
 

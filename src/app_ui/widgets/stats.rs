@@ -1,5 +1,5 @@
 use super::{notification::NotifContent, *};
-use crate::app_ui::components::color::Callout;
+use crate::app_ui::components::color::{Callout, TokyoNightColors};
 use crate::app_ui::{async_task_channel::ChannelRequestSender, helpers::question};
 use ratatui::{
     prelude::*,
@@ -134,22 +134,24 @@ struct StatState {
 }
 
 impl StatState {
-    fn get_gauge(title: &str, val: usize, total: usize, comination: Callout) -> Gauge {
+    fn get_gauge(title: &str, val: usize, total: usize, style: Style) -> Gauge {
         let block_title = format!("{}: {}/{}", title, val, total);
         let percentage = if total != 0 {
             (val as f32 / total as f32) * 100_f32
         } else {
             0 as f32
         };
-        let style: Style = comination.get_pair().fg.into();
+        // let style: Style = style.into();
         let label = Span::styled(
             format!("{:.2}%", percentage),
-            style.add_modifier(Modifier::ITALIC | Modifier::BOLD),
+            style
+                .add_modifier(Modifier::ITALIC | Modifier::BOLD)
+                .bg(TokyoNightColors::Selection.into()),
         );
 
         Gauge::default()
             .block(Block::default().title(block_title).borders(Borders::ALL))
-            .gauge_style(Style::default().fg(Color::Green).bg(Color::Black))
+            .gauge_style(style)
             .percent(percentage as u16)
             .label(label)
     }
@@ -158,30 +160,35 @@ impl StatState {
 impl<'a> From<&StatState> for Vec<Gauge<'a>> {
     fn from(value: &StatState) -> Self {
         [
-            ("Total Accepted", value.accepted, value.total, Callout::Info),
+            (
+                "Total Accepted",
+                value.accepted,
+                value.total,
+                TokyoNightColors::Purple.into(),
+            ),
             (
                 "Total Attempted",
                 value.total - value.not_attempted,
                 value.total,
-                Callout::Info,
+                TokyoNightColors::Purple.into(),
             ),
             (
                 "Easy Accepted",
                 value.easy_accepted,
                 value.easy,
-                Callout::Success,
+                Callout::Success.into(),
             ),
             (
                 "Medium Accepted",
                 value.medium_accepted,
                 value.medium,
-                Callout::Warning,
+                Callout::Warning.into(),
             ),
             (
                 "Hard Accepted",
                 value.hard_accepted,
                 value.hard,
-                Callout::Error,
+                Callout::Error.into(),
             ),
         ]
         .into_iter()

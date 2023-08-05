@@ -31,7 +31,7 @@ use ratatui::{
 
 use super::notification::{NotifContent, Notification, PopupMessage, PopupType, WidgetName};
 use super::{CommonState, CrosstermStderr, Widget};
-use crate::app_ui::components::color::{Callout, CHECK_MARK};
+use crate::app_ui::components::color::{Callout, TokyoNightColors, CHECK_MARK};
 use lru;
 use std::num::NonZeroUsize;
 
@@ -391,7 +391,7 @@ impl QuestionListWidget {
         })
     }
 
-    fn get_item(question: &Question) -> ListItem {
+    fn get_question_list_render_item(question: &Question) -> ListItem {
         let number = question.borrow().frontend_question_id.clone();
         let title = question.borrow().title.clone();
 
@@ -417,13 +417,12 @@ impl QuestionListWidget {
         let qs_diff = question.borrow().difficulty.clone();
 
         let combination: Style = match qs_diff.as_str() {
-            "Easy" => Callout::Success.get_pair().fg,
-            "Medium" => Callout::Warning.get_pair().fg,
-            "Hard" => Callout::Error.get_pair().fg,
-            "Disabled" => Callout::Disabled.get_pair().fg,
+            "Easy" => Into::<Style>::into(Callout::Success),
+            "Medium" => Callout::Warning.into(),
+            "Hard" => Callout::Error.into(),
+            "Disabled" => Callout::Disabled.into(),
             _ => unimplemented!(),
-        }
-        .into();
+        };
 
         let styled_title = Span::styled(line_text, combination);
         ListItem::new(styled_title)
@@ -566,12 +565,12 @@ impl super::Widget for QuestionListWidget {
             .questions
             .items
             .iter()
-            .map(Self::get_item)
+            .map(Self::get_question_list_render_item)
             .collect::<Vec<_>>();
 
         let mut border_style = Style::default();
         if self.is_active() {
-            border_style = border_style.fg(Color::Cyan);
+            border_style = border_style.fg(TokyoNightColors::Pink.into());
         }
 
         let items = List::new(lines)
@@ -583,7 +582,7 @@ impl super::Widget for QuestionListWidget {
             )
             .highlight_style(
                 Style::default()
-                    .bg(Color::Rgb(0, 0, 0))
+                    .bg(TokyoNightColors::Selection.into())
                     .add_modifier(Modifier::BOLD),
             );
         frame.render_stateful_widget(items, rect, &mut self.questions.state);

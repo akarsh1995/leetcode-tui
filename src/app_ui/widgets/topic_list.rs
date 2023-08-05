@@ -3,7 +3,7 @@ use crate::{
         async_task_channel::{
             ChannelRequestSender, Request as TaskRequestFormat, Response, TaskRequest, TaskResponse,
         },
-        components::{help_text::CommonHelpText, list::StatefulList},
+        components::{color::TokyoNightColors, help_text::CommonHelpText, list::StatefulList},
     },
     entities::TopicTagModel,
     errors::AppResult,
@@ -86,7 +86,7 @@ impl Widget for TopicTagListWidget {
         let mut border_style = Style::default();
 
         if self.is_active() {
-            border_style = border_style.fg(Color::Cyan);
+            border_style = border_style.fg(TokyoNightColors::Pink.into());
         }
 
         let hstyle: Style = Callout::Info.into();
@@ -97,7 +97,12 @@ impl Widget for TopicTagListWidget {
                     .title("Topics")
                     .border_style(border_style),
             )
-            .highlight_style(hstyle.add_modifier(Modifier::BOLD));
+            .highlight_style(
+                hstyle
+                    .add_modifier(Modifier::BOLD)
+                    .fg(TokyoNightColors::Pink.into())
+                    .bg(TokyoNightColors::Selection.into()),
+            );
         frame.render_stateful_widget(items, rect, &mut self.topics.state);
     }
 
