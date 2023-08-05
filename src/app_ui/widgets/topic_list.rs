@@ -128,6 +128,11 @@ impl Widget for TopicTagListWidget {
                 id: "all".to_owned(),
                 slug: Some("all".to_owned()),
             });
+            self.topics.add_item(TopicTagModel {
+                id: "neetcode-75".to_string(),
+                name: Some("Neetcode 75".to_string()),
+                slug: Some("neetcode-75".to_string()),
+            });
             for tt in content {
                 self.topics.add_item(tt)
             }

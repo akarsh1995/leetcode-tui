@@ -550,6 +550,40 @@ impl QuestionListWidget {
             IndexSet::new(),
         )))
     }
+
+    fn process_neetcode_75_questions(&mut self, all_questions: impl Iterator<Item = Question>) {
+        let nc75slugset: HashMap<&str, usize> = HashMap::from_iter(
+            NEETCODE_75
+                .into_iter()
+                .zip(0..75)
+                .collect::<Vec<(&str, usize)>>(),
+        );
+
+        let mut nc75questions: Vec<Option<Question>> = vec![None; 75];
+        for question in all_questions {
+            let title = question
+                .question
+                .borrow()
+                .title_slug
+                .as_ref()
+                .unwrap()
+                .clone();
+            if nc75slugset.contains_key(&title.as_str()) {
+                nc75questions[*nc75slugset.get(title.as_str()).unwrap()] = Some(question.clone());
+            }
+        }
+        self.all_questions.insert(
+            Rc::new(TopicTagModel {
+                id: "neetcode-75".to_string(),
+                name: Some("Neetcode 75".to_string()),
+                slug: Some("neetcode-75".to_string()),
+            }),
+            nc75questions
+                .into_iter()
+                .map(|v| v.unwrap())
+                .collect::<Vec<_>>(),
+        );
+    }
 }
 
 impl super::Widget for QuestionListWidget {
@@ -734,6 +768,8 @@ impl super::Widget for QuestionListWidget {
                     })
                     .collect::<HashMap<_, _>>();
 
+                let all_question_list = question_set.values().cloned();
+
                 let map_iter = content.into_iter().map(|v| {
                     (
                         Rc::new(v.0),
@@ -742,11 +778,11 @@ impl super::Widget for QuestionListWidget {
                         .collect::<Vec<_>>(),
                     )
                 });
-
                 self.all_questions.extend(map_iter);
                 for ql in &mut self.all_questions.values_mut() {
                     ql.sort_unstable()
                 }
+                self.process_neetcode_75_questions(all_question_list);
                 self.get_notification_queue()
                     .push_back(Notification::Questions(NotifContent::new(
                         WidgetName::QuestionList,
@@ -1023,3 +1059,81 @@ impl super::Widget for QuestionListWidget {
         &mut self.common_state.notification_queue
     }
 }
+
+const NEETCODE_75: [&str; 75] = [
+    "contains-duplicate",
+    "valid-anagram",
+    "two-sum",
+    "group-anagrams",
+    "top-k-frequent-elements",
+    "product-of-array-except-self",
+    "encode-and-decode-strings",
+    "longest-consecutive-sequence",
+    "valid-palindrome",
+    "3sum",
+    "container-with-most-water",
+    "best-time-to-buy-and-sell-stock",
+    "longest-substring-without-repeating-characters",
+    "longest-repeating-character-replacement",
+    "minimum-window-substring",
+    "valid-parentheses",
+    "find-minimum-in-rotated-sorted-array",
+    "search-in-rotated-sorted-array",
+    "reverse-linked-list",
+    "merge-two-sorted-lists",
+    "reorder-list",
+    "remove-nth-node-from-end-of-list",
+    "linked-list-cycle",
+    "merge-k-sorted-lists",
+    "invert-binary-tree",
+    "maximum-depth-of-binary-tree",
+    "same-tree",
+    "subtree-of-another-tree",
+    "lowest-common-ancestor-of-a-binary-search-tree",
+    "binary-tree-level-order-traversal",
+    "validate-binary-search-tree",
+    "kth-smallest-element-in-a-bst",
+    "construct-binary-tree-from-preorder-and-inorder-traversal",
+    "binary-tree-maximum-path-sum",
+    "serialize-and-deserialize-binary-tree",
+    "implement-trie-prefix-tree",
+    "design-add-and-search-words-data-structure",
+    "word-search-ii",
+    "find-median-from-data-stream",
+    "combination-sum",
+    "word-search",
+    "number-of-islands",
+    "clone-graph",
+    "pacific-atlantic-water-flow",
+    "course-schedule",
+    "number-of-connected-components-in-an-undirected-graph",
+    "graph-valid-tree",
+    "alien-dictionary",
+    "climbing-stairs",
+    "house-robber",
+    "house-robber-ii",
+    "longest-palindromic-substring",
+    "palindromic-substrings",
+    "decode-ways",
+    "coin-change",
+    "maximum-product-subarray",
+    "word-break",
+    "longest-increasing-subsequence",
+    "unique-paths",
+    "longest-common-subsequence",
+    "maximum-subarray",
+    "jump-game",
+    "insert-interval",
+    "merge-intervals",
+    "non-overlapping-intervals",
+    "meeting-rooms",
+    "meeting-rooms-ii",
+    "rotate-image",
+    "spiral-matrix",
+    "set-matrix-zeroes",
+    "number-of-1-bits",
+    "counting-bits",
+    "reverse-bits",
+    "missing-number",
+    "sum-of-two-integers",
+];

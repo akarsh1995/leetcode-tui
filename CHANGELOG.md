@@ -22,6 +22,12 @@ All notable changes to this project will be documented in this file.
 
 - Invalidate questions cache through `userSessionProgress`
 
+## [0.2.1] - [Unreleased]
+
+### Added
+
+- Neetcode 75 question list.
+
 ## [0.2.0] - 2023-07-30
 
 ### Added
