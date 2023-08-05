@@ -178,13 +178,7 @@ impl QuestionListWidget {
                 crate::app_ui::async_task_channel::TaskRequest::GetQuestionEditorData(Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key,
-                    content: question
-                        .question
-                        .borrow()
-                        .title_slug
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                    content: question.question.borrow().title_slug.clone(),
                 }),
             )
             .map_err(Box::new)?;
@@ -208,13 +202,7 @@ impl QuestionListWidget {
                 lang,
                 question_id: question.question.borrow().frontend_question_id.clone(),
                 typed_code,
-                slug: question
-                    .question
-                    .borrow()
-                    .title_slug
-                    .as_ref()
-                    .unwrap()
-                    .clone(),
+                slug: question.question.borrow().title_slug.clone(),
             };
 
             RunOrSubmitCode::Submit(submit_code)
@@ -224,13 +212,7 @@ impl QuestionListWidget {
                 question_id: question.question.borrow().frontend_question_id.clone(),
                 typed_code,
                 test_cases_stdin: None, // automatically fetches sample test cases from the server
-                slug: question
-                    .question
-                    .borrow()
-                    .title_slug
-                    .as_ref()
-                    .unwrap()
-                    .clone(),
+                slug: question.question.borrow().title_slug.clone(),
             };
 
             RunOrSubmitCode::Run(run_code)
@@ -292,13 +274,7 @@ impl QuestionListWidget {
                 crate::app_ui::async_task_channel::TaskRequest::QuestionDetail(Request {
                     widget_name: self.get_widget_name(),
                     request_id: random_key,
-                    content: question
-                        .question
-                        .borrow()
-                        .title_slug
-                        .as_ref()
-                        .unwrap()
-                        .clone(),
+                    content: question.question.borrow().title_slug.clone(),
                 }),
             )
             .map_err(Box::new)?;
@@ -401,13 +377,7 @@ impl QuestionListWidget {
 
     fn get_item(question: &Rc<QuestionModelContainer>) -> ListItem {
         let number = question.question.borrow().frontend_question_id.clone();
-        let title = question
-            .question
-            .borrow()
-            .title
-            .as_ref()
-            .unwrap_or(&"No title".to_string())
-            .to_string();
+        let title = question.question.borrow().title.clone();
 
         let is_accepted = question
             .question
@@ -429,13 +399,7 @@ impl QuestionListWidget {
             title
         );
 
-        let qs_diff = question
-            .question
-            .borrow()
-            .difficulty
-            .as_ref()
-            .unwrap_or(&"Disabled".to_string())
-            .to_string();
+        let qs_diff = question.question.borrow().difficulty.clone();
 
         let combination: Style = match qs_diff.as_str() {
             "Easy" => Callout::Success.get_pair().fg,
@@ -464,7 +428,7 @@ impl QuestionListWidget {
                 KeyCode::Enter => {
                     if let Some(cache_ques) = &ques_in_cache.qd {
                         let content = cache_ques.html_to_text();
-                        let title = qm.question.borrow().title.as_ref().unwrap().to_string();
+                        let title = qm.question.borrow().title.to_string();
                         let notif = self.popup_paragraph_notification(
                             content,
                             title,
@@ -561,13 +525,7 @@ impl QuestionListWidget {
 
         let mut nc75questions: Vec<Option<Question>> = vec![None; 75];
         for question in all_questions {
-            let title = question
-                .question
-                .borrow()
-                .title_slug
-                .as_ref()
-                .unwrap()
-                .clone();
+            let title = question.question.borrow().title_slug.clone();
             if nc75slugset.contains_key(&title.as_str()) {
                 nc75questions[*nc75slugset.get(title.as_str()).unwrap()] = Some(question.clone());
             }
@@ -575,8 +533,8 @@ impl QuestionListWidget {
         self.all_questions.insert(
             Rc::new(TopicTagModel {
                 id: "neetcode-75".to_string(),
-                name: Some("Neetcode 75".to_string()),
-                slug: Some("neetcode-75".to_string()),
+                name: "Neetcode 75".to_string(),
+                slug: "neetcode-75".to_string(),
             }),
             nc75questions
                 .into_iter()
@@ -625,7 +583,7 @@ impl super::Widget for QuestionListWidget {
 
                 if question_data_in_cache {
                     let content = cache.get_question_content().unwrap();
-                    let title = model.question.borrow().title.as_ref().unwrap().clone();
+                    let title = model.question.borrow().title.clone();
                     return Ok(Some(self.popup_paragraph_notification(
                         content,
                         title,
@@ -788,9 +746,9 @@ impl super::Widget for QuestionListWidget {
                         WidgetName::QuestionList,
                         super::notification::WidgetName::QuestionList,
                         vec![TopicTagModel {
-                            name: Some("All".to_owned()),
+                            name: "All".to_owned(),
                             id: "all".to_owned(),
-                            slug: Some("all".to_owned()),
+                            slug: "all".to_owned(),
                         }],
                     )));
             }

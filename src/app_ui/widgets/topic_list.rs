@@ -49,12 +49,7 @@ impl TopicTagListWidget {
 
 impl TopicTagListWidget {
     fn get_item(ttm: &TopicTagModel) -> ListItem {
-        ListItem::new(Text::styled(
-            ttm.name
-                .as_ref()
-                .map_or("Not a Valid Tag".to_string(), |name| name.to_owned()),
-            Style::default(),
-        ))
+        ListItem::new(Text::styled(ttm.name.clone(), Style::default()))
     }
 
     fn update_questions(&mut self) -> AppResult<Option<Notification>> {
@@ -124,14 +119,14 @@ impl Widget for TopicTagListWidget {
     fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()> {
         if let TaskResponse::AllTopicTags(Response { content, .. }) = response {
             self.topics.add_item(TopicTagModel {
-                name: Some("All".to_owned()),
+                name: "All".to_owned(),
                 id: "all".to_owned(),
-                slug: Some("all".to_owned()),
+                slug: "all".to_owned(),
             });
             self.topics.add_item(TopicTagModel {
                 id: "neetcode-75".to_string(),
-                name: Some("Neetcode 75".to_string()),
-                slug: Some("neetcode-75".to_string()),
+                name: "Neetcode 75".to_string(),
+                slug: "neetcode-75".to_string(),
             });
             for tt in content {
                 self.topics.add_item(tt)

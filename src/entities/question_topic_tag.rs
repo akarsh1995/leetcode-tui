@@ -17,16 +17,16 @@ pub enum Relation {
         belongs_to = "super::question::Entity",
         from = "Column::QuestionId",
         to = "super::question::Column::FrontendQuestionId",
-        on_update = "NoAction",
-        on_delete = "NoAction"
+        on_update = "Cascade",
+        on_delete = "Cascade"
     )]
     Question,
     #[sea_orm(
         belongs_to = "super::topic_tag::Entity",
         from = "Column::TagId",
         to = "super::topic_tag::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
+        on_update = "Cascade",
+        on_delete = "Cascade"
     )]
     TopicTag,
 }

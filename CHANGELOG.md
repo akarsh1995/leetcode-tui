@@ -28,6 +28,10 @@ All notable changes to this project will be documented in this file.
 
 - Neetcode 75 question list.
 
+### Fixed
+
+- Not null constraints on the fields that are never null from the server.
+
 ## [0.2.0] - 2023-07-30
 
 ### Added

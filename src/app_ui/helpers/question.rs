@@ -67,11 +67,7 @@ impl<'a> Stats<'a> {
             .iter()
             .filter(|q| {
                 if let Some(st) = &q.question.borrow().status {
-                    if let Some(at) = &q.question.borrow().difficulty {
-                        st.as_str() == status && difficulty == at.as_str()
-                    } else {
-                        false
-                    }
+                    st.as_str() == status && difficulty == q.question.borrow().difficulty.as_str()
                 } else {
                     false
                 }
@@ -95,13 +91,7 @@ impl<'a> Stats<'a> {
     fn get_diff_count(&self, difficulty: &str) -> usize {
         self.qm
             .iter()
-            .filter(|q| {
-                if let Some(diff) = &q.question.borrow().difficulty {
-                    diff.as_str() == difficulty
-                } else {
-                    false
-                }
-            })
+            .filter(|q| q.question.borrow().difficulty.as_str() == difficulty)
             .count()
     }
 }
