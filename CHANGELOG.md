@@ -22,6 +22,18 @@ All notable changes to this project will be documented in this file.
 
 - Invalidate questions cache through `userSessionProgress`
 
+## [0.2.1] - [Unreleased]
+
+### Added
+
+- Neetcode 75 question list.
+
+### Changed
+
+- Not null constraints on the fields that are never null from the server.
+- `QuestionModelContainer { question: RefCell<QuestionModel> }` changed to `Rc<RefCell<QuestionModel>>`
+    - As prior implemented hash. Hashables should not be mutable.
+
 ## [0.2.0] - 2023-07-30
 
 ### Added

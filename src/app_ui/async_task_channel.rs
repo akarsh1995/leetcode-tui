@@ -22,46 +22,36 @@ pub enum TaskRequest {
     DbUpdateQuestion(Request<QuestionModel>),
 }
 
-impl TaskRequest {
-    pub async fn execute(
-        self,
-        client: &reqwest::Client,
-        conn: &DatabaseConnection,
-    ) -> TaskResponse {
-        match self {
-            TaskRequest::QuestionDetail(Request {
-                content: slug,
-                widget_name,
-                request_id,
-            }) => get_question_details(request_id, widget_name, slug, client).await,
-            TaskRequest::GetAllQuestionsMap(Request {
-                widget_name,
-                request_id,
-                ..
-            }) => get_all_questions(request_id, widget_name, conn).await,
-            TaskRequest::GetAllTopicTags(Request {
-                widget_name,
-                request_id,
-                ..
-            }) => get_all_topic_tags(request_id, widget_name, conn).await,
-            TaskRequest::GetQuestionEditorData(Request {
-                request_id,
-                content,
-                widget_name,
-            }) => get_editor_data(request_id, widget_name, content, client).await,
-            TaskRequest::CodeRunRequest(Request {
-                request_id,
-                content,
-                widget_name,
-            }) => run_or_submit_question(request_id, widget_name, content, client).await,
-            TaskRequest::DbUpdateQuestion(Request {
-                request_id,
-                content,
-                widget_name,
-            }) => update_status_to_accepted(request_id, widget_name, content, conn).await,
+macro_rules! impl_task_request {
+    ($(($var:ident, $f_name: ident)),*) => {
+        impl TaskRequest {
+            pub async fn execute(
+                self,
+                client: &reqwest::Client,
+                conn: &DatabaseConnection,
+            ) -> TaskResponse {
+                match self {
+                    $(
+                        TaskRequest::$var(Request {
+                            content,
+                            widget_name,
+                            request_id,
+                        }) => $f_name(request_id, widget_name, content, client, conn).await,
+                    )*
+                }
+            }
         }
-    }
+    };
 }
+
+impl_task_request!(
+    (QuestionDetail, get_question_details),
+    (GetAllQuestionsMap, get_all_questions),
+    (GetAllTopicTags, get_all_topic_tags),
+    (GetQuestionEditorData, get_editor_data),
+    (CodeRunRequest, run_or_submit_question),
+    (DbUpdateQuestion, update_status_to_accepted)
+);
 
 #[derive(Debug)]
 pub struct Response<T> {
@@ -81,20 +71,30 @@ pub enum TaskResponse {
     Error(Response<String>),
 }
 
-impl TaskResponse {
-    pub fn get_widget_name(&self) -> WidgetName {
-        match self {
-            TaskResponse::QuestionDetail(Response { widget_name, .. }) => widget_name,
-            TaskResponse::GetAllQuestionsMap(Response { widget_name, .. }) => widget_name,
-            TaskResponse::AllTopicTags(Response { widget_name, .. }) => widget_name,
-            TaskResponse::Error(Response { widget_name, .. }) => widget_name,
-            TaskResponse::QuestionEditorData(Response { widget_name, .. }) => widget_name,
-            TaskResponse::RunResponseData(Response { widget_name, .. }) => widget_name,
-            TaskResponse::DbUpdateStatus(Response { widget_name, .. }) => widget_name,
+macro_rules! impl_task_response {
+    ($($variant:ident),*) => {
+        impl TaskResponse {
+            pub fn get_widget_name(&self) -> WidgetName {
+                match self {
+                    $(
+                        TaskResponse::$variant(Response { widget_name, .. }) => widget_name,
+                    )*
+                }
+                .clone()
+            }
         }
-        .clone()
-    }
+    };
 }
+
+impl_task_response!(
+    QuestionDetail,
+    GetAllQuestionsMap,
+    AllTopicTags,
+    QuestionEditorData,
+    RunResponseData,
+    DbUpdateStatus,
+    Error
+);
 
 pub type ChannelRequestSender = tokio::sync::mpsc::UnboundedSender<TaskRequest>;
 pub type ChannelRequestReceiver = tokio::sync::mpsc::UnboundedReceiver<TaskRequest>;

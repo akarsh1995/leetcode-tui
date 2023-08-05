@@ -1,24 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::entities::QuestionModel;
-use std::hash::Hash;
-
-#[derive(PartialEq, Eq, Debug, Ord, PartialOrd)]
-pub struct QuestionModelContainer {
-    pub question: RefCell<QuestionModel>,
-}
-
-// RefCell keys are mutable and should not be used in types where hashing
-// is required. This implementation is valid until question_frontend_id change.
-// For more refer https://rust-lang.github.io/rust-clippy/master/index.html#/mutable_key_type
-impl Hash for QuestionModelContainer {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.question.borrow().hash(state)
-    }
-}
 
 pub struct Stats<'a> {
-    pub qm: &'a Vec<Rc<QuestionModelContainer>>,
+    pub qm: &'a Vec<Rc<RefCell<QuestionModel>>>,
 }
 
 impl<'a> Stats<'a> {
@@ -66,12 +51,8 @@ impl<'a> Stats<'a> {
         self.qm
             .iter()
             .filter(|q| {
-                if let Some(st) = &q.question.borrow().status {
-                    if let Some(at) = &q.question.borrow().difficulty {
-                        st.as_str() == status && difficulty == at.as_str()
-                    } else {
-                        false
-                    }
+                if let Some(st) = &q.borrow().status {
+                    st.as_str() == status && difficulty == q.borrow().difficulty.as_str()
                 } else {
                     false
                 }
@@ -83,7 +64,7 @@ impl<'a> Stats<'a> {
         self.qm
             .iter()
             .filter(|q| {
-                if let Some(st) = &q.question.borrow().status {
+                if let Some(st) = &q.borrow().status {
                     st.as_str() == status
                 } else {
                     false
@@ -95,13 +76,7 @@ impl<'a> Stats<'a> {
     fn get_diff_count(&self, difficulty: &str) -> usize {
         self.qm
             .iter()
-            .filter(|q| {
-                if let Some(diff) = &q.question.borrow().difficulty {
-                    diff.as_str() == difficulty
-                } else {
-                    false
-                }
-            })
+            .filter(|q| q.borrow().difficulty.as_str() == difficulty)
             .count()
     }
 }

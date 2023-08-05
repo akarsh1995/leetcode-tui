@@ -49,17 +49,12 @@ impl TopicTagListWidget {
 
 impl TopicTagListWidget {
     fn get_item(ttm: &TopicTagModel) -> ListItem {
-        ListItem::new(Text::styled(
-            ttm.name
-                .as_ref()
-                .map_or("Not a Valid Tag".to_string(), |name| name.to_owned()),
-            Style::default(),
-        ))
+        ListItem::new(Text::styled(ttm.name.clone(), Style::default()))
     }
 
     fn update_questions(&mut self) -> AppResult<Option<Notification>> {
-        if let Some(sel) = self.topics.get_selected_item() {
-            let questions = vec![sel.as_ref().clone()];
+        if let Some(topic_tag) = self.topics.get_selected_item() {
+            let questions = vec![topic_tag.clone()];
             let notif = Notification::Questions(NotifContent::new(
                 WidgetName::TopicList,
                 QuestionList,
@@ -85,7 +80,7 @@ impl Widget for TopicTagListWidget {
             .topics
             .items
             .iter()
-            .map(|tt| Self::get_item(tt))
+            .map(Self::get_item)
             .collect::<Vec<_>>();
 
         let mut border_style = Style::default();
@@ -124,9 +119,14 @@ impl Widget for TopicTagListWidget {
     fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()> {
         if let TaskResponse::AllTopicTags(Response { content, .. }) = response {
             self.topics.add_item(TopicTagModel {
-                name: Some("All".to_owned()),
+                name: "All".to_owned(),
                 id: "all".to_owned(),
-                slug: Some("all".to_owned()),
+                slug: "all".to_owned(),
+            });
+            self.topics.add_item(TopicTagModel {
+                id: "neetcode-75".to_string(),
+                name: "Neetcode 75".to_string(),
+                slug: "neetcode-75".to_string(),
             });
             for tt in content {
                 self.topics.add_item(tt)

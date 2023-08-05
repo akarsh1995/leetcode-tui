@@ -60,7 +60,7 @@ impl Component for SelectionListPopup {
             .items
             .iter()
             .map(|item| {
-                let line_text = item.as_ref();
+                let line_text = item;
                 ListItem::new(Span::styled(line_text, Style::default()))
             })
             .collect::<Vec<_>>();

@@ -10,28 +10,20 @@ pub async fn update_database_questions(
     database_client: &DatabaseConnection,
 ) -> AppResult<()> {
     let query = QuestionDbQuery::default();
-    let query_response = query.post(client).await?;
+    let query_response = query.send(client).await?;
     let total_questions = query_response.get_total_questions();
-
-    let chunk_size = 100;
-    let n_chunks = total_questions / chunk_size;
-    for i in kdam::tqdm!(0..n_chunks) {
-        let skip = i * chunk_size;
-        let take = chunk_size;
-        let client_copy = client.clone();
-        let db_client_copy = database_client.clone();
-        let resp = QuestionDbQuery::new(take, skip).post(&client_copy).await?;
-        let questions = resp.get_questions();
-        Question::multi_insert(&db_client_copy, questions).await?;
-    }
-
-    if total_questions % chunk_size != 0 {
-        let skip = n_chunks * chunk_size;
-        let take = total_questions - skip;
-        let client_copy = client.clone();
-        let db_client_copy = database_client.clone();
-        let resp = QuestionDbQuery::new(take, skip).post(&client_copy).await?;
-        Question::multi_insert(&db_client_copy, resp.get_questions()).await?;
+    let chunk_size: usize = 100;
+    let total_range = (0..total_questions).collect::<Vec<_>>();
+    for chunk in kdam::tqdm!(total_range.chunks(chunk_size)) {
+        if let Some(skip) = chunk.first() {
+            let client_copy = client.clone();
+            let db_client_copy = database_client.clone();
+            let resp = QuestionDbQuery::new(chunk.len() as i32, *skip)
+                .send(&client_copy)
+                .await?;
+            let questions = resp.get_questions();
+            Question::multi_insert(&db_client_copy, questions).await?;
+        }
     }
     Ok(())
 }
@@ -109,4 +101,18 @@ pub async fn async_tasks_executor(
         tx_response.send(response).map_err(Box::new)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_chunking() {
+        let range = (0..11).collect::<Vec<_>>();
+        for (chunk, first) in range.chunks(2).zip([0, 2, 4, 6, 8]) {
+            assert_eq!(chunk.first().unwrap(), &first);
+            assert_eq!(chunk.len(), 2);
+        }
+        assert_eq!(range.chunks(2).nth(5), Some(vec![10].as_slice()));
+    }
 }

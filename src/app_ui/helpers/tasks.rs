@@ -13,8 +13,9 @@ pub async fn get_question_details(
     widget_name: WidgetName,
     slug: String,
     client: &reqwest::Client,
+    _conn: &DatabaseConnection,
 ) -> TaskResponse {
-    match QuestionGQLQuery::new(slug).post(client).await {
+    match QuestionGQLQuery::new(slug).send(client).await {
         Ok(resp) => {
             let query_response = resp;
             TaskResponse::QuestionDetail(Response {
@@ -36,8 +37,9 @@ pub async fn get_editor_data(
     widget_name: WidgetName,
     slug: String,
     client: &reqwest::Client,
+    _conn: &DatabaseConnection,
 ) -> TaskResponse {
-    match QuestionEditorDataQuery::new(slug).post(client).await {
+    match QuestionEditorDataQuery::new(slug).send(client).await {
         Ok(data) => TaskResponse::QuestionEditorData(Response {
             request_id,
             content: data.data.question,
@@ -54,6 +56,8 @@ pub async fn get_editor_data(
 pub async fn get_all_questions(
     request_id: String,
     widget_name: WidgetName,
+    _content: (),
+    _client: &reqwest::Client,
     conn: &DatabaseConnection,
 ) -> TaskResponse {
     match TopicTagEntity::get_all_topic_questions_map(conn).await {
@@ -73,6 +77,8 @@ pub async fn get_all_questions(
 pub async fn get_all_topic_tags(
     request_id: String,
     widget_name: WidgetName,
+    _content: (),
+    _client: &reqwest::Client,
     conn: &DatabaseConnection,
 ) -> TaskResponse {
     match TopicTagEntity::get_all_topics(conn).await {
@@ -94,6 +100,7 @@ pub async fn run_or_submit_question(
     widget_name: WidgetName,
     mut run_or_submit_code: graphql::RunOrSubmitCode,
     client: &reqwest::Client,
+    _conn: &DatabaseConnection,
 ) -> TaskResponse {
     if let RunOrSubmitCode::Run(RunCode {
         test_cases_stdin,
@@ -102,7 +109,7 @@ pub async fn run_or_submit_question(
     }) = &mut run_or_submit_code
     {
         match graphql::console_panel_config::Query::new(slug.clone())
-            .post(client)
+            .send(client)
             .await
         {
             Ok(resp) => {
@@ -136,6 +143,7 @@ pub async fn update_status_to_accepted(
     request_id: String,
     widget_name: WidgetName,
     question: QuestionModel,
+    _client: &reqwest::Client,
     db: &DatabaseConnection,
 ) -> TaskResponse {
     let mut am = question.into_active_model();
