@@ -20,6 +20,16 @@ use super::ModelUtils;
 use sea_orm::prelude::async_trait::async_trait;
 use sea_orm::{prelude::*, sea_query::OnConflict};
 
+const UNKNOWN_ID: &str = "unknown";
+
+pub fn get_unknown_topic_tag() -> TopicTagModel {
+    TopicTagModel {
+        name: "Unknown".to_string(),
+        id: UNKNOWN_ID.to_string(),
+        slug: UNKNOWN_ID.to_string(),
+    }
+}
+
 #[async_trait]
 impl ModelUtils for TopicTag {
     type ActiveModel = TopicTagActiveModel;
@@ -30,6 +40,24 @@ impl ModelUtils for TopicTag {
         OnConflict::column(topic_tag::Column::Id)
             .update_columns([topic_tag::Column::Name, topic_tag::Column::Slug])
             .to_owned()
+    }
+
+    async fn post_multi_insert(db: &DatabaseConnection, _objects: Vec<Self>) -> AppResult<()> {
+        let active_model: Self::ActiveModel = get_unknown_topic_tag().into();
+        let res = Self::Entity::insert(active_model)
+            .on_conflict(
+                OnConflict::column(topic_tag::Column::Id)
+                    .do_nothing()
+                    .to_owned(),
+            )
+            .exec(db)
+            .await;
+
+        // record not inserted is accepted because the record already exists in table
+        if !matches!(res, Result::Err(DbErr::RecordNotInserted)) {
+            res?;
+        }
+        Ok(())
     }
 }
 
@@ -52,14 +80,27 @@ impl ModelUtils for Question {
     }
 
     async fn post_multi_insert(db: &DatabaseConnection, objects: Vec<Self>) -> AppResult<()> {
-        let mut qtags: Vec<QuestionTopicActiveModel> = vec![];
+        let mut q_topic_tags: Vec<QuestionTopicActiveModel> = vec![];
+        let mut topic_tags = vec![];
 
         for quest in objects {
             let qid = quest.frontend_question_id;
-            if let Some(tts) = quest.topic_tags {
+            if let Some(mut tts) = quest.topic_tags {
+                // handle questions which are not tagged.
+                if tts.is_empty() {
+                    q_topic_tags.push(
+                        QuestionTopicTagModel {
+                            question_id: qid.clone(),
+                            tag_id: UNKNOWN_ID.to_string(),
+                        }
+                        .into(),
+                    );
+                    continue;
+                }
+                // handle questions which are tagged
                 for tt in &tts {
                     let tt_id = tt.id.clone();
-                    qtags.push(
+                    q_topic_tags.push(
                         QuestionTopicTagModel {
                             question_id: qid.clone(),
                             tag_id: tt_id,
@@ -67,11 +108,12 @@ impl ModelUtils for Question {
                         .into(),
                     )
                 }
-                TopicTag::multi_insert(db, tts).await?;
+                topic_tags.append(&mut tts);
             }
         }
+        TopicTag::multi_insert(db, topic_tags).await?;
 
-        let qtt_insert_result = QuestionTopicTag::insert_many(qtags).exec(db).await;
+        let qtt_insert_result = QuestionTopicTag::insert_many(q_topic_tags).exec(db).await;
 
         if let Err(DbErr::RecordNotInserted) = qtt_insert_result {
             println!("Some records not inserted because they are already present.")

@@ -35,6 +35,11 @@ All notable changes to this project will be documented in this file.
     - As prior implemented hash. Hashables should not be mutable.
 - Colorscheme as per tokyonight style.
 
+### Fixed
+
+- Some questions did not appear in "All" question list because they were not attached to any topic.
+    - To resolve Unknown topic tag is added to the questions which do not have any topic tag.
+
 ## [0.2.0] - 2023-07-30
 
 ### Added
