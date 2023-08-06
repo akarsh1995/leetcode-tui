@@ -800,9 +800,10 @@ impl super::Widget for QuestionListWidget {
                 self.questions.items = vec![];
                 if let Some(tag) = tags.into_iter().next() {
                     // if any topic change notification is received set jump to state to 0
+                    let notif;
                     if tag.id == "all" {
                         let all_q = self._fid_question_mapping.values().cloned();
-                        let notif = Notification::Stats(NotifContent::new(
+                        notif = Notification::Stats(NotifContent::new(
                             WidgetName::QuestionList,
                             WidgetName::Stats,
                             all_q.clone().collect(),
@@ -810,18 +811,17 @@ impl super::Widget for QuestionListWidget {
                         self.questions.items.extend(all_q);
                         self.selected_topic_all = true;
                         self.jump_to = 0;
-                        return Ok(Some(notif));
                     } else {
                         let values = self.topic_tag_question_map[&tag].clone();
-                        let notif = Notification::Stats(NotifContent::new(
+                        notif = Notification::Stats(NotifContent::new(
                             WidgetName::QuestionList,
                             WidgetName::Stats,
                             values.to_vec(),
                         ));
                         self.questions.items.extend(values);
                         self.selected_topic_all = false;
-                        return Ok(Some(notif));
                     };
+                    return Ok(Some(notif));
                 }
             }
             Notification::SelectedItem(NotifContent { content, .. }) => {
