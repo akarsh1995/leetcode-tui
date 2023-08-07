@@ -1080,6 +1080,7 @@ dependencies = [
  "indexmap 2.0.0",
  "kdam",
  "lru",
+ "once_cell",
  "rand",
  "ratatui",
  "reqwest",

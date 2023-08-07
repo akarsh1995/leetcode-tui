@@ -1,3 +1,4 @@
+pub(crate) mod custom_lists;
 mod tasks;
 
 use std::cell::RefCell;
@@ -32,6 +33,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
+use self::custom_lists::NEETCODE_75;
 use self::tasks::{
     process_get_all_question_map_task_content, process_question_detail_response,
     process_question_editor_data,
@@ -530,30 +532,9 @@ impl QuestionListWidget {
     }
 
     fn process_neetcode_75_questions(&mut self) {
-        let nc75slugset: HashMap<&str, usize> = HashMap::from_iter(
-            NEETCODE_75
-                .into_iter()
-                .zip(0..75)
-                .collect::<Vec<(&str, usize)>>(),
-        );
-
-        let mut nc75questions: Vec<Option<Question>> = vec![None; 75];
-        for question in self._fid_question_mapping.values() {
-            if nc75slugset.contains_key(&question.borrow().title_slug.as_str()) {
-                nc75questions[nc75slugset[&question.borrow().title_slug.as_str()]]
-                    .replace(question.clone());
-            }
-        }
         self.topic_tag_question_map.insert(
-            Rc::new(TopicTagModel {
-                id: "neetcode-75".to_string(),
-                name: "Neetcode 75".to_string(),
-                slug: "neetcode-75".to_string(),
-            }),
-            nc75questions
-                .into_iter()
-                .map(|v| v.unwrap())
-                .collect::<Vec<_>>(),
+            Rc::new(custom_lists::NEETCODE_75.get_topic_tag()),
+            NEETCODE_75.filter_questions(self._fid_question_mapping.values()),
         );
     }
 }
@@ -895,81 +876,3 @@ impl super::Widget for QuestionListWidget {
         &mut self.common_state.notification_queue
     }
 }
-
-const NEETCODE_75: [&str; 75] = [
-    "contains-duplicate",
-    "valid-anagram",
-    "two-sum",
-    "group-anagrams",
-    "top-k-frequent-elements",
-    "product-of-array-except-self",
-    "encode-and-decode-strings",
-    "longest-consecutive-sequence",
-    "valid-palindrome",
-    "3sum",
-    "container-with-most-water",
-    "best-time-to-buy-and-sell-stock",
-    "longest-substring-without-repeating-characters",
-    "longest-repeating-character-replacement",
-    "minimum-window-substring",
-    "valid-parentheses",
-    "find-minimum-in-rotated-sorted-array",
-    "search-in-rotated-sorted-array",
-    "reverse-linked-list",
-    "merge-two-sorted-lists",
-    "reorder-list",
-    "remove-nth-node-from-end-of-list",
-    "linked-list-cycle",
-    "merge-k-sorted-lists",
-    "invert-binary-tree",
-    "maximum-depth-of-binary-tree",
-    "same-tree",
-    "subtree-of-another-tree",
-    "lowest-common-ancestor-of-a-binary-search-tree",
-    "binary-tree-level-order-traversal",
-    "validate-binary-search-tree",
-    "kth-smallest-element-in-a-bst",
-    "construct-binary-tree-from-preorder-and-inorder-traversal",
-    "binary-tree-maximum-path-sum",
-    "serialize-and-deserialize-binary-tree",
-    "implement-trie-prefix-tree",
-    "design-add-and-search-words-data-structure",
-    "word-search-ii",
-    "find-median-from-data-stream",
-    "combination-sum",
-    "word-search",
-    "number-of-islands",
-    "clone-graph",
-    "pacific-atlantic-water-flow",
-    "course-schedule",
-    "number-of-connected-components-in-an-undirected-graph",
-    "graph-valid-tree",
-    "alien-dictionary",
-    "climbing-stairs",
-    "house-robber",
-    "house-robber-ii",
-    "longest-palindromic-substring",
-    "palindromic-substrings",
-    "decode-ways",
-    "coin-change",
-    "maximum-product-subarray",
-    "word-break",
-    "longest-increasing-subsequence",
-    "unique-paths",
-    "longest-common-subsequence",
-    "maximum-subarray",
-    "jump-game",
-    "insert-interval",
-    "merge-intervals",
-    "non-overlapping-intervals",
-    "meeting-rooms",
-    "meeting-rooms-ii",
-    "rotate-image",
-    "spiral-matrix",
-    "set-matrix-zeroes",
-    "number-of-1-bits",
-    "counting-bits",
-    "reverse-bits",
-    "missing-number",
-    "sum-of-two-integers",
-];

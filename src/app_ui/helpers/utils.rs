@@ -51,6 +51,17 @@ impl Hash for SolutionFile {
     }
 }
 
+pub(crate) fn slugify(input: &str) -> String {
+    // Replace non-alphanumeric characters with hyphens
+    let slug = input
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect::<String>();
+
+    // Convert the slug to lowercase
+    slug.to_lowercase()
+}
+
 impl SolutionFile {
     pub(crate) fn new(
         slug: String,

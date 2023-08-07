@@ -4,6 +4,7 @@ use crate::{
             ChannelRequestSender, Request as TaskRequestFormat, Response, TaskRequest, TaskResponse,
         },
         components::{color::TokyoNightColors, help_text::CommonHelpText, list::StatefulList},
+        widgets::question_list::custom_lists::NEETCODE_75,
     },
     entities::TopicTagModel,
     errors::AppResult,
@@ -128,11 +129,7 @@ impl Widget for TopicTagListWidget {
                 id: "all".to_owned(),
                 slug: "all".to_owned(),
             });
-            self.topics.add_item(TopicTagModel {
-                id: "neetcode-75".to_string(),
-                name: "Neetcode 75".to_string(),
-                slug: "neetcode-75".to_string(),
-            });
+            self.topics.add_item(NEETCODE_75.get_topic_tag());
             for tt in content {
                 self.topics.add_item(tt)
             }
