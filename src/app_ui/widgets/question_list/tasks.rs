@@ -39,6 +39,7 @@ pub(super) fn process_get_all_question_map_task_content(
         })
         .collect::<IndexMap<_, _>>();
 
+    // (topic_tag, question_mapping)
     let map_iter = content.into_iter().map(|v| {
         (
             Rc::new(v.0),
@@ -48,7 +49,17 @@ pub(super) fn process_get_all_question_map_task_content(
         )
     });
 
+    let all_questions = question_set.values().cloned().collect();
+
     topic_tag_question_map.extend(map_iter);
+    topic_tag_question_map.extend(vec![(
+        Rc::new(TopicTagModel {
+            name: "All".to_owned(),
+            id: "all".to_owned(),
+            slug: "all".to_owned(),
+        }),
+        all_questions,
+    )]);
 
     for ql in topic_tag_question_map.values_mut() {
         ql.sort_unstable()

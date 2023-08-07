@@ -14,6 +14,7 @@ use crate::app_ui::components::help_text::{CommonHelpText, HelpText};
 use crate::app_ui::components::popups::paragraph::ParagraphPopup;
 use crate::app_ui::components::popups::selection_list::SelectionListPopup;
 use crate::app_ui::event::VimPingSender;
+use crate::app_ui::helpers::matcher::Matcher;
 use crate::app_ui::helpers::utils::{generate_random_string, SolutionFile};
 use crate::app_ui::{async_task_channel::ChannelRequestSender, components::list::StatefulList};
 use crate::config::Config;
@@ -28,6 +29,7 @@ use crate::graphql::{Language, RunOrSubmitCode};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use indexmap::{IndexMap, IndexSet};
+use ratatui::widgets::Paragraph;
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, List, ListItem},
@@ -86,6 +88,7 @@ impl CachedQuestion {
 #[derive(Debug)]
 enum State {
     JumpingTo,
+    Filter,
     Normal,
 }
 
@@ -117,7 +120,8 @@ pub struct QuestionListWidget {
     files: HashMap<i32, HashSet<SolutionFile>>,
     jump_to: usize,
     state: State,
-    selected_topic_all: bool,
+    selected_topic: Option<TopicTagModel>,
+    needle: Option<String>,
 }
 
 impl QuestionListWidget {
@@ -171,8 +175,9 @@ impl QuestionListWidget {
             files,
             jump_to: 0,
             state: State::Normal,
-            selected_topic_all: false,
             _fid_question_mapping: IndexMap::new(),
+            needle: None,
+            selected_topic: None,
         }
     }
 }
@@ -537,10 +542,62 @@ impl QuestionListWidget {
             NEETCODE_75.filter_questions(self._fid_question_mapping.values()),
         );
     }
+
+    fn is_selected_topic_all(&self) -> bool {
+        if let Some(st) = &self.selected_topic {
+            return st.id == "all";
+        }
+        false
+    }
+
+    fn update_questions_based_on_filter(&mut self) {
+        if let Some(needle) = &self.needle {
+            if let Some(selected_topic) = &self.selected_topic {
+                let j = &self.topic_tag_question_map[selected_topic]
+                    .iter()
+                    .map(|q| q.borrow())
+                    .collect::<Vec<_>>();
+                let question_strs = j.iter().map(|q| q.title.as_str());
+                let mut m = Matcher::new(Some(question_strs));
+                if let Some(matching_indices) = m.match_with_key(needle.as_str()) {
+                    let matches: HashSet<usize> = HashSet::from_iter(matching_indices);
+                    self.questions.items = self.topic_tag_question_map[selected_topic]
+                        .iter()
+                        .enumerate()
+                        .filter(|(i, _)| matches.contains(i))
+                        .map(|(_, q)| q.clone())
+                        .collect()
+                }
+            }
+        }
+    }
 }
 
 impl super::Widget for QuestionListWidget {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
+        let mut question_list_chunk = rect;
+        if matches!(self.state, State::Filter) {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(95), Constraint::Percentage(5)].as_ref())
+                .split(rect);
+            let (question_chunk, search_chunk) = (chunks[0], chunks[1]);
+            let needle = self.needle.as_ref().map_or("", |v| v.as_str());
+            let search_color: ratatui::style::Color = TokyoNightColors::Pink.into();
+            let text_color: ratatui::style::Color = TokyoNightColors::Foreground.into();
+            let search_bar = Line::from(vec![
+                Span::from("Search: ").fg(search_color),
+                Span::from(needle).fg(text_color),
+            ]);
+            let p = Paragraph::new(search_bar).block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(TokyoNightColors::Pink.into())),
+            );
+            frame.render_widget(p, search_chunk);
+            question_list_chunk = question_chunk;
+        }
+
         let lines = self
             .questions
             .items
@@ -565,73 +622,86 @@ impl super::Widget for QuestionListWidget {
                     .bg(TokyoNightColors::Selection.into())
                     .add_modifier(Modifier::BOLD),
             );
-        frame.render_stateful_widget(items, rect, &mut self.questions.state);
+        frame.render_stateful_widget(items, question_list_chunk, &mut self.questions.state);
     }
 
     fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
-        match event.code {
-            crossterm::event::KeyCode::Up => self.questions.previous(),
-            crossterm::event::KeyCode::Down => self.questions.next(),
-            crossterm::event::KeyCode::Enter => {
-                let (cache, model) = self.get_selected_question_from_cache();
-                let question_data_in_cache = cache.question_data_received();
+        match (&self.state, event.code) {
+            (_, KeyCode::Esc) => {
+                self.state = State::Normal;
+            }
+            (State::Normal, e) => match e {
+                KeyCode::Up => self.questions.previous(),
+                KeyCode::Down => self.questions.next(),
+                KeyCode::Enter => {
+                    let (cache, model) = self.get_selected_question_from_cache();
+                    let question_data_in_cache = cache.question_data_received();
 
-                if question_data_in_cache {
-                    let content = cache.get_question_content().unwrap();
-                    let title = model.borrow().title.clone();
-                    return Ok(Some(self.popup_paragraph_notification(
-                        content,
-                        title,
-                        IndexSet::from_iter([CommonHelpText::Edit.into()]),
-                    )));
+                    if question_data_in_cache {
+                        let content = cache.get_question_content().unwrap();
+                        let title = model.borrow().title.clone();
+                        return Ok(Some(self.popup_paragraph_notification(
+                            content,
+                            title,
+                            IndexSet::from_iter([CommonHelpText::Edit.into()]),
+                        )));
+                    }
+
+                    if self.is_notif_pending(&(event, model.clone())) {
+                        self.process_pending_events();
+                        return Ok(None);
+                    }
+
+                    // before sending the task request set the key as the request id and value
+                    // as question model so that we can obtain the question model once we get the response
+                    self.send_fetch_question_details(model.clone())?;
+                    self.add_event_to_event_queue((
+                        event,
+                        model.borrow().frontend_question_id.clone(),
+                    ));
                 }
 
-                if self.is_notif_pending(&(event, model.clone())) {
-                    self.process_pending_events();
-                    return Ok(None);
+                KeyCode::Char('e') | KeyCode::Char('E') => {
+                    let (cache, model) = self.get_selected_question_from_cache();
+                    let question_data_in_cache = cache.question_data_received();
+                    let question_editor_data_in_cache = cache.editor_data_received();
+
+                    if question_data_in_cache && question_editor_data_in_cache {
+                        let content = cache.get_list_of_languages().unwrap();
+                        let title = "Select Language".to_string();
+                        let popup_key = generate_random_string(10);
+                        self.task_map
+                            .insert(popup_key.clone(), (model, TaskType::Edit));
+                        let notif = self.popup_list_notification(
+                            content,
+                            title,
+                            popup_key,
+                            IndexSet::new(),
+                        );
+                        return Ok(Some(notif));
+                    }
+
+                    if self.is_notif_pending(&(event, model.clone())) {
+                        self.process_pending_events();
+                        return Ok(None);
+                    }
+
+                    // before sending the task request set the key as the request id and value
+                    // as question model so that we can obtain the question model once we get the response
+                    self.send_fetch_question_editor_details(model.clone())?;
+                    self.add_event_to_event_queue((
+                        event,
+                        model.borrow().frontend_question_id.clone(),
+                    ));
                 }
 
-                // before sending the task request set the key as the request id and value
-                // as question model so that we can obtain the question model once we get the response
-                self.send_fetch_question_details(model.clone())?;
-                self.add_event_to_event_queue((event, model.borrow().frontend_question_id.clone()));
-            }
-
-            KeyCode::Char('e') | KeyCode::Char('E') => {
-                let (cache, model) = self.get_selected_question_from_cache();
-                let question_data_in_cache = cache.question_data_received();
-                let question_editor_data_in_cache = cache.editor_data_received();
-
-                if question_data_in_cache && question_editor_data_in_cache {
-                    let content = cache.get_list_of_languages().unwrap();
-                    let title = "Select Language".to_string();
-                    let popup_key = generate_random_string(10);
-                    self.task_map
-                        .insert(popup_key.clone(), (model, TaskType::Edit));
-                    let notif =
-                        self.popup_list_notification(content, title, popup_key, IndexSet::new());
-                    return Ok(Some(notif));
+                KeyCode::Char('r') | KeyCode::Char('R') => {
+                    return self.run_or_submit_code_event_handler(TaskType::Run);
                 }
-
-                if self.is_notif_pending(&(event, model.clone())) {
-                    self.process_pending_events();
-                    return Ok(None);
+                KeyCode::Char('s') => {
+                    return self.run_or_submit_code_event_handler(TaskType::Submit);
                 }
-
-                // before sending the task request set the key as the request id and value
-                // as question model so that we can obtain the question model once we get the response
-                self.send_fetch_question_editor_details(model.clone())?;
-                self.add_event_to_event_queue((event, model.borrow().frontend_question_id.clone()));
-            }
-
-            KeyCode::Char('r') | KeyCode::Char('R') => {
-                return self.run_or_submit_code_event_handler(TaskType::Run);
-            }
-            KeyCode::Char('s') => {
-                return self.run_or_submit_code_event_handler(TaskType::Submit);
-            }
-            KeyCode::Char(c) => match self.state {
-                State::Normal => {
+                KeyCode::Char(c) => {
                     if c.is_numeric() {
                         self.state = State::JumpingTo;
                         self.jump_to = 0;
@@ -639,14 +709,22 @@ impl super::Widget for QuestionListWidget {
                         self.jump_to *= 10;
                         self.jump_to += digit;
                     }
+                    if c == '/' {
+                        self.state = State::Filter;
+                    }
                 }
-                State::JumpingTo => {
+                _ => {}
+            },
+            (State::JumpingTo, e) => {
+                if let KeyCode::Char(c) = e {
                     if c.is_numeric() {
                         let digit = c.to_digit(10).unwrap() as usize;
                         self.jump_to *= 10;
                         self.jump_to += digit;
                     } else if c == 'G' {
-                        if !self.selected_topic_all {
+                        if !self.is_selected_topic_all() {
+                            self.state = State::Normal;
+                            self.jump_to = 0;
                             return Ok(Some(self.popup_paragraph_notification(
                                 "Can only use jump to in all topic section".to_string(),
                                 "Jump Info".to_string(),
@@ -665,6 +743,7 @@ impl super::Widget for QuestionListWidget {
                         } else if self.jump_to == 0 {
                             failed_notif_msg = Some("No Question with id = 0".to_string());
                         }
+                        self.state = State::Normal;
                         self.jump_to = 0;
                         return Ok(failed_notif_msg.map(|msg| {
                             self.popup_paragraph_notification(
@@ -678,8 +757,32 @@ impl super::Widget for QuestionListWidget {
                         self.jump_to = 0;
                     }
                 }
+            }
+            (State::Filter, keycode) => match keycode {
+                KeyCode::Char(c) => {
+                    if let Some(n) = &mut self.needle {
+                        n.push(c)
+                    } else {
+                        self.needle = Some(c.to_string())
+                    }
+                    self.update_questions_based_on_filter();
+                }
+                KeyCode::Backspace => {
+                    if let Some(s) = self.needle.as_mut() {
+                        if !s.is_empty() {
+                            s.pop();
+                        } else {
+                            self.needle = None;
+                            self.state = State::Normal;
+                        }
+                        self.update_questions_based_on_filter();
+                    }
+                }
+                _ => {
+                    self.state = State::Normal;
+                    return self.handler(event);
+                }
             },
-            _ => {}
         };
         Ok(None)
     }
@@ -781,27 +884,17 @@ impl super::Widget for QuestionListWidget {
                 self.questions.items = vec![];
                 if let Some(tag) = tags.into_iter().next() {
                     // if any topic change notification is received set jump to state to 0
-                    let notif;
                     if tag.id == "all" {
-                        let all_q = self._fid_question_mapping.values().cloned();
-                        notif = Notification::Stats(NotifContent::new(
-                            WidgetName::QuestionList,
-                            WidgetName::Stats,
-                            all_q.clone().collect(),
-                        ));
-                        self.questions.items.extend(all_q);
-                        self.selected_topic_all = true;
                         self.jump_to = 0;
-                    } else {
-                        let values = self.topic_tag_question_map[&tag].clone();
-                        notif = Notification::Stats(NotifContent::new(
-                            WidgetName::QuestionList,
-                            WidgetName::Stats,
-                            values.to_vec(),
-                        ));
-                        self.questions.items.extend(values);
-                        self.selected_topic_all = false;
                     };
+                    let values = self.topic_tag_question_map[&tag].clone();
+                    let notif = Notification::Stats(NotifContent::new(
+                        WidgetName::QuestionList,
+                        WidgetName::Stats,
+                        values.to_vec(),
+                    ));
+                    self.questions.items = values;
+                    self.selected_topic = Some(tag);
                     return Ok(Some(notif));
                 }
             }
