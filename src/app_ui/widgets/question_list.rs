@@ -417,15 +417,15 @@ impl QuestionListWidget {
 
         let qs_diff = question.borrow().difficulty.clone();
 
-        let combination: Style = match qs_diff.as_str() {
-            "Easy" => Into::<Style>::into(Callout::Success),
-            "Medium" => Callout::Warning.into(),
-            "Hard" => Callout::Error.into(),
-            "Disabled" => Callout::Disabled.into(),
+        let text_color = match qs_diff.as_str() {
+            "Easy" => Callout::Success,
+            "Medium" => Callout::Warning,
+            "Hard" => Callout::Error,
+            "Disabled" => Callout::Disabled,
             _ => unimplemented!(),
         };
 
-        let styled_title = Span::styled(line_text, combination);
+        let styled_title = Span::styled(line_text, text_color.into());
         ListItem::new(styled_title)
     }
 
