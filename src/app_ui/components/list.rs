@@ -1,21 +1,23 @@
 use ratatui::widgets::ListState;
 
 #[derive(Debug, Clone)]
-pub struct StatefulList<T> {
+pub struct StatefulList<T, F: Fn(&T) -> &str> {
     pub state: ListState,
     pub items: Vec<T>,
+    pub str_fn: Option<F>,
 }
 
-impl<T> Default for StatefulList<T> {
+impl<T, F> Default for StatefulList<T, F> {
     fn default() -> Self {
         Self {
             state: ListState::default(),
             items: vec![],
+            str_fn: None,
         }
     }
 }
 
-impl<T> StatefulList<T> {
+impl<T, F> StatefulList<T, F> {
     pub fn add_item(&mut self, item: T) {
         if self.items.is_empty() {
             self.state.select(Some(0))
@@ -30,7 +32,7 @@ impl<T> StatefulList<T> {
         }
     }
 
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
+    pub fn with_items(items: Vec<T>) -> StatefulList<T, F> {
         let mut list_state = ListState::default();
         if !items.is_empty() {
             list_state.select(Some(0))
@@ -38,6 +40,7 @@ impl<T> StatefulList<T> {
         StatefulList {
             state: list_state,
             items,
+            str_fn: None,
         }
     }
 

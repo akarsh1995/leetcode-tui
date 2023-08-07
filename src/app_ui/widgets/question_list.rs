@@ -86,15 +86,20 @@ impl CachedQuestion {
 #[derive(Debug)]
 enum State {
     JumpingTo,
+    Filter,
     Normal,
 }
 
 type Question = Rc<RefCell<QuestionModel>>;
 
+fn get_str_from_question(q: &Question) -> &str {
+    q.borrow().title.as_str()
+}
+
 #[derive(Debug)]
-pub struct QuestionListWidget {
+pub struct QuestionListWidget<F: Fn(&Question) -> &str> {
     pub common_state: CommonState,
-    pub questions: StatefulList<Question>,
+    pub questions: StatefulList<Question, F>,
     pub topic_tag_question_map: HashMap<Rc<TopicTagModel>, Vec<Question>>,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
@@ -118,9 +123,10 @@ pub struct QuestionListWidget {
     jump_to: usize,
     state: State,
     selected_topic_all: bool,
+    needle: Option<String>,
 }
 
-impl QuestionListWidget {
+impl<F> QuestionListWidget<F> {
     pub fn new(
         id: WidgetName,
         task_sender: ChannelRequestSender,
@@ -173,11 +179,12 @@ impl QuestionListWidget {
             state: State::Normal,
             selected_topic_all: false,
             _fid_question_mapping: IndexMap::new(),
+            needle: None,
         }
     }
 }
 
-impl QuestionListWidget {
+impl<F> QuestionListWidget<F> {
     fn peek_cache_by_question(&mut self, question: &Question) -> Option<&CachedQuestion> {
         self.cache.peek(&question.borrow().frontend_question_id)
     }
@@ -539,7 +546,7 @@ impl QuestionListWidget {
     }
 }
 
-impl super::Widget for QuestionListWidget {
+impl<F> super::Widget for QuestionListWidget<F> {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self
             .questions
@@ -630,6 +637,9 @@ impl super::Widget for QuestionListWidget {
             KeyCode::Char('s') => {
                 return self.run_or_submit_code_event_handler(TaskType::Submit);
             }
+            KeyCode::Esc => {
+                self.state = State::Normal;
+            }
             KeyCode::Char(c) => match self.state {
                 State::Normal => {
                     if c.is_numeric() {
@@ -638,6 +648,9 @@ impl super::Widget for QuestionListWidget {
                         let digit = c.to_digit(10).unwrap() as usize;
                         self.jump_to *= 10;
                         self.jump_to += digit;
+                    }
+                    if c == '/' {
+                        self.state = State::Filter;
                     }
                 }
                 State::JumpingTo => {
@@ -677,6 +690,18 @@ impl super::Widget for QuestionListWidget {
                         self.state = State::Normal;
                         self.jump_to = 0;
                     }
+                }
+                State::Filter => {
+                    if let Some(n) = &mut self.needle {
+                        n.push(c)
+                    } else {
+                        self.needle = Some(c.to_string())
+                    }
+                    // let m = Matcher {
+                    //     values
+
+                    // }
+                    // self.questions.items
                 }
             },
             _ => {}
