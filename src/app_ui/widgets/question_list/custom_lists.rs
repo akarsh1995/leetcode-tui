@@ -2,15 +2,13 @@ use std::collections::HashMap;
 
 use crate::{app_ui::helpers::utils::slugify, entities::TopicTagModel};
 
-use once_cell::sync::Lazy;
-
 pub(crate) struct CustomQuestionList<'a> {
     title: &'a str,
     slugs: &'a [&'a str],
 }
 
 impl<'a> CustomQuestionList<'a> {
-    fn new(slugs: &'a [&'a str], title: &'a str) -> Self {
+    const fn new(slugs: &'a [&'a str], title: &'a str) -> Self {
         Self { title, slugs }
     }
 }
@@ -141,5 +139,5 @@ const _NEETCODE_75: [&str; 75] = [
     "sum-of-two-integers",
 ];
 
-pub(crate) static NEETCODE_75: Lazy<CustomQuestionList<'static>> =
-    Lazy::new(|| CustomQuestionList::new(_NEETCODE_75.as_slice(), "Neetcode 75"));
+pub(crate) const NEETCODE_75: CustomQuestionList<'static> =
+    CustomQuestionList::new(_NEETCODE_75.as_slice(), "Neetcode 75");
