@@ -21,7 +21,7 @@ use super::{
         NotifContent, Notification,
         WidgetName::{self, QuestionList},
     },
-    CommonState, CrosstermStderr, Widget,
+    CommonState, CommonStateManager, CrosstermStderr, Widget,
 };
 use crate::app_ui::components::color::Callout;
 
@@ -67,7 +67,19 @@ impl TopicTagListWidget {
     }
 }
 
-impl Widget for TopicTagListWidget {
+impl CommonStateManager for TopicTagListWidget {
+    fn get_common_state(&self) -> &CommonState {
+        &self.common_state
+    }
+
+    fn get_common_state_mut(&mut self) -> &mut CommonState {
+        &mut self.common_state
+    }
+
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
+    }
+
     fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.common_state.active = true;
         Ok(Some(Notification::HelpText(NotifContent::new(
@@ -76,6 +88,9 @@ impl Widget for TopicTagListWidget {
             self.get_help_texts().clone(),
         ))))
     }
+}
+
+impl Widget for TopicTagListWidget {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self
             .topics
@@ -147,17 +162,5 @@ impl Widget for TopicTagListWidget {
             }))
             .map_err(Box::new)?;
         Ok(())
-    }
-
-    fn get_common_state(&self) -> &CommonState {
-        &self.common_state
-    }
-
-    fn get_common_state_mut(&mut self) -> &mut CommonState {
-        &mut self.common_state
-    }
-
-    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
-        &mut self.common_state.notification_queue
     }
 }

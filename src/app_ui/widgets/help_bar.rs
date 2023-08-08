@@ -9,7 +9,7 @@ use ratatui::widgets::block::Position;
 use ratatui::{prelude::*, widgets::Block};
 
 use super::notification::{NotifContent, Notification, WidgetName};
-use super::{CommonState, CrosstermStderr};
+use super::{CommonState, CommonStateManager, CrosstermStderr};
 
 // Loading animation characters
 const LOADING_CHARS: [char; 8] = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
@@ -32,6 +32,20 @@ impl HelpBar {
             show_loading: false,
             instant: Instant::now(),
         }
+    }
+}
+
+impl super::CommonStateManager for HelpBar {
+    fn get_common_state(&self) -> &CommonState {
+        &self.common_state
+    }
+
+    fn get_common_state_mut(&mut self) -> &mut CommonState {
+        &mut self.common_state
+    }
+
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
     }
 }
 
@@ -96,17 +110,5 @@ impl super::Widget for HelpBar {
             _ => (),
         }
         Ok(None)
-    }
-
-    fn get_common_state(&self) -> &CommonState {
-        &self.common_state
-    }
-
-    fn get_common_state_mut(&mut self) -> &mut CommonState {
-        &mut self.common_state
-    }
-
-    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
-        &mut self.common_state.notification_queue
     }
 }

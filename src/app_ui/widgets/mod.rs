@@ -63,7 +63,7 @@ impl CommonState {
     }
 }
 
-pub trait Widget: Debug {
+pub trait CommonStateManager: Debug {
     fn get_help_text_notif(&self) -> AppResult<Option<Notification>> {
         Ok(Some(Notification::HelpText(NotifContent {
             src_wid: self.get_common_state().widget_name.clone(),
@@ -80,6 +80,7 @@ pub trait Widget: Debug {
         self.get_common_state_mut().active = true;
         self.get_help_text_notif()
     }
+
     fn is_active(&self) -> bool {
         self.get_common_state().active
     }
@@ -131,12 +132,14 @@ pub trait Widget: Debug {
         Ok(())
     }
 
+    fn get_notification_queue(&mut self) -> &mut VecDeque<Notification>;
+
     fn get_common_state_mut(&mut self) -> &mut CommonState;
 
     fn get_common_state(&self) -> &CommonState;
+}
 
-    fn get_notification_queue(&mut self) -> &mut VecDeque<Notification>;
-
+pub trait Widget: Debug {
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);
 
     fn handler(&mut self, _event: KeyEvent) -> AppResult<Option<Notification>> {

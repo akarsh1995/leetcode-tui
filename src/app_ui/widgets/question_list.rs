@@ -1,3 +1,4 @@
+use crate::app_ui::widgets::CommonStateManager;
 pub(crate) mod custom_lists;
 mod tasks;
 
@@ -573,11 +574,24 @@ impl QuestionListWidget {
     }
 }
 
-impl super::Widget for QuestionListWidget {
+impl CommonStateManager for QuestionListWidget {
+    fn get_common_state(&self) -> &CommonState {
+        &self.common_state
+    }
+
+    fn get_common_state_mut(&mut self) -> &mut CommonState {
+        &mut self.common_state
+    }
+    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        &mut self.common_state.notification_queue
+    }
+
     fn parent_can_handle_events(&self) -> bool {
         matches!(self.state, State::Normal)
     }
+}
 
+impl Widget for QuestionListWidget {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let mut question_list_chunk = rect;
         if matches!(self.state, State::Filter) {
@@ -960,16 +974,5 @@ impl super::Widget for QuestionListWidget {
             _ => {}
         }
         Ok(None)
-    }
-
-    fn get_common_state(&self) -> &CommonState {
-        &self.common_state
-    }
-
-    fn get_common_state_mut(&mut self) -> &mut CommonState {
-        &mut self.common_state
-    }
-    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
-        &mut self.common_state.notification_queue
     }
 }
