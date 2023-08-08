@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 
 - Invalidate questions cache through `userSessionProgress`
 
+- Fix re-request when there's network error in fetching question.
+
 ## [0.2.1] - [Unreleased]
 
 ### Added
@@ -33,6 +35,12 @@ All notable changes to this project will be documented in this file.
 - Not null constraints on the fields that are never null from the server.
 - `QuestionModelContainer { question: RefCell<QuestionModel> }` changed to `Rc<RefCell<QuestionModel>>`
     - As prior implemented hash. Hashables should not be mutable.
+- Colorscheme as per tokyonight style.
+
+### Fixed
+
+- Some questions did not appear in "All" question list because they were not attached to any topic.
+    - To resolve Unknown topic tag is added to the questions which do not have any topic tag.
 
 ## [0.2.0] - 2023-07-30
 

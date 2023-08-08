@@ -3,7 +3,8 @@ use crate::{
         async_task_channel::{
             ChannelRequestSender, Request as TaskRequestFormat, Response, TaskRequest, TaskResponse,
         },
-        components::{help_text::CommonHelpText, list::StatefulList},
+        components::{color::TokyoNightColors, help_text::CommonHelpText, list::StatefulList},
+        widgets::question_list::custom_lists::NEETCODE_75,
     },
     entities::TopicTagModel,
     errors::AppResult,
@@ -20,7 +21,7 @@ use super::{
         NotifContent, Notification,
         WidgetName::{self, QuestionList},
     },
-    CommonState, CrosstermStderr, Widget,
+    CommonState, CommonStateManager, CrosstermStderr, Widget,
 };
 use crate::app_ui::components::color::Callout;
 
@@ -66,7 +67,8 @@ impl TopicTagListWidget {
     }
 }
 
-impl Widget for TopicTagListWidget {
+super::impl_common_state!(
+    TopicTagListWidget,
     fn set_active(&mut self) -> AppResult<Option<Notification>> {
         self.common_state.active = true;
         Ok(Some(Notification::HelpText(NotifContent::new(
@@ -75,6 +77,9 @@ impl Widget for TopicTagListWidget {
             self.get_help_texts().clone(),
         ))))
     }
+);
+
+impl Widget for TopicTagListWidget {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let lines = self
             .topics
@@ -86,7 +91,7 @@ impl Widget for TopicTagListWidget {
         let mut border_style = Style::default();
 
         if self.is_active() {
-            border_style = border_style.fg(Color::Cyan);
+            border_style = border_style.fg(TokyoNightColors::Pink.into());
         }
 
         let hstyle: Style = Callout::Info.into();
@@ -97,7 +102,12 @@ impl Widget for TopicTagListWidget {
                     .title("Topics")
                     .border_style(border_style),
             )
-            .highlight_style(hstyle.add_modifier(Modifier::BOLD));
+            .highlight_style(
+                hstyle
+                    .add_modifier(Modifier::BOLD)
+                    .fg(TokyoNightColors::Pink.into())
+                    .bg(TokyoNightColors::Selection.into()),
+            );
         frame.render_stateful_widget(items, rect, &mut self.topics.state);
     }
 
@@ -123,11 +133,7 @@ impl Widget for TopicTagListWidget {
                 id: "all".to_owned(),
                 slug: "all".to_owned(),
             });
-            self.topics.add_item(TopicTagModel {
-                id: "neetcode-75".to_string(),
-                name: "Neetcode 75".to_string(),
-                slug: "neetcode-75".to_string(),
-            });
+            self.topics.add_item(NEETCODE_75.get_topic_tag());
             for tt in content {
                 self.topics.add_item(tt)
             }
@@ -145,17 +151,5 @@ impl Widget for TopicTagListWidget {
             }))
             .map_err(Box::new)?;
         Ok(())
-    }
-
-    fn get_common_state(&self) -> &CommonState {
-        &self.common_state
-    }
-
-    fn get_common_state_mut(&mut self) -> &mut CommonState {
-        &mut self.common_state
-    }
-
-    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
-        &mut self.common_state.notification_queue
     }
 }

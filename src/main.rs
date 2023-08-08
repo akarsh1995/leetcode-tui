@@ -11,7 +11,6 @@ use leetcode_tui_rs::app_ui::app::App;
 use leetcode_tui_rs::app_ui::event::{
     look_for_events, vim_ping_channel, Event, EventHandler, VimPingSender,
 };
-use leetcode_tui_rs::app_ui::handler::handle_key_events;
 
 use leetcode_tui_rs::utils::{
     async_tasks_executor, do_migrations, get_config, get_reqwest_client, update_database_questions,
@@ -111,11 +110,7 @@ fn run_app(
         // Handle events.
         match tui.events.next()? {
             Event::Tick => app.tick()?,
-            Event::Key(key_event) => {
-                let notif = handle_key_events(key_event, &mut app)?;
-                app.pending_notifications.push_back(notif);
-                app.process_pending_notification()?;
-            }
+            Event::Key(key_event) => app.handle_key_events(key_event)?,
             Event::Mouse(_) => {}
             Event::Resize(_, _) => {}
             Event::Redraw => tui.reinit()?,

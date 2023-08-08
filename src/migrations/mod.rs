@@ -1,5 +1,6 @@
 pub mod m20230718_141525_create_tables;
 mod m20230805_060729_not_null_fields;
+mod m20230806_122756_unknown_topic;
 
 use async_trait::async_trait;
 pub use sea_orm_migration::prelude::*;
@@ -12,6 +13,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20230718_141525_create_tables::Migration),
             Box::new(m20230805_060729_not_null_fields::Migration),
+            Box::new(m20230806_122756_unknown_topic::Migration),
         ]
     }
 }
