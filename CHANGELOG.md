@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 
 - Invalidate questions cache through `userSessionProgress`
 
+- Fix re-request when there's network error in fetching question.
+
 ## [0.2.1] - [Unreleased]
 
 ### Added

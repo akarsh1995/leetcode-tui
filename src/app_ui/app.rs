@@ -14,6 +14,7 @@ use super::widgets::topic_list::TopicTagListWidget;
 use super::widgets::Widget;
 use crate::config::Config;
 use crate::errors::AppResult;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use indexmap::IndexMap;
 
 /// Application.
@@ -217,5 +218,33 @@ impl App {
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
         self.running = false;
+    }
+
+    pub fn handle_key_events(&mut self, key_event: KeyEvent) -> AppResult<()> {
+        let mut p_notif = None;
+        // if ui has active popups then send only events registered with popup
+        if let Some(popup) = self.get_current_popup_mut() {
+            p_notif = popup.handler(key_event)?;
+            self.pending_notifications.push_back(p_notif);
+            self.process_pending_notification()?;
+            return Ok(());
+        }
+
+        match key_event.code {
+            KeyCode::Left => p_notif = self.next_widget()?,
+            KeyCode::Right => p_notif = self.prev_widget()?,
+            KeyCode::Char('q') | KeyCode::Char('Q') => self.running = false,
+            KeyCode::Char('c') | KeyCode::Char('C') => {
+                if key_event.modifiers == KeyModifiers::CONTROL {
+                    self.running = false;
+                }
+            }
+            _ => p_notif = self.get_current_widget_mut().handler(key_event)?,
+        };
+
+        self.pending_notifications.push_back(p_notif);
+        self.process_pending_notification()?;
+
+        Ok(())
     }
 }

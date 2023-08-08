@@ -398,8 +398,8 @@ impl QuestionListWidget {
     }
 
     fn get_question_list_render_item(question: &Question) -> ListItem {
-        let number = question.borrow().frontend_question_id.clone();
-        let title = question.borrow().title.clone();
+        let number = &question.borrow().frontend_question_id;
+        let title = &question.borrow().title;
 
         let is_accepted = question
             .borrow()
