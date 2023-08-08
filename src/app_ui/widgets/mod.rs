@@ -5,11 +5,7 @@ pub mod question_list;
 pub mod stats;
 pub mod topic_list;
 
-use std::{
-    collections::{HashMap, VecDeque},
-    fmt::Debug,
-    io::Stderr,
-};
+use std::{collections::VecDeque, fmt::Debug, io::Stderr};
 
 use crossterm::event::{KeyCode, KeyEvent};
 use indexmap::IndexSet;
@@ -263,6 +259,4 @@ impl WidgetVariant {
     );
 }
 
-pub type WidgetList = Vec<Box<dyn Widget>>;
-pub type NameWidgetMap = HashMap<WidgetName, Box<dyn Widget>>;
 pub type CrosstermStderr<'a> = Frame<'a, CrosstermBackend<Stderr>>;
