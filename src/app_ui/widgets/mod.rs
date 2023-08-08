@@ -229,10 +229,12 @@ macro_rules! gen_methods {
 }
 
 impl WidgetVariant {
-    gen_methods!((is_navigable, nm, (), bool));
-    gen_methods!((parent_can_handle_events, nm, (), bool));
-    gen_methods!((get_notification_queue, (), &mut VecDeque<Notification>));
     gen_methods!(
+        (parent_can_handle_events, nm, (), bool),
+        (is_navigable, nm, (), bool)
+    );
+    gen_methods!(
+        (get_notification_queue, (), &mut VecDeque<Notification>),
         (set_active, (), AppResult<Option<Notification>>),
         (set_inactive, (), ()),
         (setup, (), AppResult<()>),
