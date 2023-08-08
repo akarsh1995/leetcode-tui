@@ -24,9 +24,6 @@ use super::{
     components::help_text::HelpText,
 };
 
-// pub fn loading_notification(src_wid: WidgetName, show: bool) -> Notification {
-// }
-
 #[derive(Debug)]
 pub struct CommonState {
     pub widget_name: WidgetName,
@@ -138,6 +135,42 @@ pub trait CommonStateManager: Debug {
 
     fn get_common_state(&self) -> &CommonState;
 }
+
+macro_rules! state_manager_common_methods {
+    () => {
+        fn get_common_state(&self) -> &CommonState {
+            &self.common_state
+        }
+
+        fn get_common_state_mut(&mut self) -> &mut CommonState {
+            &mut self.common_state
+        }
+
+        fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+            &mut self.common_state.notification_queue
+        }
+    };
+}
+
+use state_manager_common_methods;
+
+macro_rules! impl_common_state {
+    ($t:ty) => {
+        impl CommonStateManager for $t {
+            crate::app_ui::widgets::state_manager_common_methods!();
+        }
+    };
+
+    ($t:ty, $e:item) => {
+        impl CommonStateManager for $t {
+            crate::app_ui::widgets::state_manager_common_methods!();
+            $e
+        }
+
+    }
+}
+
+pub(crate) use impl_common_state;
 
 pub trait Widget: Debug {
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>);

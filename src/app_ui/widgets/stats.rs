@@ -35,18 +35,7 @@ impl Stats {
     }
 }
 
-impl CommonStateManager for Stats {
-    fn get_common_state(&self) -> &CommonState {
-        &self.common_state
-    }
-
-    fn get_common_state_mut(&mut self) -> &mut CommonState {
-        &mut self.common_state
-    }
-    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
-        &mut self.common_state.notification_queue
-    }
-}
+super::impl_common_state!(Stats);
 
 impl Widget for Stats {
     fn render(&mut self, rect: Rect, frame: &mut Frame<CrosstermBackend<Stderr>>) {

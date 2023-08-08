@@ -574,22 +574,12 @@ impl QuestionListWidget {
     }
 }
 
-impl CommonStateManager for QuestionListWidget {
-    fn get_common_state(&self) -> &CommonState {
-        &self.common_state
-    }
-
-    fn get_common_state_mut(&mut self) -> &mut CommonState {
-        &mut self.common_state
-    }
-    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
-        &mut self.common_state.notification_queue
-    }
-
+super::impl_common_state!(
+    QuestionListWidget,
     fn parent_can_handle_events(&self) -> bool {
         matches!(self.state, State::Normal)
     }
-}
+);
 
 impl Widget for QuestionListWidget {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
