@@ -35,6 +35,7 @@ pub struct CommonState {
     pub is_navigable: bool,
     help_texts: IndexSet<HelpText>,
     pub notification_queue: VecDeque<Notification>,
+    pub parent_can_handle_events: bool,
 }
 
 impl CommonState {
@@ -50,6 +51,7 @@ impl CommonState {
             is_navigable: true,
             help_texts: IndexSet::from_iter(help_texts),
             notification_queue: Default::default(),
+            parent_can_handle_events: true,
         }
     }
 
@@ -80,6 +82,10 @@ pub trait Widget: Debug {
     }
     fn is_active(&self) -> bool {
         self.get_common_state().active
+    }
+
+    fn parent_can_handle_events(&self) -> bool {
+        self.get_common_state().parent_can_handle_events
     }
 
     fn get_help_texts(&self) -> &IndexSet<HelpText> {
@@ -191,6 +197,7 @@ macro_rules! gen_methods {
 
 impl WidgetVariant {
     gen_methods!((is_navigable, nm, (), bool));
+    gen_methods!((parent_can_handle_events, nm, (), bool));
     gen_methods!((get_notification_queue, (), &mut VecDeque<Notification>));
     gen_methods!(
         (set_active, (), AppResult<Option<Notification>>),

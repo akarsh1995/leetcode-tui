@@ -574,6 +574,10 @@ impl QuestionListWidget {
 }
 
 impl super::Widget for QuestionListWidget {
+    fn parent_can_handle_events(&self) -> bool {
+        matches!(self.state, State::Normal)
+    }
+
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
         let mut question_list_chunk = rect;
         if matches!(self.state, State::Filter) {

@@ -230,17 +230,25 @@ impl App {
             return Ok(());
         }
 
-        match key_event.code {
-            KeyCode::Left => p_notif = self.next_widget()?,
-            KeyCode::Right => p_notif = self.prev_widget()?,
-            KeyCode::Char('q') | KeyCode::Char('Q') => self.running = false,
-            KeyCode::Char('c') | KeyCode::Char('C') => {
-                if key_event.modifiers == KeyModifiers::CONTROL {
+        if self.get_current_widget().parent_can_handle_events() {
+            match key_event.code {
+                KeyCode::Left => p_notif = self.next_widget()?,
+                KeyCode::Right => p_notif = self.prev_widget()?,
+                KeyCode::Char('q') | KeyCode::Char('Q') => {
                     self.running = false;
                 }
-            }
-            _ => p_notif = self.get_current_widget_mut().handler(key_event)?,
-        };
+                KeyCode::Char('c') | KeyCode::Char('C') => {
+                    if key_event.modifiers == KeyModifiers::CONTROL {
+                        self.running = false;
+                    }
+                }
+                _ => {
+                    p_notif = self.get_current_widget_mut().handler(key_event)?;
+                }
+            };
+        } else {
+            p_notif = self.get_current_widget_mut().handler(key_event)?;
+        }
 
         self.pending_notifications.push_back(p_notif);
         self.process_pending_notification()?;
