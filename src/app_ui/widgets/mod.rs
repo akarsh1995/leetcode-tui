@@ -195,6 +195,17 @@ pub trait Widget: Debug {
     }
 }
 
+macro_rules! widget_variant_arms {
+    ($fn_name: ident, $i:ident, ($($arg: ident),*)) => {
+        match $i {
+            WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
+            WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
+            WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
+            WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
+        }
+    };
+}
+
 macro_rules! gen_methods {
 (
     $(
@@ -203,12 +214,7 @@ macro_rules! gen_methods {
 ) => {
         $(
             pub fn $fn_name(&mut self, $($arg: $par_type),*) -> $res {
-                match self {
-                    WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
-                }
+                widget_variant_arms!($fn_name, self, ($($arg),*))
             }
         )*
     };
@@ -220,12 +226,7 @@ macro_rules! gen_methods {
 ) => {
         $(
             pub fn $fn_name(&self, $($arg: $par_type),*) -> $res {
-                match self {
-                    WidgetVariant::QuestionList(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::TopicList(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::Stats(v) => v.$fn_name($($arg),*),
-                    WidgetVariant::HelpLine(v) => v.$fn_name($($arg),*),
-                }
+                widget_variant_arms!($fn_name, self, ($($arg),*))
             }
         )*
     };
