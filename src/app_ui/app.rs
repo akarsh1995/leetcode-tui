@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
-use super::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
+use super::async_task_channel::{ChannelRequestSender, TaskResponse};
 use super::event::VimPingSender;
 use super::widgets::help_bar::HelpBar;
 use super::widgets::notification::{Notification, WidgetName, WidgetVariant};
@@ -30,8 +30,6 @@ pub struct App {
 
     pub task_request_sender: ChannelRequestSender,
 
-    pub task_response_recv: ChannelResponseReceiver,
-
     pub pending_notifications: VecDeque<Option<Notification>>,
 
     pub(crate) popup_stack: Vec<Popup>,
@@ -47,7 +45,6 @@ impl App {
     /// Constructs a new instance of [`App`].
     pub fn new(
         task_request_sender: ChannelRequestSender,
-        task_response_recv: ChannelResponseReceiver,
         vim_tx: VimPingSender,
         vim_running: Arc<AtomicBool>,
         config: Rc<Config>,
@@ -84,7 +81,6 @@ impl App {
             widget_map: IndexMap::from(order),
             selected_wid_idx: 0,
             task_request_sender,
-            task_response_recv,
             pending_notifications: vec![].into(),
             popup_stack: vec![],
             vim_running,
@@ -160,7 +156,11 @@ impl App {
     }
 
     /// Handles the tick event of the terminal.
-    pub fn tick(&mut self) -> AppResult<()> {
+    pub fn tick(&mut self, task: Option<TaskResponse>) -> AppResult<()> {
+        if let Some(task) = task {
+            self.process_task(task)?;
+        }
+
         if let Some(popup) = self.get_current_popup_mut() {
             if !popup.is_active() {
                 self.popup_stack.pop();
@@ -179,19 +179,15 @@ impl App {
                 self.pending_notifications.push_back(Some(notif));
             }
         }
-
-        self.check_for_task()?;
         self.process_pending_notification()?;
         Ok(())
     }
 
-    fn check_for_task(&mut self) -> AppResult<()> {
-        if let Ok(task_result) = self.task_response_recv.try_recv() {
-            self.widget_map
-                .get_mut(&task_result.get_widget_name())
-                .unwrap()
-                .process_task_response(task_result)?;
-        }
+    pub fn process_task(&mut self, task: TaskResponse) -> AppResult<()> {
+        self.widget_map
+            .get_mut(&task.get_widget_name())
+            .unwrap()
+            .process_task_response(task)?;
         Ok(())
     }
 
@@ -223,15 +219,11 @@ impl App {
 
     pub fn handle_key_events(&mut self, key_event: KeyEvent) -> AppResult<()> {
         let mut p_notif = None;
+
         // if ui has active popups then send only events registered with popup
         if let Some(popup) = self.get_current_popup_mut() {
             p_notif = popup.handler(key_event)?;
-            self.pending_notifications.push_back(p_notif);
-            self.process_pending_notification()?;
-            return Ok(());
-        }
-
-        if self.get_current_widget().parent_can_handle_events() {
+        } else if self.get_current_widget().parent_can_handle_events() {
             match key_event.code {
                 KeyCode::Left => p_notif = self.next_widget()?,
                 KeyCode::Right => p_notif = self.prev_widget()?,
@@ -246,13 +238,13 @@ impl App {
                 _ => {
                     p_notif = self.get_current_widget_mut().handler(key_event)?;
                 }
-            };
+            }
         } else {
             p_notif = self.get_current_widget_mut().handler(key_event)?;
         }
 
         self.pending_notifications.push_back(p_notif);
-        self.process_pending_notification()?;
+        self.tick(None)?;
 
         Ok(())
     }

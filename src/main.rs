@@ -1,9 +1,10 @@
-use leetcode_tui_rs::app_ui::async_task_channel::{request_channel, response_channel};
-use leetcode_tui_rs::app_ui::async_task_channel::{ChannelRequestSender, ChannelResponseReceiver};
+use leetcode_tui_rs::app_ui::async_task_channel::request_channel;
+use leetcode_tui_rs::app_ui::async_task_channel::ChannelRequestSender;
 use leetcode_tui_rs::app_ui::tui::Tui;
 use leetcode_tui_rs::config::Config;
 use leetcode_tui_rs::entities::QuestionEntity;
 use leetcode_tui_rs::errors::AppResult;
+use leetcode_tui_rs::errors::LcAppError;
 use sea_orm::Database;
 use tokio::task::JoinHandle;
 
@@ -48,18 +49,18 @@ async fn main() -> AppResult<()> {
     let client = client_clone;
 
     let (tx_request, rx_request) = request_channel();
-    let (tx_response, rx_response) = response_channel();
     let client = client.clone();
-
-    let task_receiver_from_app: JoinHandle<AppResult<()>> = tokio::spawn(async move {
-        async_tasks_executor(rx_request, tx_response, &client, &database_client).await?;
-        Ok(())
-    });
 
     let backend = CrosstermBackend::new(io::stderr());
     let terminal = Terminal::new(backend)?;
 
     let (ev_sender, ev_receiver) = std::sync::mpsc::channel();
+    let ev_sender_clone = ev_sender.clone();
+
+    let task_receiver_from_app: JoinHandle<AppResult<()>> = tokio::spawn(async move {
+        async_tasks_executor(rx_request, ev_sender_clone, &client, &database_client).await?;
+        Ok(())
+    });
 
     let tui = Tui::new(
         terminal,
@@ -72,13 +73,31 @@ async fn main() -> AppResult<()> {
     let vim_running = Arc::new(AtomicBool::new(false));
     let vim_running_loop_ref = vim_running.clone();
     let (vim_tx, vim_rx) = vim_ping_channel(10);
+    let (should_stop_looking_for_events, should_stop_looking_events_rx) =
+        tokio::sync::oneshot::channel();
 
     tokio::task::spawn_blocking(move || {
-        run_app(tx_request, rx_response, tui, vim_tx, vim_running, config).unwrap()
+        run_app(
+            tx_request,
+            tui,
+            vim_tx,
+            vim_running,
+            config,
+            should_stop_looking_for_events,
+        )
+        .unwrap();
     });
 
     // blog post does not work in separate thread
-    match look_for_events(100, ev_sender, vim_running_loop_ref, vim_rx).await {
+    match look_for_events(
+        5000,
+        ev_sender,
+        vim_running_loop_ref,
+        vim_rx,
+        should_stop_looking_events_rx,
+    )
+    .await
+    {
         Ok(_) => Ok(()),
         Err(e) => match e {
             leetcode_tui_rs::errors::LcAppError::SyncSendError(_) => Ok(()),
@@ -93,31 +112,35 @@ async fn main() -> AppResult<()> {
 
 fn run_app(
     tx_request: ChannelRequestSender,
-    rx_response: ChannelResponseReceiver,
     mut tui: Tui,
     vim_tx: VimPingSender,
     vim_running: Arc<AtomicBool>,
     config: Config,
+    stop_events_tx: tokio::sync::oneshot::Sender<bool>,
 ) -> AppResult<()> {
     let config = Rc::new(config);
     tui.init()?;
-    let mut app = App::new(tx_request, rx_response, vim_tx, vim_running, config)?;
+    let mut app = App::new(tx_request, vim_tx, vim_running, config)?;
 
     // Start the main loop.
     while app.running {
         // Render the user interface.
         tui.draw(&mut app)?;
+
         // Handle events.
         match tui.events.next()? {
-            Event::Tick => app.tick()?,
+            Event::Tick => app.tick(None)?,
             Event::Key(key_event) => app.handle_key_events(key_event)?,
             Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
-            Event::Redraw => tui.reinit()?,
+            Event::Resize(_, _) | Event::Redraw => tui.reinit()?,
+            Event::TaskResponse(response) => app.tick(Some(*response))?,
         }
     }
 
     // Exit the user interface.
     tui.exit()?;
+    stop_events_tx
+        .send(true)
+        .map_err(|e| LcAppError::StopEventsSignalSendError(e.to_string()))?;
     Ok(())
 }

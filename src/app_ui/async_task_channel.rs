@@ -111,8 +111,3 @@ use super::widgets::notification::WidgetName;
 
 pub type RequestSendError = tokio::sync::mpsc::error::SendError<TaskRequest>;
 pub type RequestRecvError = tokio::sync::mpsc::error::TryRecvError;
-
-pub type ResponseSendError = crossbeam::channel::SendError<TaskResponse>;
-pub type ResponseReceiveError = crossbeam::channel::RecvError;
-
-// pub type

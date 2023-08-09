@@ -19,11 +19,8 @@ pub enum LcAppError {
     #[error("Task request receive error sync to async context: {0}")]
     RequestRecvError(#[from] RequestRecvError),
 
-    #[error("Task response send error async to sync context: {0}")]
-    ResponseSendError(#[from] Box<ResponseSendError>),
-
-    #[error("Task response receive error async to sync context: {0}")]
-    ResponseReceiveError(#[from] ResponseReceiveError),
+    #[error("Cannot send one shot signal to stop looking for events. {0}")]
+    StopEventsSignalSendError(String),
 
     #[error("Deserialization/serialization failed: {0}")]
     DeserializeError(#[from] serde_json::Error),
