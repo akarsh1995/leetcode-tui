@@ -2,7 +2,7 @@
 
 # Use Leetcode in your terminal.
 
-![Demo](https://vhs.charm.sh/vhs-7mc1SjatwAFIfEpRjylgaO.gif)
+![Demo](https://vhs.charm.sh/vhs-6HARsZDGe7mSVwTepHFUJv.gif)
 
 ### Why this TUI:
 
