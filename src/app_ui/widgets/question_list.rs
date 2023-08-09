@@ -163,6 +163,7 @@ impl QuestionListWidget {
                     CommonHelpText::ReadContent.into(),
                     CommonHelpText::Run.into(),
                     CommonHelpText::Submit.into(),
+                    CommonHelpText::Search.into(),
                 ],
             ),
             topic_tag_question_map: HashMap::new(),

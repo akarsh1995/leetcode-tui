@@ -7,10 +7,6 @@ All notable changes to this project will be documented in this file.
 - Sort questions by:
     - likes dislikes ratio.
 
-- Filter
-
-- Search feature.
-
 - Scroll bar visible list
 
 - Take input directly from the user lc session
@@ -29,6 +25,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Neetcode 75 question list.
+- Search feature on keypress `/`
 
 ### Changed
 
