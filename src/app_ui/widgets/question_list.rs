@@ -4,6 +4,7 @@ mod tasks;
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::io;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
@@ -28,7 +29,9 @@ use crate::graphql::run_code::RunCode;
 use crate::graphql::submit_code::SubmitCode;
 use crate::graphql::{Language, RunOrSubmitCode};
 
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent};
+use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::ExecutableCommand;
 use indexmap::{IndexMap, IndexSet};
 use ratatui::widgets::Paragraph;
 use ratatui::{
@@ -324,6 +327,10 @@ impl QuestionListWidget {
     }
 
     fn open_vim_like_editor(&mut self, file_name: &Path, editor: &str) -> AppResult<()> {
+        // before opening the editor leave alternative screen owned by current thread
+        io::stderr().execute(LeaveAlternateScreen)?;
+        io::stderr().execute(DisableMouseCapture)?;
+
         let mut output = std::process::Command::new("sh")
             .arg("-c")
             .arg(&format!("{} {}", editor, file_name.display()))
@@ -337,6 +344,10 @@ impl QuestionListWidget {
         self.vim_running
             .store(false, std::sync::atomic::Ordering::Relaxed);
         self.vim_tx.blocking_send(1).unwrap();
+
+        // after closing the editor enable alternative screen for current thread
+        io::stderr().execute(EnterAlternateScreen)?;
+        io::stderr().execute(EnableMouseCapture)?;
         if !vim_cmd_result.success() {
             return Err(LcAppError::EditorOpen(
                 "Cannot open editor, Reason: Unknown".to_string(),

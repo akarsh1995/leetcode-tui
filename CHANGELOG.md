@@ -38,6 +38,7 @@ All notable changes to this project will be documented in this file.
 
 - Some questions did not appear in "All" question list because they were not attached to any topic.
     - To resolve Unknown topic tag is added to the questions which do not have any topic tag.
+- App now successfully restores the terminal state. No residual prints on closing the app.
 
 ## [0.2.0] - 2023-07-30
 
