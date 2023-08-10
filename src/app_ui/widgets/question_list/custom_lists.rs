@@ -23,7 +23,7 @@ impl CustomQuestionList<'_> {
         TopicTagModel {
             name: self.title.to_string(),
             id: id.clone(),
-            slug: id.clone(),
+            slug: id,
         }
     }
 
