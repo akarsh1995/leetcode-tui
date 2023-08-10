@@ -1,3 +1,4 @@
+use crate::app_ui::event::Event;
 use crate::deserializers::problemset_question_list::Question;
 use crate::errors::AppResult;
 use crate::graphql::problemset_question_list::Query as QuestionDbQuery;
@@ -88,17 +89,17 @@ pub async fn get_config() -> AppResult<Option<Config>> {
     }
 }
 
-use crate::app_ui::async_task_channel::{ChannelRequestReceiver, ChannelResponseSender};
+use crate::app_ui::async_task_channel::ChannelRequestReceiver;
 
 pub async fn async_tasks_executor(
     mut rx_request: ChannelRequestReceiver,
-    tx_response: ChannelResponseSender,
+    tx_response: std::sync::mpsc::Sender<Event>,
     client: &reqwest::Client,
     conn: &DatabaseConnection,
 ) -> AppResult<()> {
     while let Some(task) = rx_request.recv().await {
         let response = task.execute(client, conn).await;
-        tx_response.send(response).map_err(Box::new)?;
+        tx_response.send(Event::TaskResponse(Box::new(response)))?;
     }
     Ok(())
 }

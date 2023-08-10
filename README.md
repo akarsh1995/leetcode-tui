@@ -2,7 +2,7 @@
 
 # Use Leetcode in your terminal.
 
-![Demo](https://vhs.charm.sh/vhs-7mc1SjatwAFIfEpRjylgaO.gif)
+![Demo](https://vhs.charm.sh/vhs-6HARsZDGe7mSVwTepHFUJv.gif)
 
 ### Why this TUI:
 
@@ -41,6 +41,8 @@ leetui
 - Submit and run solution in multiple languages
 - Read Stats of your performance
 - Solved questions are marked with ✔️
+- Neetcode 75
+- For Fuzzy search questions in the question list use `/`
 
 Few related projects:
 

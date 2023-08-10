@@ -4,15 +4,14 @@ use std::{
     time::Duration,
 };
 
-use futures::{future::FutureExt, StreamExt};
-use futures_timer::Delay;
+use futures::StreamExt;
 
 use crossterm::event::EventStream;
 
 use crate::errors::AppResult;
 
 /// Terminal events.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub enum Event {
     /// Terminal tick.
     Tick,
@@ -23,6 +22,7 @@ pub enum Event {
     /// Terminal resize.
     Resize(u16, u16),
 
+    TaskResponse(Box<TaskResponse>),
     /// redraws the terminal
     Redraw,
 }
@@ -38,6 +38,8 @@ pub struct EventHandler {
 }
 
 pub use tokio::sync::mpsc::channel as vim_ping_channel;
+
+use super::async_task_channel::TaskResponse;
 pub type VimPingSender = tokio::sync::mpsc::Sender<i32>;
 pub type VimPingReceiver = tokio::sync::mpsc::Receiver<i32>;
 
@@ -47,20 +49,25 @@ pub async fn look_for_events(
     sender: std::sync::mpsc::Sender<Event>,
     vim_running_loop_ref: Arc<AtomicBool>,
     mut vim_rx: VimPingReceiver,
+    mut should_stop_looking_events: tokio::sync::oneshot::Receiver<bool>,
 ) -> AppResult<()> {
-    let tick_rate = Duration::from_millis(tick_rate);
+    let mut tick_rate = tokio::time::interval(Duration::from_millis(tick_rate));
 
     let mut reader = EventStream::new();
 
     loop {
-        let delay = Delay::new(tick_rate).fuse();
-        let event = reader.next().fuse();
-
         tokio::select! {
-            _ = delay => {
+            _ = tick_rate.tick() => {
                 sender.send(Event::Tick)?
             },
-            maybe_event = event => {
+            maybe_stop = &mut should_stop_looking_events => {
+                if let Ok(stop) = maybe_stop {
+                    if stop {
+                        break;
+                    }
+                }
+            }
+            maybe_event = reader.next() => {
                 match maybe_event {
                     Some(event) => {
                         match event? {

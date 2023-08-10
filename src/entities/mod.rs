@@ -9,3 +9,5 @@ pub type QuestionModel = question::Model;
 pub type TopicTagModel = topic_tag::Model;
 pub type QuestionEntity = question::Entity;
 pub type TopicTagEntity = topic_tag::Entity;
+pub type QuestionTopicTagModel = question_topic_tag::Model;
+pub type QuestionTopicTagEntity = question_topic_tag::Entity;

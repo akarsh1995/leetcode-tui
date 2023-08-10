@@ -12,7 +12,7 @@ use ratatui::prelude::*;
 
 use super::{
     notification::{NotifContent, Notification, PopupType, WidgetName},
-    CommonState, CrosstermStderr, Widget,
+    CommonState, CommonStateManager, CrosstermStderr, Widget,
 };
 
 #[derive(Debug)]
@@ -31,6 +31,8 @@ impl Popup {
         }
     }
 }
+
+super::impl_common_state!(Popup);
 
 impl Widget for Popup {
     fn render(&mut self, rect: Rect, frame: &mut CrosstermStderr) {
@@ -110,17 +112,5 @@ impl Widget for Popup {
             self.get_help_texts_mut().extend(extended_help);
         }
         Ok(None)
-    }
-
-    fn get_common_state(&self) -> &CommonState {
-        &self.common_state
-    }
-
-    fn get_common_state_mut(&mut self) -> &mut CommonState {
-        &mut self.common_state
-    }
-
-    fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
-        &mut self.common_state.notification_queue
     }
 }

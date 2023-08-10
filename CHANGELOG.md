@@ -7,10 +7,6 @@ All notable changes to this project will be documented in this file.
 - Sort questions by:
     - likes dislikes ratio.
 
-- Filter
-
-- Search feature.
-
 - Scroll bar visible list
 
 - Take input directly from the user lc session
@@ -22,17 +18,28 @@ All notable changes to this project will be documented in this file.
 
 - Invalidate questions cache through `userSessionProgress`
 
-## [0.2.1] - [Unreleased]
+- Fix re-request when there's network error in fetching question.
+
+## [0.2.1] - 2023-08-10
 
 ### Added
 
 - Neetcode 75 question list.
+- Search feature on keypress `/`
 
 ### Changed
 
 - Not null constraints on the fields that are never null from the server.
 - `QuestionModelContainer { question: RefCell<QuestionModel> }` changed to `Rc<RefCell<QuestionModel>>`
     - As prior implemented hash. Hashables should not be mutable.
+- Colorscheme as per tokyonight style.
+
+### Fixed
+
+- Some questions did not appear in "All" question list because they were not attached to any topic.
+    - To resolve Unknown topic tag is added to the questions which do not have any topic tag.
+- App now successfully restores the terminal state. No residual prints on closing the app.
+- High CPU usage due to 100ms tick interval. Now tick interval changed to 5 seconds.
 
 ## [0.2.0] - 2023-07-30
 
