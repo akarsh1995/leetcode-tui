@@ -1,6 +1,6 @@
 [package]
 name = "leetcode-tui-rs"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Akarsh <akarsh.1995.02@gmail.com>"]
 description = "Leetcode terminal UI. Helps you browse leetcode stats and manage your leetcode from terminal."
