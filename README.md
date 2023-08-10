@@ -42,6 +42,7 @@ leetui
 - Read Stats of your performance
 - Solved questions are marked with ✔️
 - Neetcode 75
+- For Fuzzy search questions in the question list use `/`
 
 Few related projects:
 
