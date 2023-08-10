@@ -20,7 +20,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix re-request when there's network error in fetching question.
 
-## [0.2.1] - [Unreleased]
+## [0.2.1] - 2023-08-10
 
 ### Added
 
