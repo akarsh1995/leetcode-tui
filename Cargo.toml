@@ -18,7 +18,6 @@ async-trait = "0.1.71"
 crossbeam = "0.8.2"
 crossterm = { version = "0.26.1", features = ["event-stream"] }
 futures = "0.3.28"
-futures-timer = "3.0.2"
 fuzzy-matcher = "0.3.7"
 html2text = "0.6.0"
 indexmap = "2.0.0"
