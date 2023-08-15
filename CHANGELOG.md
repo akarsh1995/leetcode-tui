@@ -20,6 +20,11 @@ All notable changes to this project will be documented in this file.
 
 - Fix re-request when there's network error in fetching question.
 
+- Locked problems
+
+- Error Serialization dserialization failed key=`memory missing` for lc_1143
+
+
 ## [0.2.1] - 2023-08-10
 
 ### Added
