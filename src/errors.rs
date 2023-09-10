@@ -7,6 +7,9 @@ use crate::app_ui::event::Event;
 
 #[derive(Error, Debug)]
 pub enum LcAppError {
+    #[error("Looks like your cookies has been expired kindly update your cookies in config.toml")]
+    CookiesExpiredError,
+
     #[error("Send error to reciever at sync context")]
     SyncSendError(#[from] std::sync::mpsc::SendError<Event>),
 

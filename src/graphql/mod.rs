@@ -9,7 +9,7 @@ pub mod problemset_question_list;
 pub mod question_content;
 pub mod run_code;
 pub mod submit_code;
-use crate::errors::AppResult;
+use crate::errors::{AppResult, LcAppError};
 
 pub type QuestionContentQuery = question_content::Query;
 
@@ -36,12 +36,16 @@ pub trait GQLLeetcodeQuery: Serialize + Sync {
         } else {
             client.get(self.get_endpoint())
         };
-        Ok(request
+        let response = request
             .header("Content-Type", "application/json")
             .send()
-            .await?
-            .json()
-            .await?)
+            .await?;
+
+        if response.status().as_u16() == 403 {
+            return Err(LcAppError::CookiesExpiredError);
+        }
+
+        Ok(response.json().await?)
     }
 }
 
