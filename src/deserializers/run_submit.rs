@@ -148,8 +148,8 @@ pub struct RuntimeError {
     pub lang: Language,
     pub runtime_error: String,
     pub full_runtime_error: String,
-    pub memory: u32,
-    pub elapsed_time: u32,
+    // pub memory: u32,
+    // pub elapsed_time: u32,
 }
 
 #[derive(Deserialize, Debug)]
