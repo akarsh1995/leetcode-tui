@@ -106,7 +106,7 @@ impl Display for run_submit::ParsedResponse {
         let string = match &self {
             ParsedResponse::Pending => "Pending".to_string(),
             ParsedResponse::CompileError(_) => "Compile Error".to_string(),
-            ParsedResponse::RuntimeError(_) => "Runtime Error".to_string(),
+            ParsedResponse::RuntimeError(re) => re.full_runtime_error.to_string(),
             ParsedResponse::MemoryLimitExceeded(_) => "Memory Limit Exceeded".to_string(),
             ParsedResponse::OutputLimitExceed(_) => "Output Limit Exceeded".to_string(),
             ParsedResponse::TimeLimitExceeded(_) => "Time Limit Exceeded".to_string(),
