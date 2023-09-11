@@ -411,8 +411,10 @@ impl QuestionListWidget {
     }
 
     fn get_question_list_render_item(question: &Question) -> ListItem {
-        let number = &question.borrow().frontend_question_id;
-        let title = &question.borrow().title;
+        let question_inner = question.borrow();
+        let number = &question_inner.frontend_question_id;
+        let title = &question_inner.title;
+        let locked = question_inner.paid_only == 1;
 
         let is_accepted = question
             .borrow()
@@ -421,12 +423,19 @@ impl QuestionListWidget {
             .map_or(false, |v| v.as_str() == "ac");
 
         let line_text = format!(
-            "{} {:0>3}: {}",
+            "{} {} {:0>3}: {}",
             {
                 if is_accepted {
                     CHECK_MARK
                 } else {
                     " "
+                }
+            },
+            {
+                if locked {
+                    "🔒"
+                } else {
+                    "  "
                 }
             },
             number,
