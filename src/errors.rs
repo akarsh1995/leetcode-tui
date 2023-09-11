@@ -31,6 +31,9 @@ pub enum LcAppError {
     #[error("Network request error.")]
     RequestError(#[from] reqwest::Error),
 
+    #[error("Status {code:?}: {contents:?}")]
+    StatusCodeError { code: String, contents: String },
+
     #[error("IO Error")]
     IOError(#[from] std::io::Error),
 
