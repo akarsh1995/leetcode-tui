@@ -43,6 +43,11 @@ pub trait GQLLeetcodeQuery: Serialize + Sync {
 
         if response.status().as_u16() == 403 {
             return Err(LcAppError::CookiesExpiredError);
+        } else if response.status().as_u16() != 200 {
+            return Err(LcAppError::StatusCodeError {
+                code: response.status().to_string(),
+                contents: response.text().await?,
+            });
         }
 
         Ok(response.json().await?)
