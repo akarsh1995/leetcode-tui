@@ -25,13 +25,23 @@ kdam = "0.3.0"
 lru = "0.11.0"
 rand = "0.8.5"
 ratatui = { version = "0.22.0", features = ["all-widgets"] }
-reqwest = { version = "0.11.18", features = ["json", "cookie_crate", "cookie_store", "cookies", ] }
-sea-orm = { version = "^0", features = [ "sqlx-sqlite", "runtime-tokio-native-tls", "macros", "with-json"] }
+reqwest = { version = "0.11.18", features = [
+  "json",
+  "cookie_crate",
+  "cookie_store",
+  "cookies",
+] }
+sea-orm = { version = "^0", features = [
+  "sqlx-sqlite",
+  "runtime-tokio-native-tls",
+  "macros",
+  "with-json",
+] }
 serde = { version = "1.0.171", features = ["derive"] }
 serde_json = "1.0.102"
 strum = { version = "0.25", features = ["derive"] }
 thiserror = "1.0.43"
-tokio ={ version = "1.29.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 toml = "0.7.6"
 xdg = "2.5.0"
 
@@ -41,10 +51,7 @@ path = "src/main.rs"
 
 [dependencies.sea-orm-migration]
 version = "^0"
-features = [
-  "runtime-tokio-native-tls",
-  "sqlx-sqlite",
-]
+features = ["runtime-tokio-native-tls", "sqlx-sqlite"]
 
 [dev-dependencies]
 tracing = "0.1.37"
@@ -52,4 +59,4 @@ tracing-subscriber = "0.3.17"
 
 [profile.release]
 lto = true
-opt-level = "z"  # Optimize for size.
+opt-level = "z" # Optimize for size.
