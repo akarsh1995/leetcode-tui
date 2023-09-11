@@ -98,8 +98,15 @@ pub async fn async_tasks_executor(
     conn: &DatabaseConnection,
 ) -> AppResult<()> {
     while let Some(task) = rx_request.recv().await {
-        let response = task.execute(client, conn).await;
-        tx_response.send(Event::TaskResponse(Box::new(response)))?;
+        let client = client.clone();
+        let tx_response = tx_response.clone();
+        let conn = conn.clone();
+        tokio::spawn(async move {
+            let response = task.execute(&client, &conn).await;
+            tx_response
+                .send(Event::TaskResponse(Box::new(response)))
+                .expect("Could not send the task response.");
+        });
     }
     Ok(())
 }
