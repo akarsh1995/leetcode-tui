@@ -12,7 +12,9 @@ use crate::{
     entities::{QuestionModel, TopicTagModel},
 };
 
-#[derive(Debug)]
+use super::{CachedQuestion, EventTracker};
+
+#[derive(Debug, Hash, Eq, PartialEq)]
 pub(super) enum TaskType {
     Run,
     Edit,
@@ -69,36 +71,33 @@ pub(super) fn process_get_all_question_map_task_content(
     question_id_question_map.sort_by(|_, y, _, k| y.cmp(k));
 }
 
-pub(super) fn process_question_detail_response(
+pub(super) fn process_question_detail_response<'a>(
     response: Response<QuestionContent>,
-    task_map: &mut HashMap<String, (super::Question, super::TaskType)>,
-    cache: &mut lru::LruCache<String, super::CachedQuestion>,
-) {
-    let key = task_map
-        .remove(&response.request_id)
-        .expect("sent task is not found in the task list.")
-        .0
-        .borrow()
-        .frontend_question_id
-        .clone();
-    let cached_q = cache.get_or_insert_mut(key, super::CachedQuestion::default);
+    task_map: &mut EventTracker,
+    cache: &'a mut lru::LruCache<String, super::CachedQuestion>,
+) -> &'a CachedQuestion {
+    let task_id = response.request_id;
+    let ev = task_map
+        .set_async_task_completed(task_id.as_str())
+        .expect("Expected at least one event");
+    let cached_q = cache.get_or_insert_mut(
+        ev.get_question_frontend_id(),
+        super::CachedQuestion::default,
+    );
     cached_q.qd = Some(response.content);
+    cached_q
 }
 
-pub(super) fn process_question_editor_data(
+pub(super) fn process_question_editor_data<'a>(
     response: Response<editor_data::Question>,
-    task_map: &mut HashMap<String, (super::Question, super::TaskType)>,
-    cache: &mut lru::LruCache<String, super::CachedQuestion>,
-) {
-    let key = task_map
-        .remove(&response.request_id)
-        .expect("sent task is not found in the task list.")
-        .0
-        .borrow()
-        .frontend_question_id
-        .clone();
-    let cached_q = cache.get_or_insert_mut(key, super::CachedQuestion::default);
+    task_map: &mut EventTracker,
+    cache: &'a mut lru::LruCache<String, super::CachedQuestion>,
+) -> &'a CachedQuestion {
+    let task_id = response.request_id;
+    let ev = task_map.set_async_task_completed(task_id.as_str()).unwrap();
+    let cached_q = cache.get_or_insert_mut(ev.get_question_slug(), super::CachedQuestion::default);
     cached_q.editor_data = Some(response.content);
+    cached_q
 }
 
 impl Display for run_submit::ParsedResponse {

@@ -3,7 +3,7 @@ pub(crate) mod custom_lists;
 mod tasks;
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::path::Path;
 use std::rc::Rc;
@@ -89,7 +89,7 @@ impl CachedQuestion {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum State {
     JumpingTo,
     Filter,
@@ -97,6 +97,112 @@ enum State {
 }
 
 type Question = Rc<RefCell<QuestionModel>>;
+
+#[derive(Debug, Eq)]
+struct Event {
+    question: Question,
+    event: KeyEvent,
+    tasks: HashSet<String>,
+    popups: HashSet<String>,
+    popup_task_lookup: HashMap<String, TaskType>,
+}
+
+impl PartialEq for Event {
+    fn eq(&self, other: &Self) -> bool {
+        self.question == other.question && self.event == other.event
+    }
+}
+
+impl Event {
+    fn new(question: Question, event: KeyEvent) -> Self {
+        Self {
+            question,
+            event,
+            tasks: HashSet::new(),
+            popups: HashSet::new(),
+            popup_task_lookup: HashMap::new(),
+        }
+    }
+
+    fn has_completed_tasks(&self) -> bool {
+        self.tasks.is_empty()
+    }
+
+    fn has_completed_notifications(&self) -> bool {
+        self.popups.is_empty()
+    }
+
+    fn get_key_event(&self) -> &KeyEvent {
+        &self.event
+    }
+
+    fn get_new_async_task_key(&mut self) -> String {
+        let random_key = generate_random_string(10);
+        self.tasks.insert(random_key.clone());
+        return random_key;
+    }
+
+    fn get_new_popup_task_key(&mut self, tt: TaskType) -> String {
+        let random_key = generate_random_string(10);
+        self.popups.insert(random_key.clone());
+        self.popup_task_lookup.insert(random_key.clone(), tt);
+        return random_key;
+    }
+
+    fn set_async_task_completed(&mut self, s: &str) -> Option<String> {
+        self.tasks.take(s)
+    }
+
+    fn set_popup_task_completed(&mut self, s: &str) -> (Option<String>, Option<TaskType>) {
+        (self.popups.take(s), self.popup_task_lookup.remove(s))
+    }
+
+    fn get_question_frontend_id(&self) -> String {
+        self.question.borrow().frontend_question_id.clone()
+    }
+
+    fn get_question_slug(&self) -> String {
+        self.question.borrow().title_slug.clone()
+    }
+}
+
+#[derive(Debug, Default)]
+struct EventTracker {
+    events: VecDeque<Event>,
+}
+
+impl EventTracker {
+    fn is_firsts_tasks_finished(&mut self) -> bool {
+        self.events[0].has_completed_tasks()
+    }
+
+    fn peek_first_event(&self) -> &KeyEvent {
+        self.events.front().unwrap().get_key_event()
+    }
+
+    fn insert(&mut self, ev: Event) {
+        self.events.push_back(ev)
+    }
+
+    fn set_async_task_completed(&mut self, task_id: &str) -> Option<&mut Event> {
+        for ev in self.events.iter_mut() {
+            if ev.set_async_task_completed(task_id).is_some() {
+                return Some(ev);
+            }
+        }
+        None
+    }
+
+    fn set_popup_task_completed(&mut self, popup_id: &str) -> Option<(&mut Event, TaskType)> {
+        for ev in self.events.iter_mut() {
+            let res = ev.set_popup_task_completed(popup_id);
+            if let Some(_) = res.0 {
+                return Some((ev, res.1.expect("popup key has to be present.")));
+            }
+        }
+        None
+    }
+}
 
 #[derive(Debug)]
 pub struct QuestionListWidget {
@@ -110,10 +216,10 @@ pub struct QuestionListWidget {
     cache: lru::LruCache<String, CachedQuestion>,
 
     // (random_request_id, task type)
-    task_map: HashMap<String, (Question, TaskType)>,
+    // task_map: HashSet<String>,
 
-    // (keyevent, frontend_question_id)
-    pending_event_actions: IndexSet<(KeyEvent, String)>,
+    // { frontend_question_id: { KeyEvent: [task_id1, ... ] }}
+    pending_events: EventTracker,
 
     // (frontend_question_id, Rc<RefCell<QuestionModel>>)
     _fid_question_mapping: IndexMap<String, Question>,
@@ -174,8 +280,7 @@ impl QuestionListWidget {
             vim_tx,
             vim_running,
             cache: lru::LruCache::new(NonZeroUsize::new(10).unwrap()),
-            task_map: HashMap::new(),
-            pending_event_actions: Default::default(),
+            // task_map: HashMap::new(),
             config,
             files,
             jump_to: 0,
@@ -183,6 +288,7 @@ impl QuestionListWidget {
             _fid_question_mapping: IndexMap::new(),
             needle: None,
             selected_topic: None,
+            pending_events: Default::default(),
         }
     }
 }
@@ -192,22 +298,19 @@ impl QuestionListWidget {
         self.cache.peek(&question.borrow().frontend_question_id)
     }
 
-    fn send_fetch_question_editor_details(&mut self, question: Question) -> AppResult<()> {
-        if let Some(cached_q) = self.peek_cache_by_question(&question) {
+    fn send_fetch_question_editor_details(&mut self, event: &mut Event) -> AppResult<()> {
+        if let Some(cached_q) = self.peek_cache_by_question(&event.question) {
             if !cached_q.question_data_received() {
-                self.send_fetch_question_details(question.clone())?;
+                self.send_fetch_question_details(event)?;
             }
         }
         self.show_spinner()?;
-        let random_key = generate_random_string(10);
-        self.task_map
-            .insert(random_key.clone(), (question.clone(), TaskType::Edit));
         self.get_task_sender()
             .send(
                 crate::app_ui::async_task_channel::TaskRequest::GetQuestionEditorData(Request {
                     widget_name: self.get_widget_name(),
-                    request_id: random_key,
-                    content: question.borrow().title_slug.clone(),
+                    request_id: event.get_new_async_task_key(),
+                    content: event.get_question_slug(),
                 }),
             )
             .map_err(Box::new)?;
@@ -220,12 +323,9 @@ impl QuestionListWidget {
         lang: Language,
         typed_code: String,
         is_submit: bool,
+        async_task_key: String,
     ) -> AppResult<()> {
         self.show_spinner()?;
-        let random_key = generate_random_string(10);
-        self.task_map
-            .insert(random_key.clone(), (question.clone(), TaskType::Run));
-
         let content = if is_submit {
             let submit_code = SubmitCode {
                 lang,
@@ -251,7 +351,7 @@ impl QuestionListWidget {
             .send(
                 crate::app_ui::async_task_channel::TaskRequest::CodeRunRequest(Request {
                     widget_name: self.get_widget_name(),
-                    request_id: random_key,
+                    request_id: async_task_key,
                     content,
                 }),
             )
@@ -262,8 +362,9 @@ impl QuestionListWidget {
     fn solution_file_popup_action(
         &mut self,
         question: Question,
-        task_type: TaskType,
+        task_type: &TaskType,
         index: usize,
+        async_task_key: String,
     ) -> AppResult<()> {
         self.show_spinner()?;
         let solution_files = self
@@ -279,30 +380,23 @@ impl QuestionListWidget {
             .expect("Question id does not exist in the solutions mapping");
         let solution_file = solution_files.iter().nth(index).unwrap();
         let typed_code = solution_file.read_file_contents(&self.config.solutions_dir);
-        let is_submit = match task_type {
-            TaskType::Run => false,
-            TaskType::Submit => true,
-            _ => unimplemented!(),
-        };
         self.send_fetch_solution_run_details(
             question,
             solution_file.lang.clone(),
             typed_code,
-            is_submit,
+            matches!(task_type, TaskType::Submit),
+            async_task_key,
         )
     }
 
-    fn send_fetch_question_details(&mut self, question: Question) -> AppResult<()> {
+    fn send_fetch_question_details(&mut self, event: &mut Event) -> AppResult<()> {
         self.show_spinner()?;
-        let random_key = generate_random_string(10);
-        self.task_map
-            .insert(random_key.clone(), (question.clone(), TaskType::Read));
         self.get_task_sender()
             .send(
                 crate::app_ui::async_task_channel::TaskRequest::QuestionDetail(Request {
                     widget_name: self.get_widget_name(),
-                    request_id: random_key,
-                    content: question.borrow().title_slug.clone(),
+                    request_id: event.get_new_async_task_key(),
+                    content: event.get_question_slug(),
                 }),
             )
             .map_err(Box::new)?;
@@ -321,10 +415,10 @@ impl QuestionListWidget {
         Ok(())
     }
 
-    fn is_notif_pending(&self, key: &(KeyEvent, Question)) -> bool {
-        self.pending_event_actions
-            .contains(&(key.0, key.1.borrow().frontend_question_id.clone()))
-    }
+    // fn is_notif_pending(&self, key: &(KeyEvent, Question)) -> bool {
+    //     self.pending_event_actions
+    //         .contains(&(key.0, key.1.borrow().frontend_question_id.clone()))
+    // }
 
     fn open_vim_like_editor(&mut self, file_name: &Path, editor: &str) -> AppResult<()> {
         // before opening the editor leave alternative screen owned by current thread
@@ -456,62 +550,6 @@ impl QuestionListWidget {
         ListItem::new(styled_title)
     }
 
-    fn add_event_to_event_queue(&mut self, data: (KeyEvent, String)) -> bool {
-        self.pending_event_actions.insert(data)
-    }
-
-    fn process_pending_events(&mut self) {
-        let mut to_process_again = vec![];
-        while let Some((pending_event, question_id)) = self.pending_event_actions.pop() {
-            let question_model = self._fid_question_mapping[&question_id].clone();
-            let ques_in_cache = self
-                .cache
-                .get_or_insert_mut(question_id.clone(), CachedQuestion::default);
-            match pending_event.code {
-                KeyCode::Enter => {
-                    if let Some(cache_ques) = &ques_in_cache.qd {
-                        let content = cache_ques.html_to_text();
-                        let title = question_model.borrow().title.clone();
-                        let notif = self.popup_paragraph_notification(
-                            content,
-                            title,
-                            IndexSet::from_iter([CommonHelpText::Edit.into()]),
-                        );
-                        self.get_notification_queue().push_back(notif);
-                    } else {
-                        to_process_again.push((pending_event, question_id));
-                    }
-                }
-                KeyCode::Char('E') | KeyCode::Char('e') => {
-                    let question_data_in_cache = ques_in_cache.question_data_received();
-                    let question_editor_data_in_cache = ques_in_cache.editor_data_received();
-
-                    if question_data_in_cache && question_editor_data_in_cache {
-                        let content = ques_in_cache.get_list_of_languages().unwrap();
-                        let title = "Select Language".to_string();
-                        let popup_key = generate_random_string(10);
-                        self.task_map
-                            .insert(popup_key.clone(), (question_model.clone(), TaskType::Edit));
-                        let notif = self.popup_list_notification(
-                            content,
-                            title,
-                            popup_key,
-                            IndexSet::new(),
-                        );
-                        self.get_notification_queue().push_back(notif);
-                    } else {
-                        to_process_again.push((pending_event, question_id));
-                    }
-                }
-                _ => continue,
-            }
-        }
-
-        for i in to_process_again {
-            self.add_event_to_event_queue(i);
-        }
-    }
-
     fn get_selected_question_from_cache(&mut self) -> (&mut CachedQuestion, Question) {
         let selected_question = self.questions.get_selected_item();
         let sel = selected_question.expect("no question selected");
@@ -526,6 +564,7 @@ impl QuestionListWidget {
     fn run_or_submit_code_event_handler(
         &mut self,
         task_type: TaskType,
+        event: &mut Event,
     ) -> AppResult<Option<Notification>> {
         let selected_question = self
             .questions
@@ -541,13 +580,10 @@ impl QuestionListWidget {
                 .iter()
                 .map(|f| f.lang.clone().to_string())
                 .collect::<Vec<_>>();
-            let key = generate_random_string(10);
-            self.task_map
-                .insert(key.clone(), (selected_question.clone(), task_type));
             return Ok(Some(self.popup_list_notification(
                 langs,
                 "Select Language".to_string(),
-                key,
+                event.get_new_popup_task_key(task_type),
                 IndexSet::new(),
             )));
         }
@@ -655,7 +691,9 @@ impl Widget for QuestionListWidget {
     }
 
     fn handler(&mut self, event: KeyEvent) -> AppResult<Option<Notification>> {
-        match (&self.state, event.code) {
+        let state = self.state.clone();
+
+        match (state, event.code) {
             (_, KeyCode::Esc) => {
                 self.state = State::Normal;
             }
@@ -665,7 +703,6 @@ impl Widget for QuestionListWidget {
                 KeyCode::Enter => {
                     let (cache, model) = self.get_selected_question_from_cache();
                     let question_data_in_cache = cache.question_data_received();
-
                     if question_data_in_cache {
                         let content = cache.get_question_content().unwrap();
                         let title = model.borrow().title.clone();
@@ -675,60 +712,42 @@ impl Widget for QuestionListWidget {
                             IndexSet::from_iter([CommonHelpText::Edit.into()]),
                         )));
                     }
-
-                    if self.is_notif_pending(&(event, model.clone())) {
-                        self.process_pending_events();
-                        return Ok(None);
-                    }
-
-                    // before sending the task request set the key as the request id and value
-                    // as question model so that we can obtain the question model once we get the response
-                    self.send_fetch_question_details(model.clone())?;
-                    self.add_event_to_event_queue((
-                        event,
-                        model.borrow().frontend_question_id.clone(),
-                    ));
+                    let mut ev = Event::new(model.clone(), event);
+                    self.send_fetch_question_details(&mut ev)?;
+                    self.pending_events.insert(ev);
                 }
 
                 KeyCode::Char('e') | KeyCode::Char('E') => {
                     let (cache, model) = self.get_selected_question_from_cache();
                     let question_data_in_cache = cache.question_data_received();
                     let question_editor_data_in_cache = cache.editor_data_received();
-
+                    let mut ev = Event::new(model.clone(), event);
                     if question_data_in_cache && question_editor_data_in_cache {
                         let content = cache.get_list_of_languages().unwrap();
                         let title = "Select Language".to_string();
-                        let popup_key = generate_random_string(10);
-                        self.task_map
-                            .insert(popup_key.clone(), (model, TaskType::Edit));
                         let notif = self.popup_list_notification(
                             content,
                             title,
-                            popup_key,
+                            ev.get_new_popup_task_key(TaskType::Edit),
                             IndexSet::new(),
                         );
+                        self.pending_events.insert(ev);
                         return Ok(Some(notif));
+                    } else {
+                        self.send_fetch_question_editor_details(&mut ev)?;
+                        self.pending_events.insert(ev);
                     }
-
-                    if self.is_notif_pending(&(event, model.clone())) {
-                        self.process_pending_events();
-                        return Ok(None);
-                    }
-
-                    // before sending the task request set the key as the request id and value
-                    // as question model so that we can obtain the question model once we get the response
-                    self.send_fetch_question_editor_details(model.clone())?;
-                    self.add_event_to_event_queue((
-                        event,
-                        model.borrow().frontend_question_id.clone(),
-                    ));
                 }
 
                 KeyCode::Char('r') | KeyCode::Char('R') => {
-                    return self.run_or_submit_code_event_handler(TaskType::Run);
+                    let (cache, model) = self.get_selected_question_from_cache();
+                    let mut ev = Event::new(model.clone(), event);
+                    return self.run_or_submit_code_event_handler(TaskType::Run, &mut ev);
                 }
                 KeyCode::Char('s') => {
-                    return self.run_or_submit_code_event_handler(TaskType::Submit);
+                    let (cache, model) = self.get_selected_question_from_cache();
+                    let mut ev = Event::new(model.clone(), event);
+                    return self.run_or_submit_code_event_handler(TaskType::Submit, &mut ev);
                 }
                 KeyCode::Char(c) => {
                     if c.is_numeric() {
@@ -852,10 +871,11 @@ impl Widget for QuestionListWidget {
                     )));
             }
             TaskResponse::QuestionDetail(qd) => {
-                process_question_detail_response(qd, &mut self.task_map, &mut self.cache);
+                process_question_detail_response(qd, &mut self.pending_events, &mut self.cache);
             }
             TaskResponse::QuestionEditorData(ed) => {
-                process_question_editor_data(ed, &mut self.task_map, &mut self.cache);
+                // Editor data like languages you can use to submit the question
+                process_question_editor_data(ed, &mut self.pending_events, &mut self.cache);
             }
             TaskResponse::RunResponseData(run_res) => {
                 let popup_content = run_res.content.to_string();
@@ -868,9 +888,14 @@ impl Widget for QuestionListWidget {
                     // upon successful submit of the question update the question accepted status
                     // also update the db
                     {
-                        let (model, _) = &self.task_map[&run_res.request_id];
+                        let ev = self
+                            .pending_events
+                            .set_async_task_completed(run_res.request_id.as_str())
+                            .expect("Expected at least one event");
+
+                        let model = ev.question.clone();
                         model.borrow_mut().status = Some("ac".to_string());
-                        self.sync_db_solution_submit_status(&model.clone())?;
+                        self.sync_db_solution_submit_status(&model)?;
                     }
                 }
                 let notification = self.popup_paragraph_notification(
@@ -880,10 +905,11 @@ impl Widget for QuestionListWidget {
                 );
                 // post submit remove the reference_task_key from task_map
                 self.get_notification_queue().push_back(notification);
-                self.task_map.remove(&run_res.request_id).unwrap();
             }
             TaskResponse::Error(e) => {
                 let src_wid = self.get_widget_name();
+                self.pending_events
+                    .set_async_task_completed(e.request_id.as_str());
                 self.get_notification_queue()
                     .push_back(Notification::Popup(NotifContent {
                         src_wid,
@@ -898,9 +924,9 @@ impl Widget for QuestionListWidget {
                     }));
             }
             _ => {}
-        }
+        };
         self.hide_spinner()?;
-        self.process_pending_events();
+        // self.pending_events;
         Ok(())
     }
 
@@ -929,7 +955,13 @@ impl Widget for QuestionListWidget {
             }
             Notification::SelectedItem(NotifContent { content, .. }) => {
                 let (lookup_key, index) = content;
-                match self.task_map.remove(&lookup_key).unwrap() {
+                let (event, task_type) = self
+                    .pending_events
+                    .set_popup_task_completed(lookup_key.as_str())
+                    .expect("notification id not found");
+                let question = event.question.clone();
+                let async_task_key = event.get_new_async_task_key();
+                match (question, &task_type) {
                     (question, TaskType::Edit) => {
                         let question_id = question.borrow().frontend_question_id.clone();
                         let cached_question = self.cache.get(&question_id).unwrap();
@@ -970,7 +1002,7 @@ impl Widget for QuestionListWidget {
                         };
                     }
                     (question, tt) => {
-                        self.solution_file_popup_action(question, tt, index)?;
+                        self.solution_file_popup_action(question, tt, index, async_task_key)?;
                     }
                 }
             }
