@@ -3,7 +3,7 @@ pub(crate) mod custom_lists;
 mod tasks;
 
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::path::Path;
 use std::rc::Rc;
@@ -50,7 +50,6 @@ use super::{CommonState, CrosstermStderr, Widget};
 use crate::app_ui::components::color::{Callout, TokyoNightColors, CHECK_MARK};
 use lru;
 use std::num::NonZeroUsize;
-use tasks::TaskType;
 
 #[derive(Debug, Default)]
 struct CachedQuestion {
@@ -104,7 +103,6 @@ struct Event {
     event: KeyEvent,
     tasks: HashSet<String>,
     popups: HashSet<String>,
-    popup_task_lookup: HashMap<String, TaskType>,
 }
 
 impl PartialEq for Event {
@@ -120,45 +118,19 @@ impl Event {
             event,
             tasks: HashSet::new(),
             popups: HashSet::new(),
-            popup_task_lookup: HashMap::new(),
         }
-    }
-
-    fn has_completed_tasks(&self) -> bool {
-        self.tasks.is_empty()
-    }
-
-    fn has_completed_notifications(&self) -> bool {
-        self.popups.is_empty()
-    }
-
-    fn get_key_event(&self) -> &KeyEvent {
-        &self.event
     }
 
     fn get_new_async_task_key(&mut self) -> String {
         let random_key = generate_random_string(10);
         self.tasks.insert(random_key.clone());
-        return random_key;
+        random_key
     }
 
-    fn get_new_popup_task_key(&mut self, tt: TaskType) -> String {
+    fn get_new_popup_task_key(&mut self) -> String {
         let random_key = generate_random_string(10);
         self.popups.insert(random_key.clone());
-        self.popup_task_lookup.insert(random_key.clone(), tt);
-        return random_key;
-    }
-
-    fn set_async_task_completed(&mut self, s: &str) -> Option<String> {
-        self.tasks.take(s)
-    }
-
-    fn set_popup_task_completed(&mut self, s: &str) -> (Option<String>, Option<TaskType>) {
-        (self.popups.take(s), self.popup_task_lookup.remove(s))
-    }
-
-    fn get_question_frontend_id(&self) -> String {
-        self.question.borrow().frontend_question_id.clone()
+        random_key
     }
 
     fn get_question_slug(&self) -> String {
@@ -168,39 +140,60 @@ impl Event {
 
 #[derive(Debug, Default)]
 struct EventTracker {
-    events: VecDeque<Event>,
+    events: HashMap<(KeyEvent, String), u8>,
+    ev_id: HashMap<String, (KeyEvent, Question)>,
+
+    notifs: HashMap<(KeyEvent, String), u8>,
+    notifs_id: HashMap<String, (KeyEvent, Question)>,
 }
 
 impl EventTracker {
-    fn is_firsts_tasks_finished(&mut self) -> bool {
-        self.events[0].has_completed_tasks()
-    }
-
-    fn peek_first_event(&self) -> &KeyEvent {
-        self.events.front().unwrap().get_key_event()
-    }
-
     fn insert(&mut self, ev: Event) {
-        self.events.push_back(ev)
+        let n = self
+            .events
+            .entry((ev.event, ev.question.borrow().frontend_question_id.clone()))
+            .or_insert(0);
+        for id in ev.tasks {
+            self.ev_id.insert(id, (ev.event, ev.question.clone()));
+            *n += 1;
+        }
+
+        let n = self
+            .notifs
+            .entry((ev.event, ev.question.borrow().frontend_question_id.clone()))
+            .or_insert(0);
+        for id in ev.popups {
+            self.notifs_id.insert(id, (ev.event, ev.question.clone()));
+            *n += 1;
+        }
     }
 
-    fn set_async_task_completed(&mut self, task_id: &str) -> Option<&mut Event> {
-        for ev in self.events.iter_mut() {
-            if ev.set_async_task_completed(task_id).is_some() {
-                return Some(ev);
-            }
+    fn set_async_task_completed(&mut self, task_id: &str) -> (Option<KeyEvent>, Question) {
+        let removed_task = self.ev_id.remove(task_id).expect("Key expected");
+        let corresponding_count_entry = &(
+            removed_task.0,
+            removed_task.1.borrow().frontend_question_id.clone(),
+        );
+        *self.events.get_mut(corresponding_count_entry).unwrap() -= 1;
+        if self.events[corresponding_count_entry] == 0 {
+            self.events.remove(corresponding_count_entry).unwrap();
+            return (Some(removed_task.0), removed_task.1);
         }
-        None
+        (None, removed_task.1)
     }
 
-    fn set_popup_task_completed(&mut self, popup_id: &str) -> Option<(&mut Event, TaskType)> {
-        for ev in self.events.iter_mut() {
-            let res = ev.set_popup_task_completed(popup_id);
-            if let Some(_) = res.0 {
-                return Some((ev, res.1.expect("popup key has to be present.")));
-            }
+    fn set_notif_processed(&mut self, task_id: &str) -> (Option<KeyEvent>, Question) {
+        let removed_task = self.notifs_id.remove(task_id).expect("Key expected");
+        let corresponding_count_entry = &(
+            removed_task.0,
+            removed_task.1.borrow().frontend_question_id.clone(),
+        );
+        *self.notifs.get_mut(corresponding_count_entry).unwrap() -= 1;
+        if self.notifs[corresponding_count_entry] == 0 {
+            self.notifs.remove(corresponding_count_entry).unwrap();
+            return (Some(removed_task.0), removed_task.1);
         }
-        None
+        (None, removed_task.1)
     }
 }
 
@@ -323,7 +316,7 @@ impl QuestionListWidget {
         lang: Language,
         typed_code: String,
         is_submit: bool,
-        async_task_key: String,
+        event: KeyEvent,
     ) -> AppResult<()> {
         self.show_spinner()?;
         let content = if is_submit {
@@ -346,12 +339,12 @@ impl QuestionListWidget {
 
             RunOrSubmitCode::Run(run_code)
         };
-
+        let mut ev = Event::new(question, event);
         self.get_task_sender()
             .send(
                 crate::app_ui::async_task_channel::TaskRequest::CodeRunRequest(Request {
                     widget_name: self.get_widget_name(),
-                    request_id: async_task_key,
+                    request_id: ev.get_new_async_task_key(),
                     content,
                 }),
             )
@@ -362,9 +355,8 @@ impl QuestionListWidget {
     fn solution_file_popup_action(
         &mut self,
         question: Question,
-        task_type: &TaskType,
         index: usize,
-        async_task_key: String,
+        event: KeyEvent,
     ) -> AppResult<()> {
         self.show_spinner()?;
         let solution_files = self
@@ -384,8 +376,8 @@ impl QuestionListWidget {
             question,
             solution_file.lang.clone(),
             typed_code,
-            matches!(task_type, TaskType::Submit),
-            async_task_key,
+            matches!(event.code, KeyCode::Char('s') | KeyCode::Char('S')),
+            event,
         )
     }
 
@@ -414,11 +406,6 @@ impl QuestionListWidget {
             .map_err(Box::new)?;
         Ok(())
     }
-
-    // fn is_notif_pending(&self, key: &(KeyEvent, Question)) -> bool {
-    //     self.pending_event_actions
-    //         .contains(&(key.0, key.1.borrow().frontend_question_id.clone()))
-    // }
 
     fn open_vim_like_editor(&mut self, file_name: &Path, editor: &str) -> AppResult<()> {
         // before opening the editor leave alternative screen owned by current thread
@@ -563,7 +550,6 @@ impl QuestionListWidget {
 
     fn run_or_submit_code_event_handler(
         &mut self,
-        task_type: TaskType,
         event: &mut Event,
     ) -> AppResult<Option<Notification>> {
         let selected_question = self
@@ -583,7 +569,7 @@ impl QuestionListWidget {
             return Ok(Some(self.popup_list_notification(
                 langs,
                 "Select Language".to_string(),
-                event.get_new_popup_task_key(task_type),
+                event.get_new_popup_task_key(),
                 IndexSet::new(),
             )));
         }
@@ -628,6 +614,51 @@ impl QuestionListWidget {
                 }
             }
         }
+    }
+
+    fn _handler(&mut self, event: KeyEvent, model: Question) -> AppResult<Option<Notification>> {
+        let cache = self
+            .peek_cache_by_question(&model)
+            .expect("Question not found");
+        match event.code {
+            KeyCode::Enter => {
+                let question_data_in_cache = cache.question_data_received();
+                if question_data_in_cache {
+                    let content = cache.get_question_content().unwrap();
+                    let title = model.borrow().title.clone();
+                    return Ok(Some(self.popup_paragraph_notification(
+                        content,
+                        title,
+                        IndexSet::from_iter([CommonHelpText::Edit.into()]),
+                    )));
+                }
+                let mut ev = Event::new(model.clone(), event);
+                self.send_fetch_question_details(&mut ev)?;
+                self.pending_events.insert(ev);
+            }
+            KeyCode::Char('e') | KeyCode::Char('E') => {
+                let question_data_in_cache = cache.question_data_received();
+                let question_editor_data_in_cache = cache.editor_data_received();
+                let mut ev = Event::new(model.clone(), event);
+                if question_data_in_cache && question_editor_data_in_cache {
+                    let content = cache.get_list_of_languages().unwrap();
+                    let title = "Select Language".to_string();
+                    let notif = self.popup_list_notification(
+                        content,
+                        title,
+                        ev.get_new_popup_task_key(),
+                        IndexSet::new(),
+                    );
+                    self.pending_events.insert(ev);
+                    return Ok(Some(notif));
+                } else {
+                    self.send_fetch_question_editor_details(&mut ev)?;
+                    self.pending_events.insert(ev);
+                }
+            }
+            _ => unimplemented!(),
+        }
+        Ok(None)
     }
 }
 
@@ -700,54 +731,23 @@ impl Widget for QuestionListWidget {
             (State::Normal, e) => match e {
                 KeyCode::Up => self.questions.previous(),
                 KeyCode::Down => self.questions.next(),
-                KeyCode::Enter => {
-                    let (cache, model) = self.get_selected_question_from_cache();
-                    let question_data_in_cache = cache.question_data_received();
-                    if question_data_in_cache {
-                        let content = cache.get_question_content().unwrap();
-                        let title = model.borrow().title.clone();
-                        return Ok(Some(self.popup_paragraph_notification(
-                            content,
-                            title,
-                            IndexSet::from_iter([CommonHelpText::Edit.into()]),
-                        )));
-                    }
-                    let mut ev = Event::new(model.clone(), event);
-                    self.send_fetch_question_details(&mut ev)?;
-                    self.pending_events.insert(ev);
+                KeyCode::Enter | KeyCode::Char('e') | KeyCode::Char('E') => {
+                    let (_, model) = self.get_selected_question_from_cache();
+                    return self._handler(event, model);
                 }
-
-                KeyCode::Char('e') | KeyCode::Char('E') => {
-                    let (cache, model) = self.get_selected_question_from_cache();
-                    let question_data_in_cache = cache.question_data_received();
-                    let question_editor_data_in_cache = cache.editor_data_received();
-                    let mut ev = Event::new(model.clone(), event);
-                    if question_data_in_cache && question_editor_data_in_cache {
-                        let content = cache.get_list_of_languages().unwrap();
-                        let title = "Select Language".to_string();
-                        let notif = self.popup_list_notification(
-                            content,
-                            title,
-                            ev.get_new_popup_task_key(TaskType::Edit),
-                            IndexSet::new(),
-                        );
-                        self.pending_events.insert(ev);
-                        return Ok(Some(notif));
-                    } else {
-                        self.send_fetch_question_editor_details(&mut ev)?;
-                        self.pending_events.insert(ev);
-                    }
-                }
-
                 KeyCode::Char('r') | KeyCode::Char('R') => {
-                    let (cache, model) = self.get_selected_question_from_cache();
+                    let (_, model) = self.get_selected_question_from_cache();
                     let mut ev = Event::new(model.clone(), event);
-                    return self.run_or_submit_code_event_handler(TaskType::Run, &mut ev);
+                    let rv = self.run_or_submit_code_event_handler(&mut ev);
+                    self.pending_events.insert(ev);
+                    return rv;
                 }
                 KeyCode::Char('s') => {
-                    let (cache, model) = self.get_selected_question_from_cache();
+                    let (_, model) = self.get_selected_question_from_cache();
                     let mut ev = Event::new(model.clone(), event);
-                    return self.run_or_submit_code_event_handler(TaskType::Submit, &mut ev);
+                    let rv = self.run_or_submit_code_event_handler(&mut ev);
+                    self.pending_events.insert(ev);
+                    return rv;
                 }
                 KeyCode::Char(c) => {
                     if c.is_numeric() {
@@ -848,7 +848,7 @@ impl Widget for QuestionListWidget {
         Ok(())
     }
 
-    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<()> {
+    fn process_task_response(&mut self, response: TaskResponse) -> AppResult<Option<Notification>> {
         match response {
             TaskResponse::GetAllQuestionsMap(Response { content, .. }) => {
                 process_get_all_question_map_task_content(
@@ -859,23 +859,32 @@ impl Widget for QuestionListWidget {
 
                 self.process_neetcode_75_questions();
 
-                self.get_notification_queue()
-                    .push_back(Notification::Questions(NotifContent::new(
-                        WidgetName::QuestionList,
-                        super::notification::WidgetName::QuestionList,
-                        vec![TopicTagModel {
-                            name: "All".to_owned(),
-                            id: "all".to_owned(),
-                            slug: "all".to_owned(),
-                        }],
-                    )));
+                return Ok(Some(Notification::Questions(NotifContent::new(
+                    WidgetName::QuestionList,
+                    super::notification::WidgetName::QuestionList,
+                    vec![TopicTagModel {
+                        name: "All".to_owned(),
+                        id: "all".to_owned(),
+                        slug: "all".to_owned(),
+                    }],
+                ))));
             }
             TaskResponse::QuestionDetail(qd) => {
-                process_question_detail_response(qd, &mut self.pending_events, &mut self.cache);
+                let (event, question) =
+                    self.pending_events.set_async_task_completed(&qd.request_id);
+                process_question_detail_response(qd, &question, &mut self.cache);
+                if let Some(ev) = event {
+                    return self._handler(ev, question);
+                }
             }
             TaskResponse::QuestionEditorData(ed) => {
+                let (event, question) =
+                    self.pending_events.set_async_task_completed(&ed.request_id);
                 // Editor data like languages you can use to submit the question
-                process_question_editor_data(ed, &mut self.pending_events, &mut self.cache);
+                process_question_editor_data(ed, &question, &mut self.cache);
+                if let Some(ev) = event {
+                    return self._handler(ev, question);
+                }
             }
             TaskResponse::RunResponseData(run_res) => {
                 let popup_content = run_res.content.to_string();
@@ -888,12 +897,10 @@ impl Widget for QuestionListWidget {
                     // upon successful submit of the question update the question accepted status
                     // also update the db
                     {
-                        let ev = self
+                        let (_, model) = self
                             .pending_events
-                            .set_async_task_completed(run_res.request_id.as_str())
-                            .expect("Expected at least one event");
+                            .set_async_task_completed(run_res.request_id.as_str());
 
-                        let model = ev.question.clone();
                         model.borrow_mut().status = Some("ac".to_string());
                         self.sync_db_solution_submit_status(&model)?;
                     }
@@ -904,30 +911,28 @@ impl Widget for QuestionListWidget {
                     IndexSet::new(),
                 );
                 // post submit remove the reference_task_key from task_map
-                self.get_notification_queue().push_back(notification);
+                return Ok(Some(notification));
             }
             TaskResponse::Error(e) => {
                 let src_wid = self.get_widget_name();
                 self.pending_events
                     .set_async_task_completed(e.request_id.as_str());
-                self.get_notification_queue()
-                    .push_back(Notification::Popup(NotifContent {
-                        src_wid,
-                        dest_wid: WidgetName::Popup,
-                        content: PopupMessage {
-                            help_texts: IndexSet::new(),
-                            popup: PopupType::Paragraph(ParagraphPopup::new(
-                                "Error Encountered".into(),
-                                e.content,
-                            )),
-                        },
-                    }));
+                return Ok(Some(Notification::Popup(NotifContent {
+                    src_wid,
+                    dest_wid: WidgetName::Popup,
+                    content: PopupMessage {
+                        help_texts: IndexSet::new(),
+                        popup: PopupType::Paragraph(ParagraphPopup::new(
+                            "Error Encountered".into(),
+                            e.content,
+                        )),
+                    },
+                })));
             }
             _ => {}
         };
         self.hide_spinner()?;
-        // self.pending_events;
-        Ok(())
+        Ok(None)
     }
 
     fn process_notification(
@@ -955,14 +960,11 @@ impl Widget for QuestionListWidget {
             }
             Notification::SelectedItem(NotifContent { content, .. }) => {
                 let (lookup_key, index) = content;
-                let (event, task_type) = self
-                    .pending_events
-                    .set_popup_task_completed(lookup_key.as_str())
-                    .expect("notification id not found");
-                let question = event.question.clone();
-                let async_task_key = event.get_new_async_task_key();
-                match (question, &task_type) {
-                    (question, TaskType::Edit) => {
+                let (event, question) =
+                    self.pending_events.set_notif_processed(lookup_key.as_str());
+                let event = event.unwrap();
+                match (question, event.code) {
+                    (question, KeyCode::Char('e') | KeyCode::Char('E')) => {
                         let question_id = question.borrow().frontend_question_id.clone();
                         let cached_question = self.cache.get(&question_id).unwrap();
                         let editor_data = cached_question
@@ -1001,9 +1003,16 @@ impl Widget for QuestionListWidget {
                             )));
                         };
                     }
-                    (question, tt) => {
-                        self.solution_file_popup_action(question, tt, index, async_task_key)?;
+                    (
+                        question,
+                        KeyCode::Char('r')
+                        | KeyCode::Char('R')
+                        | KeyCode::Char('s')
+                        | KeyCode::Char('S'),
+                    ) => {
+                        self.solution_file_popup_action(question, index, event)?;
                     }
+                    (_, _) => unimplemented!(),
                 }
             }
 

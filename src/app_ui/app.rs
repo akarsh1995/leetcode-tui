@@ -158,7 +158,8 @@ impl App {
     /// Handles the tick event of the terminal.
     pub fn tick(&mut self, task: Option<TaskResponse>) -> AppResult<()> {
         if let Some(task) = task {
-            self.process_task(task)?;
+            let notif = self.process_task(task)?;
+            self.pending_notifications.push_back(notif);
         }
 
         if let Some(popup) = self.get_current_popup_mut() {
@@ -173,22 +174,15 @@ impl App {
                 self.push_notif(maybe_notif);
             };
         }
-
-        for wid in self.widget_map.values_mut() {
-            while let Some(notif) = wid.get_notification_queue().pop_front() {
-                self.pending_notifications.push_back(Some(notif));
-            }
-        }
         self.process_pending_notification()?;
         Ok(())
     }
 
-    pub fn process_task(&mut self, task: TaskResponse) -> AppResult<()> {
+    pub fn process_task(&mut self, task: TaskResponse) -> AppResult<Option<Notification>> {
         self.widget_map
             .get_mut(&task.get_widget_name())
             .unwrap()
-            .process_task_response(task)?;
-        Ok(())
+            .process_task_response(task)
     }
 
     pub fn process_pending_notification(&mut self) -> AppResult<()> {

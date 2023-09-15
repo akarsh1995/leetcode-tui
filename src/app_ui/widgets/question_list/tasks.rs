@@ -12,15 +12,7 @@ use crate::{
     entities::{QuestionModel, TopicTagModel},
 };
 
-use super::{CachedQuestion, EventTracker};
-
-#[derive(Debug, Hash, Eq, PartialEq)]
-pub(super) enum TaskType {
-    Run,
-    Edit,
-    Read,
-    Submit,
-}
+use super::{CachedQuestion, Question};
 
 pub(super) fn process_get_all_question_map_task_content(
     content: HashMap<TopicTagModel, Vec<QuestionModel>>,
@@ -73,15 +65,11 @@ pub(super) fn process_get_all_question_map_task_content(
 
 pub(super) fn process_question_detail_response<'a>(
     response: Response<QuestionContent>,
-    task_map: &mut EventTracker,
+    question: &Question,
     cache: &'a mut lru::LruCache<String, super::CachedQuestion>,
 ) -> &'a CachedQuestion {
-    let task_id = response.request_id;
-    let ev = task_map
-        .set_async_task_completed(task_id.as_str())
-        .expect("Expected at least one event");
     let cached_q = cache.get_or_insert_mut(
-        ev.get_question_frontend_id(),
+        question.borrow().frontend_question_id.clone(),
         super::CachedQuestion::default,
     );
     cached_q.qd = Some(response.content);
@@ -90,12 +78,13 @@ pub(super) fn process_question_detail_response<'a>(
 
 pub(super) fn process_question_editor_data<'a>(
     response: Response<editor_data::Question>,
-    task_map: &mut EventTracker,
+    question: &Question,
     cache: &'a mut lru::LruCache<String, super::CachedQuestion>,
 ) -> &'a CachedQuestion {
-    let task_id = response.request_id;
-    let ev = task_map.set_async_task_completed(task_id.as_str()).unwrap();
-    let cached_q = cache.get_or_insert_mut(ev.get_question_slug(), super::CachedQuestion::default);
+    let cached_q = cache.get_or_insert_mut(
+        question.borrow().frontend_question_id.clone(),
+        super::CachedQuestion::default,
+    );
     cached_q.editor_data = Some(response.content);
     cached_q
 }

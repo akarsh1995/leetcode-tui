@@ -18,11 +18,18 @@ All notable changes to this project will be documented in this file.
 
 - Invalidate questions cache through `userSessionProgress`
 
-- Fix re-request when there's network error in fetching question.
-
 - Locked problems
 
+
+### Added
+
+- Lock symbol in front of the question when it is marked premium
+
+### Fixed
+
 - Error Serialization dserialization failed key=`memory missing` for lc_1143
+
+- Fix re-request when there's network error in fetching question.
 
 
 ## [0.2.1] - 2023-08-10

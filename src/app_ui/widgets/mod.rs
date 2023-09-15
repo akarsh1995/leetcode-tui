@@ -106,26 +106,24 @@ pub trait CommonStateManager: Debug {
         &self.get_common_state().task_sender
     }
 
-    fn show_spinner(&mut self) -> AppResult<()> {
+    fn show_spinner(&mut self) -> AppResult<Notification> {
         self.spinner_notif(true)
     }
 
-    fn hide_spinner(&mut self) -> AppResult<()> {
+    fn hide_spinner(&mut self) -> AppResult<Notification> {
         self.spinner_notif(false)
     }
 
-    fn spinner_notif(&mut self, show: bool) -> AppResult<()> {
+    fn spinner_notif(&mut self, show: bool) -> AppResult<Notification> {
         let src_wid = self.get_widget_name();
-        self.get_notification_queue()
-            .push_back(Notification::Loading(NotifContent {
-                src_wid,
-                dest_wid: WidgetName::HelpLine,
-                content: show,
-            }));
-        Ok(())
+        Ok(Notification::Loading(NotifContent {
+            src_wid,
+            dest_wid: WidgetName::HelpLine,
+            content: show,
+        }))
     }
 
-    fn get_notification_queue(&mut self) -> &mut VecDeque<Notification>;
+    // fn get_notification_queue(&mut self) -> &mut VecDeque<Notification>;
 
     fn get_common_state_mut(&mut self) -> &mut CommonState;
 
@@ -142,9 +140,9 @@ macro_rules! state_manager_common_methods {
             &mut self.common_state
         }
 
-        fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
-            &mut self.common_state.notification_queue
-        }
+        // fn get_notification_queue(&mut self) -> &mut std::collections::VecDeque<Notification> {
+        //     &mut self.common_state.notification_queue
+        // }
     };
 }
 
@@ -175,8 +173,11 @@ pub trait Widget: Debug {
         Ok(None)
     }
 
-    fn process_task_response(&mut self, _response: TaskResponse) -> AppResult<()> {
-        Ok(())
+    fn process_task_response(
+        &mut self,
+        _response: TaskResponse,
+    ) -> AppResult<Option<Notification>> {
+        Ok(None)
     }
 
     fn setup(&mut self) -> AppResult<()> {
@@ -234,14 +235,14 @@ impl WidgetVariant {
         (is_navigable, nm, (), bool)
     );
     gen_methods!(
-        (get_notification_queue, (), &mut VecDeque<Notification>),
+        // (get_notification_queue, (), &mut VecDeque<Notification>),
         (set_active, (), AppResult<Option<Notification>>),
         (set_inactive, (), ()),
         (setup, (), AppResult<()>),
         (
             process_task_response,
             ((response, TaskResponse)),
-            AppResult<()>
+            AppResult<Option<Notification>>
         ),
         (
             handler,
