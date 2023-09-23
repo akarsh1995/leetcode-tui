@@ -1,6 +1,6 @@
-use crate::graphql::Language;
-use crate::{deserializers::custom_serde::status_from_id, errors::AppResult};
-use serde::{Deserialize, Serialize};
+use super::language::Language;
+use crate::errors::AppResult;
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::from_value;
 use strum::Display;
 
@@ -12,7 +12,7 @@ pub enum State {
     Started,
 }
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, Clone)]
 pub enum StatusMessage {
     Accepted,
     WrongAnswer,
@@ -26,9 +26,9 @@ pub enum StatusMessage {
     Unknown,
 }
 
-impl StatusMessage {
-    pub fn to_status_code(&self) -> u32 {
-        match self {
+impl From<StatusMessage> for u32 {
+    fn from(value: StatusMessage) -> Self {
+        match value {
             StatusMessage::Accepted => 10,
             StatusMessage::WrongAnswer => 11,
             StatusMessage::MemoryLimitExceeded => 12,
@@ -41,9 +41,11 @@ impl StatusMessage {
             StatusMessage::Unknown => 0,
         }
     }
+}
 
-    pub fn from_status_code(status_code: u32) -> StatusMessage {
-        match status_code {
+impl From<u32> for StatusMessage {
+    fn from(value: u32) -> Self {
+        match value {
             10 => StatusMessage::Accepted,
             11 => StatusMessage::WrongAnswer,
             12 => StatusMessage::MemoryLimitExceeded,
@@ -58,22 +60,29 @@ impl StatusMessage {
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct RunResponse(pub serde_json::Value);
+pub(crate) fn status_from_id<'de, D>(deserializer: D) -> Result<StatusMessage, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(u32::deserialize(deserializer)?.into())
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum IntermediateParsed {
     Response {
         #[serde(deserialize_with = "status_from_id")]
-        status_code: Option<StatusMessage>,
+        status_code: StatusMessage,
     },
     Pending {
         state: State,
     },
 }
 
-impl RunResponse {
+#[derive(Debug, Deserialize)]
+pub struct RunSubmitResult(pub serde_json::Value);
+
+impl RunSubmitResult {
     pub fn to_parsed_response(&self) -> AppResult<ParsedResponse> {
         let value = self.0.clone();
         let value_copy = value.clone();
@@ -84,8 +93,7 @@ impl RunResponse {
                 status_code: status_message,
                 ..
             } => {
-                let status_message = status_message.unwrap();
-                let status_code = status_message.to_status_code();
+                let status_code = status_message.clone().into();
                 match status_message {
                     StatusMessage::Accepted | StatusMessage::WrongAnswer => {
                         ParsedResponse::Success(from_value(value_copy)?)
@@ -148,8 +156,6 @@ pub struct RuntimeError {
     pub lang: Language,
     pub runtime_error: String,
     pub full_runtime_error: String,
-    // pub memory: u32,
-    // pub elapsed_time: u32,
 }
 
 #[derive(Deserialize, Debug)]

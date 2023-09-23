@@ -1,4 +1,4 @@
-use super::GQLLeetcodeQuery;
+use super::GQLLeetcodeRequest;
 use serde::Serialize;
 
 const QUERY: &str = r#"
@@ -32,6 +32,6 @@ impl Query {
     }
 }
 
-impl GQLLeetcodeQuery for Query {
-    type T = crate::deserializers::question_content::Data;
+impl GQLLeetcodeRequest for Query {
+    type T = crate::types::question_content::Data;
 }

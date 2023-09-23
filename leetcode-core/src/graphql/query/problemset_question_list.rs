@@ -1,7 +1,7 @@
 use serde::Serialize;
 use serde_json::{json, Value};
 
-use super::GQLLeetcodeQuery;
+use super::GQLLeetcodeRequest;
 
 const QUERY: &str = r#"
 query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
@@ -91,8 +91,7 @@ impl Default for Query {
         }
     }
 }
-use crate::deserializers::problemset_question_list::Root;
 
-impl GQLLeetcodeQuery for Query {
-    type T = Root;
+impl GQLLeetcodeRequest for Query {
+    type T = crate::types::problemset_question_list::Root;
 }

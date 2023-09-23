@@ -1,19 +1,13 @@
-use super::GQLLeetcodeQuery;
+use super::GQLLeetcodeRequest;
 use serde::Serialize;
 
 const QUERY: &str = r#"
-query questionEditorData($titleSlug: String!) {
+query consolePanelConfig($titleSlug: String!) {
   question(titleSlug: $titleSlug) {
-    questionId
-    titleSlug
     questionFrontendId
-    codeSnippets {
-      lang
-      langSlug
-      code
-    }
-    envInfo
-    enableRunCode
+    questionTitle
+    exampleTestcaseList
+    # metaData
   }
 }
 "#;
@@ -40,6 +34,6 @@ impl Query {
     }
 }
 
-impl GQLLeetcodeQuery for Query {
-    type T = crate::deserializers::editor_data::QuestionData;
+impl GQLLeetcodeRequest for Query {
+    type T = crate::types::console_panel_config::Root;
 }

@@ -1,4 +1,4 @@
-use leetcode_tui_rs::deserializers::run_submit::{ParsedResponse, RunResponse};
+use leetcode_core::types::run_submit_response::{ParsedResponse, RunSubmitResult};
 use serde_json::{self, Value};
 
 const JSONS_STR: &str = include_str!("./test_submit.json");
@@ -14,14 +14,15 @@ fn test_run_status_parsing() {
     let mem_limit = &run_responses[&"memory_limit_exceeded"];
     let out_limit = &run_responses[&"output_limit"];
     let submit_success = &run_responses[&"submit_successful"];
-    let re: RunResponse = serde_json::from_value(runtime_error.to_owned()).unwrap();
-    let ce: RunResponse = serde_json::from_value(compile_error.to_owned()).unwrap();
-    let rs: RunResponse = serde_json::from_value(run_success.to_owned()).unwrap();
-    let pending: RunResponse = serde_json::from_value(pending.to_owned()).unwrap();
-    let started: RunResponse = serde_json::from_value(started.to_owned()).unwrap();
-    let mem_limit: RunResponse = serde_json::from_value(mem_limit.to_owned()).unwrap();
-    let out_limit: RunResponse = serde_json::from_value(out_limit.to_owned()).unwrap();
-    let submit_success: RunResponse = serde_json::from_value(submit_success.to_owned()).unwrap();
+    let re: RunSubmitResult = serde_json::from_value(runtime_error.to_owned()).unwrap();
+    let ce: RunSubmitResult = serde_json::from_value(compile_error.to_owned()).unwrap();
+    let rs: RunSubmitResult = serde_json::from_value(run_success.to_owned()).unwrap();
+    let pending: RunSubmitResult = serde_json::from_value(pending.to_owned()).unwrap();
+    let started: RunSubmitResult = serde_json::from_value(started.to_owned()).unwrap();
+    let mem_limit: RunSubmitResult = serde_json::from_value(mem_limit.to_owned()).unwrap();
+    let out_limit: RunSubmitResult = serde_json::from_value(out_limit.to_owned()).unwrap();
+    let submit_success: RunSubmitResult =
+        serde_json::from_value(submit_success.to_owned()).unwrap();
 
     let re = re.to_parsed_response().unwrap();
     let ce = ce.to_parsed_response().unwrap();

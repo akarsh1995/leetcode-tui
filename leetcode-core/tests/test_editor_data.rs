@@ -1,4 +1,4 @@
-use leetcode_tui_rs::deserializers::editor_data::QuestionData;
+use leetcode_core::types::editor_data::QuestionData;
 
 #[test]
 fn test_parse_editor_data() {

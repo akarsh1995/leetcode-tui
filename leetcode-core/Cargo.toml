@@ -1,0 +1,20 @@
+[package]
+name = "leetcode-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+reqwest = { version = "^0", features = [
+  "json",
+  "cookie_crate",
+  "cookie_store",
+  "cookies",
+] }
+html2text = "^0"
+async-trait = "*"
+strum = { version = "^0", features = ["derive"] }
+serde_with = { version = "3.3.0", features = ["macros"] }

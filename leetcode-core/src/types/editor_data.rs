@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::graphql::Language;
+use super::language::Language;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

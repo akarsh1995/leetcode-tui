@@ -1,24 +1,9 @@
-use serde::{Deserialize, Serialize};
+use super::{GQLLeetcodeRequest, RunOrSubmitCodeCheckResult};
+use crate::types::run_submit_response::RunSubmitResult;
+use crate::types::submit::{SubmitCodeIntermediateResponse, SubmitCodeRequest};
 
-use super::{GQLLeetcodeQuery, Language};
-use crate::deserializers::run_submit::RunResponse;
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct SubmitCode {
-    pub lang: Language,
-    pub question_id: String,
-    pub typed_code: String,
-    #[serde(skip_serializing, skip_deserializing)]
-    pub slug: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct SubmitCodeResponse {
-    submission_id: u32,
-}
-
-impl GQLLeetcodeQuery for SubmitCode {
-    type T = SubmitCodeResponse;
+impl GQLLeetcodeRequest for SubmitCodeRequest {
+    type T = SubmitCodeIntermediateResponse;
 
     fn get_endpoint(&self) -> String {
         let slug = self.slug.as_str();
@@ -26,10 +11,9 @@ impl GQLLeetcodeQuery for SubmitCode {
     }
 }
 
-/// It may take indefinite time to run the solution on leetcode.
-/// Hence polling is done to retrieve the run status from the server.
-impl GQLLeetcodeQuery for SubmitCodeResponse {
-    type T = RunResponse;
+/// Polling is done to retrieve the run status from the server. Hence it may take indefinite time to run the solution on leetcode.
+impl GQLLeetcodeRequest for SubmitCodeIntermediateResponse {
+    type T = RunSubmitResult;
     fn is_post(&self) -> bool {
         false
     }
@@ -39,6 +23,8 @@ impl GQLLeetcodeQuery for SubmitCodeResponse {
         format!("https://leetcode.com/submissions/detail/{submission_id}/check/")
     }
 }
+
+impl RunOrSubmitCodeCheckResult<SubmitCodeIntermediateResponse> for SubmitCodeRequest {}
 
 #[cfg(test)]
 mod tests {
@@ -56,12 +42,12 @@ mod tests {
         "#;
 
         // Parse Request JSON data into the RequestBody struct
-        let request_body: SubmitCode = serde_json::from_str(request_json_data).unwrap();
+        let request_body: SubmitCodeRequest = serde_json::from_str(request_json_data).unwrap();
         println!("Request Body: {:?}", request_body);
 
         // Define expected request body
-        let expected_request_body = SubmitCode {
-            lang: super::super::Language::Python3,
+        let expected_request_body = SubmitCodeRequest {
+            lang: crate::types::language::Language::Python3,
             question_id: "1".to_string(),
             typed_code: "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:    return [1]".to_string(),
             slug: "".to_string()
@@ -78,11 +64,12 @@ mod tests {
         "#;
 
         // Parse Response JSON data into the ResponseBody struct
-        let response_body: SubmitCodeResponse = serde_json::from_str(response_json_data).unwrap();
+        let response_body: SubmitCodeIntermediateResponse =
+            serde_json::from_str(response_json_data).unwrap();
         println!("Response Body: {:?}", response_body);
 
         // Define expected response body
-        let expected_response_body = SubmitCodeResponse {
+        let expected_response_body = SubmitCodeIntermediateResponse {
             submission_id: 1001727658,
         };
 
