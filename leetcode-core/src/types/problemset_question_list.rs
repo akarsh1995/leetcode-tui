@@ -4,9 +4,9 @@ use serde::{self, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TopicTag {
-    pub name: Option<String>,
+    pub name: String,
     pub id: String,
-    pub slug: Option<String>,
+    pub slug: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -19,8 +19,8 @@ pub struct Question {
     pub is_favor: Option<bool>,
     pub paid_only: Option<bool>,
     pub status: Option<String>,
-    pub title: Option<String>,
-    pub title_slug: Option<String>,
+    pub title: String,
+    pub title_slug: String,
     pub has_solution: Option<bool>,
     pub has_video_solution: Option<bool>,
     pub topic_tags: Option<Vec<TopicTag>>,
@@ -107,15 +107,15 @@ mod tests {
         assert_eq!(question.is_favor, Some(false));
         assert_eq!(question.paid_only, Some(false));
         assert_eq!(question.status, Some("ac".to_string()));
-        assert_eq!(question.title, Some("Zigzag Conversion".to_string()));
-        assert_eq!(question.title_slug, Some("zigzag-conversion".into()));
+        assert_eq!(question.title, ("Zigzag Conversion".to_string()));
+        assert_eq!(question.title_slug, ("zigzag-conversion".to_string()));
 
         if let Some(topic_tags) = &question.topic_tags {
             assert_eq!(topic_tags.len(), 1);
             let topic_tag = &topic_tags[0];
-            assert_eq!(topic_tag.name, Some("String".into()));
+            assert_eq!(topic_tag.name, ("String".to_string()));
             assert_eq!(topic_tag.id, "VG9waWNUYWdOb2RlOjEw");
-            assert_eq!(topic_tag.slug, Some("string".into()));
+            assert_eq!(topic_tag.slug, ("string".to_string()));
         }
 
         assert_eq!(question.has_solution, Some(true));

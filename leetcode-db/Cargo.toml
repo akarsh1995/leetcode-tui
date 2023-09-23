@@ -1,0 +1,13 @@
+[package]
+name = "leetcode-db"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+leetcode-core = { path = "../leetcode-core" }
+surrealdb = { version = "^1", features = ["kv-mem"] }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
