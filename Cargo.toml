@@ -14,7 +14,7 @@ exclude = [".github", "vhs_tapes"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["leetcode-core", "leetcode-db"]
+members = ["leetcode-core", "leetcode-db", "tui"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -22,7 +22,6 @@ serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
 thiserror = "^1"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
-# tokio-util = "0.7.9"
 
 [profile.release]
 lto = true

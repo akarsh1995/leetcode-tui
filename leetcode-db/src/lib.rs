@@ -5,11 +5,12 @@ use leetcode_core as api;
 
 use api::types::problemset_question_list::Question;
 use serde::{Deserialize, Serialize};
+pub use surrealdb::engine::any::connect;
 use surrealdb::engine::any::Any;
-use surrealdb::sql::Thing;
+pub use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
-type Db = Surreal<Any>;
+pub type Db = Surreal<Any>;
 
 impl TryFrom<Question> for DbQuestion {
     type Error = DbErr;
@@ -98,26 +99,54 @@ impl DbQuestion {
 impl DbQuestion {
     pub async fn to_db(&self, db: &Db) -> DBResult<Self> {
         let mut result: Vec<Self> = vec![];
-        result.append(&mut db.create("question").content(self).await?);
-        for topic in &self.topics {
-            let topic_create_res: Result<Vec<DbTopic>, surrealdb::Error> =
-                db.create("topic").content(topic).await;
-            if let Err(e) = topic_create_res {
-                match e {
-                    surrealdb::Error::Api(a) => match a {
-                        surrealdb::error::Api::Query(_) => {}
-                        _ => return Err(DbErr::TopicCreateError(format!("{topic:?} {a}"))),
-                    },
-                    _ => return Err(DbErr::TopicCreateError(format!("{topic:?} {e}"))),
+        let written_questions_result = db.create("question").content(self).await;
+        if let Err(e) = written_questions_result {
+            match e {
+                surrealdb::Error::Db(d) => match d {
+                    surrealdb::error::Db::RecordExists { .. } => {
+                        dbg!(d);
+                    }
+                    _ => return Err(DbErr::TopicCreateError(format!("{self:?} {d:?}"))),
+                },
+                surrealdb::Error::Api(ae) => match ae {
+                    surrealdb::error::Api::Query(qe) => {
+                        dbg!(qe);
+                    }
+                    _ => return Err(DbErr::TopicCreateError(format!("{self:?} {ae:?}"))),
+                },
+            }
+        } else {
+            let mut written_questions = written_questions_result.unwrap();
+            result.append(&mut written_questions);
+
+            for topic in &self.topics {
+                let topic_create_res: Result<Vec<DbTopic>, surrealdb::Error> =
+                    db.create("topic").content(topic).await;
+                if let Err(e) = topic_create_res {
+                    match e {
+                        surrealdb::Error::Db(d) => match d {
+                            surrealdb::error::Db::RecordExists { .. } => {
+                                dbg!(d);
+                            }
+                            _ => return Err(DbErr::TopicCreateError(format!("{self:?} {d:?}"))),
+                        },
+                        surrealdb::Error::Api(ae) => match ae {
+                            surrealdb::error::Api::Query(qe) => {
+                                dbg!(qe);
+                            }
+                            _ => return Err(DbErr::TopicCreateError(format!("{self:?} {ae:?}"))),
+                        },
+                    }
                 }
             }
-        }
 
-        for t in &self.topics {
-            db.query(format!("RELATE {}->belongs_to_topic->{}", self.id, t.id))
-                .await?;
+            for t in &self.topics {
+                db.query(format!("RELATE {}->belongs_to_topic->{}", self.id, t.id))
+                    .await?;
+            }
+            return Ok(result.pop().unwrap());
         }
-        Ok(result.pop().unwrap())
+        Ok(self.clone())
     }
 }
 
