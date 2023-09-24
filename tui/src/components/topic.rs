@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use color_eyre::eyre::Result;
 use leetcode_db::{Db, DbTopic as Topic};
 use ratatui::{prelude::*, widgets::*};
@@ -16,7 +18,7 @@ pub struct TopicComp {
 impl TopicComp {
     pub async fn new(db: &Db) -> Self {
         let topics = Topic::fetch_all(db).await.unwrap();
-        let mut sflist = StatefulList::with_items(topics);
+        let mut sflist = StatefulList::with_items(Arc::new(topics));
         if sflist.items.len() > 0 {
             sflist.state.select(Some(0));
         }
@@ -65,7 +67,7 @@ impl Component for TopicComp {
                 let ev_tx = self.event_tx.clone().unwrap();
                 tokio::spawn(async move {
                     let questions = selected.fetch_questions(&db).await;
-                    tx.send(Action::UpdateQuestions(questions.unwrap()))
+                    tx.send(Action::UpdateQuestions(Arc::new(questions.unwrap())))
                         .unwrap();
                     ev_tx.send(Event::Render).unwrap();
                 });

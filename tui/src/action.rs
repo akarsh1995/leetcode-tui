@@ -18,7 +18,7 @@ pub enum Action {
     PreviousTopic,
     NextQuestion,
     PreviousQuestion,
-    UpdateQuestions(Vec<DbQuestion>),
+    UpdateQuestions(Arc<Vec<DbQuestion>>),
     SetQuestions,
     SetHelpBar(Vec<(Vec<Key>, String)>),
 }

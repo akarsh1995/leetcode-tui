@@ -3,15 +3,17 @@ pub mod components;
 pub mod key;
 pub mod runner;
 pub mod tui;
+use std::sync::Arc;
+
 use ratatui::widgets::ListState;
 
 pub struct StatefulList<T> {
     pub state: ListState,
-    pub items: Vec<T>,
+    pub items: Arc<Vec<T>>,
 }
 
 impl<T> StatefulList<T> {
-    pub fn with_items(items: Vec<T>) -> StatefulList<T> {
+    pub fn with_items(items: Arc<Vec<T>>) -> StatefulList<T> {
         StatefulList {
             state: ListState::default(),
             items,
