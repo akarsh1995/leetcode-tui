@@ -1,0 +1,9 @@
+[package]
+name = "config"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+shared = { path = "../shared" }
+crossterm = { workspace = true }

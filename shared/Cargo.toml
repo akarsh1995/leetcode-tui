@@ -1,0 +1,13 @@
+[package]
+name = "shared"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+color-eyre = { workspace = true }
+signal-hook = "0.3.17"

@@ -14,14 +14,19 @@ exclude = [".github", "vhs_tapes"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["leetcode-core", "leetcode-db", "tui"]
+# members = ["leetcode-core", "leetcode-db", "tui", "shared", "core"]
+members = ["shared", "core", "config", "app"]
 resolver = "2"
 
 [workspace.dependencies]
 serde = { version = "^1", features = ["derive"] }
 serde_json = "^1"
 thiserror = "^1"
-tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "^1", features = ["full"] }
+crossterm = { version = "^0", features = ["event-stream"] }
+ratatui = { version = "0.23.0", features = ["all-widgets"] }
+tokio-util = "^0"
+color-eyre = "0.6.2"
 
 [profile.release]
 lto = true
