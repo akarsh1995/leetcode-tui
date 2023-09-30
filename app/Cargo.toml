@@ -5,8 +5,9 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
-# leetcode-core = { path = "../leetcode-core" }
+leetcode-core = { path = "../leetcode-core" }
 leetcode-db = { path = "../leetcode-db" }
+kdam = { version = "^0" }
 
 config = { path = "../config" }
 core = { path = "../core" }

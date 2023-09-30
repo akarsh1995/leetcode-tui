@@ -12,6 +12,9 @@ pub enum DbErr {
 
     #[error("FrontEndQuestionIdParseError: {0}")]
     FrontEndQuestionIdParseError(#[from] ParseIntError),
+
+    #[error("Questions not found: {0}")]
+    QuestionsNotFoundInDb(String),
 }
 
 pub type DBResult<T> = Result<T, DbErr>;

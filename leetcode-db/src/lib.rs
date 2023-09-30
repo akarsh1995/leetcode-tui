@@ -1,5 +1,6 @@
 pub mod errors;
 
+use api::QuestionRequest;
 use errors::{DBResult, DbErr};
 use leetcode_core as api;
 
@@ -72,6 +73,11 @@ pub struct DbQuestion {
     pub topics: Vec<DbTopic>,
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
+pub struct Count {
+    pub count: usize,
+}
+
 impl DbQuestion {
     fn new(id: i64, title: &str, title_slug: &str) -> Self {
         Self {
@@ -94,6 +100,18 @@ impl DbQuestion {
         // TODO: topics may change update them
         Ok(q)
     }
+
+    pub async fn get_total_questions(db: &Db) -> DBResult<Count> {
+        let mut k: Vec<Count> = db
+            .query("SELECT count() FROM question GROUP ALL")
+            .await?
+            .take(0)?;
+        if let Some(_count) = k.pop() {
+            return Ok(_count);
+        } else {
+            return Err(DbErr::QuestionsNotFoundInDb("".into()));
+        }
+    }
 }
 
 impl DbQuestion {
@@ -103,15 +121,11 @@ impl DbQuestion {
         if let Err(e) = written_questions_result {
             match e {
                 surrealdb::Error::Db(d) => match d {
-                    surrealdb::error::Db::RecordExists { .. } => {
-                        dbg!(d);
-                    }
+                    surrealdb::error::Db::RecordExists { .. } => {}
                     _ => return Err(DbErr::TopicCreateError(format!("{self:?} {d:?}"))),
                 },
                 surrealdb::Error::Api(ae) => match ae {
-                    surrealdb::error::Api::Query(qe) => {
-                        dbg!(qe);
-                    }
+                    surrealdb::error::Api::Query(qe) => {}
                     _ => return Err(DbErr::TopicCreateError(format!("{self:?} {ae:?}"))),
                 },
             }
@@ -125,15 +139,11 @@ impl DbQuestion {
                 if let Err(e) = topic_create_res {
                     match e {
                         surrealdb::Error::Db(d) => match d {
-                            surrealdb::error::Db::RecordExists { .. } => {
-                                dbg!(d);
-                            }
+                            surrealdb::error::Db::RecordExists { .. } => {}
                             _ => return Err(DbErr::TopicCreateError(format!("{self:?} {d:?}"))),
                         },
                         surrealdb::Error::Api(ae) => match ae {
-                            surrealdb::error::Api::Query(qe) => {
-                                dbg!(qe);
-                            }
+                            surrealdb::error::Api::Query(qe) => {}
                             _ => return Err(DbErr::TopicCreateError(format!("{self:?} {ae:?}"))),
                         },
                     }
