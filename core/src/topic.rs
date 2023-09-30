@@ -12,18 +12,30 @@ pub struct Topic {
 impl Topic {
     pub async fn new(db: &Db) -> Self {
         let topics = DbTopic::fetch_all(db).await.unwrap();
-        Self {
+        let s = Self {
             paginate: Paginate::new(topics),
             visible: Default::default(),
-        }
+        };
+        s.notify_change();
+        s
     }
 
     pub fn next(&mut self) -> bool {
-        self.paginate.next()
+        let n = self.paginate.next();
+        self.notify_change();
+        n
+    }
+
+    fn notify_change(&self) {
+        if let Some(hovered) = self.hovered() {
+            emit!(Topic(hovered.clone()));
+        }
     }
 
     pub fn prev(&mut self) -> bool {
-        self.paginate.prev()
+        let n = self.paginate.prev();
+        self.notify_change();
+        n
     }
 
     pub fn window(&self) -> &[DbTopic] {

@@ -1,5 +1,5 @@
-use color_eyre::Result;
 use crossterm::event::KeyEvent;
+use leetcode_db::{DbQuestion, DbTopic};
 use shared::RoCell;
 
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
@@ -13,7 +13,8 @@ pub enum Event {
     Resume,
     Suspend,
     Resize(u16, u16),
-    Topic(String),
+    Topic(DbTopic),
+    Questions(Vec<DbQuestion>),
 }
 
 impl Event {
@@ -43,6 +44,12 @@ macro_rules! emit {
     };
     (Resize($cols:expr, $rows:expr)) => {
         $crate::Event::Resize($cols, $rows).emit();
+    };
+    (Topic($topic:expr)) => {
+        $crate::Event::Topic($topic).emit();
+    };
+    (Questions($questions:expr)) => {
+        $crate::Event::Questions($questions).emit();
     };
     ($event:ident) => {
         $crate::Event::$event.emit();
