@@ -99,6 +99,8 @@ pub mod utils {
     {
         pub fn next(&mut self) -> bool {
             self.set_cursor_range();
+            let old_cursor = self.cursor;
+            let old_window = self.nth_window;
 
             if self.cursor >= self.cursor_range.end {
                 self.nth_window = self
@@ -109,11 +111,13 @@ pub mod utils {
                 self.cursor = (self.cursor + 1).min(self.get_limit() - 1);
             }
             self.hovered = self.window().get(self.cursor).map(|v| v.clone());
-            true
+            self.cursor != old_cursor || self.nth_window != old_window
         }
 
         pub fn prev(&mut self) -> bool {
             self.set_cursor_range();
+            let old_cursor = self.cursor;
+            let old_window = self.nth_window;
 
             if self.cursor < self.cursor_range.start {
                 self.nth_window = self.nth_window.saturating_sub(1);
@@ -122,7 +126,7 @@ pub mod utils {
             }
 
             self.hovered = self.window().get(self.cursor).map(|v| v.clone());
-            true
+            self.cursor != old_cursor || self.nth_window != old_window
         }
 
         fn set_cursor_range(&mut self) {
@@ -136,7 +140,7 @@ pub mod utils {
         }
 
         fn get_limit(&self) -> usize {
-            (Term::size().rows - HELP_MARGIN - TOP_MARGIN).into()
+            ((Term::size().rows - HELP_MARGIN - TOP_MARGIN) as usize).min(self.list.len())
         }
 
         pub fn window(&self) -> &[T] {

@@ -21,9 +21,11 @@ impl Topic {
     }
 
     pub fn next(&mut self) -> bool {
-        let n = self.paginate.next();
-        self.notify_change();
-        n
+        let has_topic_changed = self.paginate.next();
+        if has_topic_changed {
+            self.notify_change();
+        }
+        has_topic_changed
     }
 
     fn notify_change(&self) {
@@ -33,9 +35,11 @@ impl Topic {
     }
 
     pub fn prev(&mut self) -> bool {
-        let n = self.paginate.prev();
-        self.notify_change();
-        n
+        let has_topic_changed = self.paginate.prev();
+        if has_topic_changed {
+            self.notify_change()
+        };
+        has_topic_changed
     }
 
     pub fn window(&self) -> &[DbTopic] {
