@@ -2,6 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::Widget;
 
 use crate::ctx::Ctx;
+use crate::question::Questions;
 use crate::topic::Topic;
 
 pub struct Root<'a> {
@@ -31,6 +32,16 @@ impl<'a> Widget for Root<'a> {
         let top_bar = chunks[0];
         let vert_center = chunks[1];
         let bottom_bar = chunks[2];
-        Topic::new(self.cx).render(vert_center, buf);
+
+        let center_chunks = Layout::new()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
+            .split(vert_center);
+
+        let topic_area = center_chunks[0];
+        let question_area = center_chunks[1];
+
+        Topic::new(self.cx).render(topic_area, buf);
+        Questions::new(self.cx).render(question_area, buf);
     }
 }
