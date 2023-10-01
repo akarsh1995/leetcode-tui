@@ -1,5 +1,7 @@
 use config::log;
 use config::DB_CLIENT;
+use config::REQ_CLIENT;
+use leetcode_core::{GQLLeetcodeRequest, QuestionContentRequest};
 use leetcode_db::{DbQuestion, DbTopic};
 
 use crate::{emit, utils::Paginate};
@@ -35,12 +37,31 @@ impl Questions {
 
     pub fn show_question_content(&self) -> bool {
         if let Some(_hovered) = self.hovered() {
-            emit!(Popup(vec![_hovered.title_slug.clone()]));
-            true
+            let slug = _hovered.title_slug.clone();
+            tokio::spawn(async move {
+                let qc = QuestionContentRequest::new(slug);
+                let content = qc.send(REQ_CLIENT.as_ref()).await;
+                match content {
+                    Ok(c) => {
+                        let lines = c
+                            .data
+                            .question
+                            .html_to_text()
+                            .lines()
+                            .map(|l| l.to_string())
+                            .collect::<Vec<String>>();
+                        emit!(Popup(lines));
+                    }
+                    Err(e) => {
+                        emit!(Error(e.to_string()));
+                    }
+                };
+                emit!(Render);
+            });
         } else {
             log::debug!("hovered question is none");
-            false
         }
+        false
     }
 }
 

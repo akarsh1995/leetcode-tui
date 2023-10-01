@@ -9,18 +9,38 @@ pub mod topic;
 pub mod utils;
 
 pub mod popup {
+
     // use crossterm::terminal::Clear;
     use ratatui::prelude::*;
-    use ratatui::widgets::{Block, Borders, Clear, Paragraph, Widget};
+    use ratatui::widgets::{
+        Block, Borders, Clear, Paragraph, Scrollbar, StatefulWidget, Widget, Wrap,
+    };
 
     use crate::ctx::Ctx;
 
     pub struct Popup<'a> {
-        ctx: &'a Ctx,
+        ctx: &'a mut Ctx,
     }
 
     impl<'a> Popup<'a> {
-        pub fn new(ctx: &'a Ctx) -> Self {
+        pub fn prepare_lines(&self) -> Vec<Line> {
+            self.ctx
+                .popup
+                .get_lines()
+                .iter()
+                .map(|l| Line::from(l.as_str()))
+                .collect()
+        }
+
+        pub fn prepare_paragraph(&self) -> Paragraph<'_> {
+            Paragraph::new(self.prepare_lines())
+                .scroll((self.ctx.popup.v_scroll, 0))
+                .wrap(Wrap { trim: true })
+        }
+    }
+
+    impl<'a> Popup<'a> {
+        pub fn new(ctx: &'a mut Ctx) -> Self {
             Self { ctx }
         }
     }
@@ -28,13 +48,22 @@ pub mod popup {
     impl<'a> Widget for Popup<'a> {
         fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
             let block = Block::default().title("Popup").borders(Borders::ALL);
-            let area = centered_rect(60, 20, area);
-            let lines = self.ctx.popup.get_text();
-            let joined = lines.join("\n");
+            let area = centered_rect(60, 60, area);
             Clear.render(area, buf);
             let inner = block.inner(area);
             block.render(area, buf);
-            Paragraph::new(joined).render(inner, buf);
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints(vec![Constraint::Percentage(100), Constraint::Min(1)])
+                .split(inner);
+            let content_area = chunks[0];
+            let scrollbar_area = chunks[1];
+            self.prepare_paragraph().render(content_area, buf);
+            Scrollbar::default()
+                .orientation(ratatui::widgets::ScrollbarOrientation::VerticalRight)
+                .begin_symbol(Some("↑"))
+                .end_symbol(Some("↓"))
+                .render(scrollbar_area, buf, &mut self.ctx.popup.v_scroll_state)
         }
     }
 

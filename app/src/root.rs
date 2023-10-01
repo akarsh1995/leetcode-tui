@@ -7,11 +7,11 @@ use crate::question::Questions;
 use crate::topic::Topic;
 
 pub struct Root<'a> {
-    cx: &'a Ctx,
+    cx: &'a mut Ctx,
 }
 
 impl<'a> Root<'a> {
-    pub(super) fn new(cx: &'a Ctx) -> Self {
+    pub(super) fn new(cx: &'a mut Ctx) -> Self {
         Self { cx }
     }
 }

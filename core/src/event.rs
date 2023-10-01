@@ -16,6 +16,7 @@ pub enum Event {
     Topic(DbTopic),
     Questions(Vec<DbQuestion>),
     Popup(Vec<String>),
+    Error(String),
 }
 
 impl Event {
@@ -54,6 +55,9 @@ macro_rules! emit {
     };
     (Popup($lines:expr)) => {
         $crate::Event::Popup($lines).emit();
+    };
+    (Error($e:expr)) => {
+        $crate::Event::Error($e).emit();
     };
     ($event:ident) => {
         $crate::Event::$event.emit();

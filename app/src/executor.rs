@@ -9,6 +9,8 @@ impl Executor {
         if cx.popup.visible {
             return match key {
                 Key::Enter => cx.popup.toggle(),
+                Key::Up | Key::Char('k') => cx.popup.scroll_up(),
+                Key::Down | Key::Char('j') => cx.popup.scroll_down(),
                 _ => false,
             };
         }

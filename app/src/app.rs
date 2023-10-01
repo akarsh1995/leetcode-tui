@@ -35,6 +35,7 @@ impl App {
                 Event::Topic(topic) => app.dispatch_topic_update(topic),
                 Event::Questions(qs) => app.dispatch_question_update(qs),
                 Event::Popup(lines) => app.dispatch_popup(lines),
+                Event::Error(e) => app.dispatch_popup(vec![e]),
                 _ => {}
                 // Event::Paste(str) => app.dispatch_paste(str),
                 // Event::Resize(..) => app.dispatch_resize(),
@@ -64,7 +65,7 @@ impl App {
     fn dispatch_render(&mut self) {
         if let Some(term) = &mut self.term {
             let _ = term.draw(|f| {
-                f.render_widget(Root::new(&self.cx), f.size());
+                f.render_widget(Root::new(&mut self.cx), f.size());
             });
         }
     }
