@@ -1,10 +1,14 @@
+use std::ops::Deref;
+
 use api::{Client, GQLLeetcodeRequest, QuestionRequest};
 use color_eyre::Result;
 use kdam::BarExt;
 use leetcode_core as api;
 use leetcode_db::{Db, DbQuestion};
 
-pub async fn update_database_questions(client: &Client, database_client: &Db) -> Result<()> {
+pub async fn update_database_questions() -> Result<()> {
+    let client: &Client = config::REQ_CLIENT.as_ref();
+    let database_client: &Db = config::DB_CLIENT.as_ref();
     let mut db_question_count = 0;
 
     if let Ok(c) = DbQuestion::get_total_questions(database_client).await {

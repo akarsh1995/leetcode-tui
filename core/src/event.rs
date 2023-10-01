@@ -26,11 +26,11 @@ impl Event {
 
     #[inline]
     pub fn emit(self) {
-        TX.send(self).ok();
+        TX.as_ref().send(self).ok();
     }
 
     pub async fn wait<T>(self, rx: oneshot::Receiver<T>) -> T {
-        TX.send(self).ok();
+        TX.as_ref().send(self).ok();
         rx.await.unwrap_or_else(|_| std::process::exit(0))
     }
 }

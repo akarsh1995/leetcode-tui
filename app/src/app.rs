@@ -1,6 +1,7 @@
 use core::{emit, Event};
 
 use color_eyre::Result;
+use config::DB_CLIENT;
 use crossterm::event::KeyEvent;
 use leetcode_db::{Db, DbQuestion, DbTopic};
 use shared::tui::Term;
@@ -11,18 +12,16 @@ pub struct App {
     cx: super::ctx::Ctx,
     term: Option<Term>,
     signals: Signals,
-    db: Db,
 }
 
 impl App {
-    pub async fn run(db: &Db) -> Result<()> {
+    pub async fn run() -> Result<()> {
         let term = Term::start()?;
         let signals = Signals::start()?;
         let mut app = Self {
-            cx: Ctx::new(db).await,
+            cx: Ctx::new(DB_CLIENT.as_ref()).await,
             term: Some(term),
             signals,
-            db: db.clone(),
         };
         emit!(Render);
         while let Some(event) = app.signals.recv().await {
@@ -55,9 +54,7 @@ impl App {
     }
 
     fn dispatch_topic_update(&mut self, topic: DbTopic) {
-        self.cx
-            .question
-            .get_questions_by_topic(topic, self.db.clone())
+        self.cx.question.get_questions_by_topic(topic)
     }
 
     fn dispatch_question_update(&mut self, questions: Vec<DbQuestion>) {

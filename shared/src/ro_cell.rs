@@ -1,7 +1,6 @@
 use std::{
     cell::UnsafeCell,
     fmt::{self, Display},
-    ops::Deref,
 };
 
 // Read-only cell. It's safe to use this in a static variable, but it's not safe
@@ -33,10 +32,8 @@ impl<T> RoCell<T> {
     }
 }
 
-impl<T> Deref for RoCell<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
+impl<T> AsRef<T> for RoCell<T> {
+    fn as_ref(&self) -> &T {
         unsafe { (*self.0.get()).as_ref().unwrap() }
     }
 }
@@ -46,6 +43,6 @@ where
     T: Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.deref().fmt(f)
+        self.as_ref().fmt(f)
     }
 }

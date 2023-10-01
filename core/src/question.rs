@@ -1,4 +1,5 @@
-use leetcode_db::{Db, DbQuestion, DbTopic};
+use config::DB_CLIENT;
+use leetcode_db::{DbQuestion, DbTopic};
 use shared::log;
 
 use crate::{emit, utils::Paginate};
@@ -44,9 +45,9 @@ impl Questions {
 }
 
 impl Questions {
-    pub fn get_questions_by_topic(&mut self, topic: DbTopic, db: Db) {
+    pub fn get_questions_by_topic(&mut self, topic: DbTopic) {
         tokio::spawn(async move {
-            let questions = topic.fetch_questions(&db.clone()).await;
+            let questions = topic.fetch_questions(DB_CLIENT.as_ref()).await;
             match questions {
                 Ok(_questions) => {
                     emit!(Questions(_questions));

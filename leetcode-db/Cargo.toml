@@ -6,7 +6,7 @@ edition.workspace = true
 
 [dependencies]
 leetcode-core = { path = "../leetcode-core" }
-surrealdb = { version = "^1", features = ["kv-mem"] }
+surrealdb = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
