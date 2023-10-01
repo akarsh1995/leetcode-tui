@@ -35,6 +35,7 @@ impl App {
                 Event::Render(_) => app.dispatch_render(),
                 Event::Topic(topic) => app.dispatch_topic_update(topic),
                 Event::Questions(qs) => app.dispatch_question_update(qs),
+                Event::Popup(lines) => app.dispatch_popup(lines),
                 _ => {}
                 // Event::Paste(str) => app.dispatch_paste(str),
                 // Event::Resize(..) => app.dispatch_resize(),
@@ -69,5 +70,10 @@ impl App {
                 f.render_widget(Root::new(&self.cx), f.size());
             });
         }
+    }
+
+    fn dispatch_popup(&mut self, lines: Vec<String>) {
+        self.cx.popup.set_lines(lines);
+        self.cx.popup.toggle();
     }
 }

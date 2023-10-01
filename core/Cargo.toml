@@ -9,6 +9,7 @@ shared = { path = "../shared" }
 config = { path = "../config" }
 tokio = { workspace = true }
 leetcode-db = { path = "../leetcode-db/" }
+leetcode-core = { path = "../leetcode-core" }
 crossterm = { workspace = true }
 ratatui = { workspace = true }
 color-eyre = { workspace = true }

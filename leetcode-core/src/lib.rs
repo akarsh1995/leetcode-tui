@@ -9,6 +9,8 @@ use reqwest::header::{HeaderMap, HeaderValue};
 pub use reqwest::Client;
 pub use types::problemset_question_list::Root as QuestionResponse;
 
+pub use graphql::query::question_content::Query as QuestionContentRequest;
+
 pub async fn build_reqwest_client(csrf: &str, sess: &str) -> AppResult<Client> {
     let mut headers = HeaderMap::new();
     let header_k_v = [

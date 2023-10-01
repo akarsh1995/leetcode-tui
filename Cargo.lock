@@ -757,6 +757,7 @@ dependencies = [
  "color-eyre",
  "config",
  "crossterm",
+ "leetcode-core",
  "leetcode-db",
  "ratatui",
  "shared",

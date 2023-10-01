@@ -2,6 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::Widget;
 
 use crate::ctx::Ctx;
+use crate::popup::Popup;
 use crate::question::Questions;
 use crate::topic::Topic;
 
@@ -43,5 +44,9 @@ impl<'a> Widget for Root<'a> {
 
         Topic::new(self.cx).render(topic_area, buf);
         Questions::new(self.cx).render(question_area, buf);
+
+        if self.cx.popup.visible {
+            Popup::new(self.cx).render(area, buf);
+        }
     }
 }

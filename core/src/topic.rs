@@ -2,7 +2,6 @@ use crate::emit;
 
 use super::utils::Paginate;
 use leetcode_db::{Db, DbTopic};
-use std::default::Default;
 
 pub struct Topic {
     pub visible: bool,
@@ -14,7 +13,7 @@ impl Topic {
         let topics = DbTopic::fetch_all(db).await.unwrap();
         let s = Self {
             paginate: Paginate::new(topics),
-            visible: Default::default(),
+            visible: true,
         };
         s.notify_change();
         s

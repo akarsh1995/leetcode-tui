@@ -15,6 +15,7 @@ pub enum Event {
     Resize(u16, u16),
     Topic(DbTopic),
     Questions(Vec<DbQuestion>),
+    Popup(Vec<String>),
 }
 
 impl Event {
@@ -50,6 +51,9 @@ macro_rules! emit {
     };
     (Questions($questions:expr)) => {
         $crate::Event::Questions($questions).emit();
+    };
+    (Popup($lines:expr)) => {
+        $crate::Event::Popup($lines).emit();
     };
     ($event:ident) => {
         $crate::Event::$event.emit();
