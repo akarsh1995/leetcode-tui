@@ -16,7 +16,7 @@ where
     T: Clone,
 {
     pub fn new(list: Vec<T>) -> Self {
-        let hovered = list.first().map(|v| v.clone());
+        let hovered = list.first().cloned();
         Self {
             list,
             nth_window: Default::default(),
@@ -35,7 +35,7 @@ impl<T> Paginate<T>
 where
     T: Clone,
 {
-    pub fn next(&mut self) -> bool {
+    pub fn next_elem(&mut self) -> bool {
         self.set_cursor_range();
         let old_cursor = self.cursor;
         let old_window = self.nth_window;
@@ -48,11 +48,11 @@ where
         } else {
             self.cursor = (self.cursor + 1).min(self.get_limit() - 1);
         }
-        self.hovered = self.window().get(self.cursor).map(|v| v.clone());
+        self.hovered = self.window().get(self.cursor).cloned();
         self.cursor != old_cursor || self.nth_window != old_window
     }
 
-    pub fn prev(&mut self) -> bool {
+    pub fn prev_elem(&mut self) -> bool {
         self.set_cursor_range();
         let old_cursor = self.cursor;
         let old_window = self.nth_window;
@@ -63,7 +63,7 @@ where
             self.cursor = self.cursor.saturating_sub(1);
         }
 
-        self.hovered = self.window().get(self.cursor).map(|v| v.clone());
+        self.hovered = self.window().get(self.cursor).cloned();
         self.cursor != old_cursor || self.nth_window != old_window
     }
 

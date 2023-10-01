@@ -30,9 +30,9 @@ impl<'a> Widget for Root<'a> {
             )
             .split(area);
 
-        let top_bar = chunks[0];
+        let _top_bar = chunks[0];
         let vert_center = chunks[1];
-        let bottom_bar = chunks[2];
+        let _bottom_bar = chunks[2];
 
         let center_chunks = Layout::new()
             .direction(Direction::Horizontal)

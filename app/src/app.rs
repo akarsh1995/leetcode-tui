@@ -3,7 +3,7 @@ use core::{emit, Event};
 use color_eyre::Result;
 use config::DB_CLIENT;
 use crossterm::event::KeyEvent;
-use leetcode_db::{Db, DbQuestion, DbTopic};
+use leetcode_db::{DbQuestion, DbTopic};
 use shared::tui::Term;
 
 use crate::{ctx::Ctx, executor::Executor, root::Root, signals::Signals};

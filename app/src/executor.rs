@@ -15,10 +15,10 @@ impl Executor {
 
         if cx.topic.visible {
             return match key {
-                Key::Char('T') => cx.topic.prev(),
-                Key::Char('t') => cx.topic.next(),
-                Key::Up => cx.question.prev(),
-                Key::Down => cx.question.next(),
+                Key::Char('T') => cx.topic.prev_topic(),
+                Key::Char('t') => cx.topic.next_topic(),
+                Key::Up => cx.question.prev_ques(),
+                Key::Down => cx.question.next_ques(),
                 Key::Enter => cx.question.show_question_content(),
                 _ => false,
             };

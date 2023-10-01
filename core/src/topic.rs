@@ -19,8 +19,8 @@ impl Topic {
         s
     }
 
-    pub fn next(&mut self) -> bool {
-        let has_topic_changed = self.paginate.next();
+    pub fn next_topic(&mut self) -> bool {
+        let has_topic_changed = self.paginate.next_elem();
         if has_topic_changed {
             self.notify_change();
         }
@@ -33,8 +33,8 @@ impl Topic {
         }
     }
 
-    pub fn prev(&mut self) -> bool {
-        let has_topic_changed = self.paginate.prev();
+    pub fn prev_topic(&mut self) -> bool {
+        let has_topic_changed = self.paginate.prev_elem();
         if has_topic_changed {
             self.notify_change()
         };

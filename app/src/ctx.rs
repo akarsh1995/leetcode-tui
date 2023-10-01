@@ -13,7 +13,7 @@ impl Ctx {
     pub(super) async fn new(db: &Db) -> Self {
         Self {
             topic: Topic::new(db).await,
-            question: Questions::new(),
+            question: Questions::default(),
             popup: Default::default(),
         }
     }

@@ -32,7 +32,7 @@ pub mod popup {
             let lines = self.ctx.popup.get_text();
             let joined = lines.join("\n");
             Clear.render(area, buf);
-            let inner = block.inner(area).clone();
+            let inner = block.inner(area);
             block.render(area, buf);
             Paragraph::new(joined).render(inner, buf);
         }

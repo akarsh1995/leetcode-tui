@@ -8,8 +8,8 @@ pub struct Questions {
     paginate: Paginate<DbQuestion>,
 }
 
-impl Questions {
-    pub fn new() -> Self {
+impl Default for Questions {
+    fn default() -> Self {
         Self {
             paginate: Paginate::new(vec![]),
         }
@@ -17,12 +17,12 @@ impl Questions {
 }
 
 impl Questions {
-    pub fn prev(&mut self) -> bool {
-        self.paginate.prev()
+    pub fn prev_ques(&mut self) -> bool {
+        self.paginate.prev_elem()
     }
 
-    pub fn next(&mut self) -> bool {
-        self.paginate.next()
+    pub fn next_ques(&mut self) -> bool {
+        self.paginate.next_elem()
     }
 
     pub fn window(&self) -> &[DbQuestion] {

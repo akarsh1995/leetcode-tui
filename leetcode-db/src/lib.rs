@@ -1,6 +1,5 @@
 pub mod errors;
 
-use api::QuestionRequest;
 use errors::{DBResult, DbErr};
 use leetcode_core as api;
 
@@ -107,9 +106,9 @@ impl DbQuestion {
             .await?
             .take(0)?;
         if let Some(_count) = k.pop() {
-            return Ok(_count);
+            Ok(_count)
         } else {
-            return Err(DbErr::QuestionsNotFoundInDb("".into()));
+            Err(DbErr::QuestionsNotFoundInDb("".into()))
         }
     }
 }
@@ -125,7 +124,7 @@ impl DbQuestion {
                     _ => return Err(DbErr::TopicCreateError(format!("{self:?} {d:?}"))),
                 },
                 surrealdb::Error::Api(ae) => match ae {
-                    surrealdb::error::Api::Query(qe) => {}
+                    surrealdb::error::Api::Query(_qe) => {}
                     _ => return Err(DbErr::TopicCreateError(format!("{self:?} {ae:?}"))),
                 },
             }
@@ -143,7 +142,7 @@ impl DbQuestion {
                             _ => return Err(DbErr::TopicCreateError(format!("{self:?} {d:?}"))),
                         },
                         surrealdb::Error::Api(ae) => match ae {
-                            surrealdb::error::Api::Query(qe) => {}
+                            surrealdb::error::Api::Query(_qe) => {}
                             _ => return Err(DbErr::TopicCreateError(format!("{self:?} {ae:?}"))),
                         },
                     }

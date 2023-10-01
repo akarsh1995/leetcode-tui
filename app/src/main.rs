@@ -11,5 +11,5 @@ async fn main() -> Result<()> {
     config::init().await?;
     update_database_questions().await?;
 
-    Ok(App::run().await?)
+    App::run().await
 }

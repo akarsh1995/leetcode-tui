@@ -2,7 +2,6 @@ pub mod errors;
 pub mod graphql;
 pub mod types;
 
-use errors::AppResult;
 pub use graphql::client::GQLLeetcodeRequest;
 pub use graphql::query::problemset_question_list::Query as QuestionRequest;
 pub use reqwest::Client;

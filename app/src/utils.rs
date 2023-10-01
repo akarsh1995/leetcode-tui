@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use api::{Client, GQLLeetcodeRequest, QuestionRequest};
 use color_eyre::Result;
 use kdam::BarExt;
@@ -33,7 +31,7 @@ pub async fn update_database_questions() -> Result<()> {
     let mut pb = kdam::tqdm!(total = total_questions as usize);
 
     loop {
-        let resp = QuestionRequest::new(chunk_size, skip).send(&client).await?;
+        let resp = QuestionRequest::new(chunk_size, skip).send(client).await?;
         let questions = resp.get_questions();
         if questions.is_empty() {
             break;
