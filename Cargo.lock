@@ -700,13 +700,23 @@ dependencies = [
 name = "config"
 version = "0.3.0"
 dependencies = [
+ "better-panic",
+ "clap",
  "color-eyre",
  "crossterm",
+ "directories",
+ "lazy_static",
+ "libc",
+ "log",
  "reqwest",
  "serde",
  "shared",
+ "strip-ansi-escapes",
  "surrealdb",
  "toml",
+ "tracing",
+ "tracing-error",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -3198,22 +3208,12 @@ dependencies = [
 name = "shared"
 version = "0.3.0"
 dependencies = [
- "better-panic",
- "clap",
  "color-eyre",
  "crossterm",
- "directories",
- "lazy_static",
- "libc",
- "log",
  "ratatui",
  "signal-hook",
- "strip-ansi-escapes",
  "tokio",
  "tokio-util",
- "tracing",
- "tracing-error",
- "tracing-subscriber",
 ]
 
 [[package]]

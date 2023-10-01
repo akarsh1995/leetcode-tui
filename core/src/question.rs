@@ -1,6 +1,6 @@
+use config::log;
 use config::DB_CLIENT;
 use leetcode_db::{DbQuestion, DbTopic};
-use shared::log;
 
 use crate::{emit, utils::Paginate};
 
@@ -38,7 +38,7 @@ impl Questions {
             emit!(Popup(vec![_hovered.title_slug.clone()]));
             true
         } else {
-            shared::log::debug!("hovered question is none");
+            log::debug!("hovered question is none");
             false
         }
     }

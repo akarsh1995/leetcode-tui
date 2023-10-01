@@ -1,7 +1,7 @@
 use app::app::App;
 use app::utils::update_database_questions;
 use color_eyre::Result;
-use shared::utils::{initialize_logging, initialize_panic_handler};
+use config::error_handling::{initialize_logging, initialize_panic_handler};
 
 #[tokio::main]
 async fn main() -> Result<()> {

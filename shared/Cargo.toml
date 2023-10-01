@@ -10,14 +10,4 @@ crossterm = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 color-eyre = { workspace = true }
-signal-hook = "0.3.17"
-libc = "^0"
-log = "^0"
-tracing = "^0"
-tracing-error = "^0"
-lazy_static = "^1"
-directories = "^5"
-tracing-subscriber = { version = "^0", features = ["env-filter", "serde"] }
-clap = { version = "^4", features = ["derive", "cargo", "wrap_help", "unicode", "string", "unstable-styles"] }
-better-panic = "^0"
-strip-ansi-escapes = "^0"
+signal-hook = "^0"
