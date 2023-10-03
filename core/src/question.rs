@@ -89,11 +89,15 @@ impl Questions {
                     .await;
                 match editor_data {
                     Ok(ed) => {
-                        let selected = emit!(SelectPopup(
+                        if let Some(selected) = emit!(SelectPopup(
                             ed.get_languages().iter().map(|l| l.to_string()).collect()
                         ))
-                        .await;
-                        println!("{selected}");
+                        .await
+                        {
+                            println!("{selected}");
+                        } else {
+                            println!("quitting popup unselected");
+                        }
                     }
                     Err(e) => {
                         emit!(Error(e.to_string()));

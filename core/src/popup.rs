@@ -64,11 +64,15 @@ pub struct SelectPopup<T: Display> {
     pub visible: bool,
     pub state: ListState,
     items: Vec<T>,
-    sender: Option<tokio::sync::oneshot::Sender<usize>>,
+    sender: Option<tokio::sync::oneshot::Sender<Option<usize>>>,
 }
 
 impl<T: Display> SelectPopup<T> {
-    pub fn with_items(&mut self, items: Vec<T>, sender: tokio::sync::oneshot::Sender<usize>) {
+    pub fn with_items(
+        &mut self,
+        items: Vec<T>,
+        sender: tokio::sync::oneshot::Sender<Option<usize>>,
+    ) {
         *self = SelectPopup {
             visible: self.visible,
             state: ListState::default(),
@@ -89,16 +93,27 @@ impl<T: Display> SelectPopup<T> {
         true
     }
 
+    pub fn close_unselected(&mut self) -> bool {
+        if let Some(sender) = self.sender.take() {
+            if let Err(e) = sender.send(None) {
+                emit!(Error(format!("Could not send {e:?} via one shot channel.")));
+            } else {
+                self.toggle();
+            }
+        }
+        true
+    }
+
     pub fn close(&mut self) -> bool {
         let mut error_message = None;
         if let Some(sender) = self.sender.take() {
-            if let Some(selection) = self.state.selected() {
-                if let Err(e) = sender.send(selection) {
-                    error_message = Some(e.to_string());
-                };
-            } else {
-                error_message = Some("No item selected in the Popup list".to_string());
-            }
+            let k = sender.send(self.state.selected());
+            if let Err(e) = k {
+                error_message = Some(format!(
+                    "index: {:?} could not be sent through the channel",
+                    e
+                ));
+            };
         } else {
             error_message = Some(
                 "Sender not present in Stateful list. Cannot send the selected item.".to_string(),

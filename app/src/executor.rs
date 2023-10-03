@@ -18,6 +18,7 @@ impl Executor {
         if cx.select_popup.visible {
             return match key {
                 Key::Enter => cx.select_popup.close(),
+                Key::Esc => cx.select_popup.close_unselected(),
                 Key::Up | Key::Char('k') => cx.select_popup.prev_item(),
                 Key::Down | Key::Char('j') => cx.select_popup.next_item(),
                 _ => false,

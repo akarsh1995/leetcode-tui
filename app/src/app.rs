@@ -81,7 +81,7 @@ impl App {
     fn dispatch_select_popup(
         &mut self,
         lines: Vec<String>,
-        sender: tokio::sync::oneshot::Sender<usize>,
+        sender: tokio::sync::oneshot::Sender<Option<usize>>,
     ) {
         self.cx.select_popup.with_items(lines, sender);
         self.cx.select_popup.toggle();

@@ -16,7 +16,7 @@ pub enum Event {
     Topic(DbTopic),
     Questions(Vec<DbQuestion>),
     Popup(Vec<String>),
-    SelectPopup(Vec<String>, tokio::sync::oneshot::Sender<usize>),
+    SelectPopup(Vec<String>, tokio::sync::oneshot::Sender<Option<usize>>),
     Error(String),
 }
 
