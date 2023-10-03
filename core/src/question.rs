@@ -72,10 +72,13 @@ impl Questions {
             match questions {
                 Ok(_questions) => {
                     emit!(Questions(_questions));
-                    emit!(Render);
                 }
-                Err(e) => log::error!("Problem fetching questions for topic {topic:?}: {e}"),
+                Err(e) => {
+                    log::error!("Problem fetching questions for topic {topic:?}: {e}");
+                    emit!(Error(e.to_string()));
+                }
             }
+            emit!(Render);
         });
     }
 

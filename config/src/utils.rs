@@ -8,7 +8,7 @@ fn project_directory() -> Option<ProjectDirs> {
 }
 
 pub fn get_data_dir() -> PathBuf {
-    let directory = if let Some(s) = DATA_FOLDER.clone() {
+    let directory = if let Some(s) = DATA_FOLDER.get().unwrap().clone() {
         s
     } else if let Some(proj_dirs) = project_directory() {
         proj_dirs.data_local_dir().to_path_buf()
@@ -19,7 +19,7 @@ pub fn get_data_dir() -> PathBuf {
 }
 
 pub fn get_config_dir() -> PathBuf {
-    let directory = if let Some(s) = CONFIG_FOLDER.clone() {
+    let directory = if let Some(s) = CONFIG_FOLDER.get().unwrap().clone() {
         s
     } else if let Some(proj_dirs) = project_directory() {
         proj_dirs.config_local_dir().to_path_buf()
@@ -32,7 +32,7 @@ pub fn get_config_dir() -> PathBuf {
 pub fn version() -> String {
     let author = clap::crate_authors!();
 
-    let commit_hash = GIT_COMMIT_HASH.clone();
+    let commit_hash = GIT_COMMIT_HASH.get().unwrap().clone();
 
     // let current_exe_path = PathBuf::from(clap::crate_name!()).display().to_string();
     let config_dir_path = get_config_dir().display().to_string();

@@ -16,7 +16,6 @@ libc = "^0"
 log = "^0"
 tracing = "^0"
 tracing-error = "^0"
-lazy_static = "^1"
 directories = "^5"
 tracing-subscriber = { version = "^0", features = ["env-filter", "serde"] }
 clap = { version = "^4", features = [

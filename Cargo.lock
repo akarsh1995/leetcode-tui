@@ -705,7 +705,6 @@ dependencies = [
  "color-eyre",
  "crossterm",
  "directories",
- "lazy_static",
  "libc",
  "log",
  "reqwest",
