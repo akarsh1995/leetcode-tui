@@ -5,10 +5,10 @@ pub mod question_content;
 pub mod run_code;
 pub mod submit_code;
 use super::GQLLeetcodeRequest;
-use crate::types::run_submit_response::{ParsedResponse, RunSubmitResult};
-
 use crate::errors::AppResult;
+use crate::types::run_submit_response::{ParsedResponse, RunSubmitResult};
 use async_trait::async_trait;
+pub use editor_data::Query as EditorDataRequest;
 
 #[async_trait]
 trait RunOrSubmitCodeCheckResult<IntermediateResponse>:

@@ -35,6 +35,7 @@ impl App {
                 Event::Topic(topic) => app.dispatch_topic_update(topic),
                 Event::Questions(qs) => app.dispatch_question_update(qs),
                 Event::Popup(lines) => app.dispatch_popup(lines),
+                Event::SelectPopup(lines, result_sender) => app.dispatch_select_popup(lines, result_sender),
                 Event::Error(e) => app.dispatch_popup(vec![e]),
                 _ => {}
                 // Event::Paste(str) => app.dispatch_paste(str),
@@ -59,7 +60,8 @@ impl App {
     }
 
     fn dispatch_question_update(&mut self, questions: Vec<DbQuestion>) {
-        self.cx.question.set_questions(questions)
+        self.cx.question.set_questions(questions);
+        self.dispatch_render();
     }
 
     fn dispatch_render(&mut self) {
@@ -73,5 +75,16 @@ impl App {
     fn dispatch_popup(&mut self, lines: Vec<String>) {
         self.cx.popup.set_lines(lines);
         self.cx.popup.toggle();
+        self.dispatch_render();
+    }
+
+    fn dispatch_select_popup(
+        &mut self,
+        lines: Vec<String>,
+        sender: tokio::sync::oneshot::Sender<usize>,
+    ) {
+        self.cx.select_popup.with_items(lines, sender);
+        self.cx.select_popup.toggle();
+        self.dispatch_render();
     }
 }

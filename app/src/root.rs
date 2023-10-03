@@ -2,7 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::Widget;
 
 use crate::ctx::Ctx;
-use crate::popup::Popup;
+use crate::popup::{Popup, SelectPopup};
 use crate::question::Questions;
 use crate::topic::Topic;
 
@@ -47,6 +47,9 @@ impl<'a> Widget for Root<'a> {
 
         if self.cx.popup.visible {
             Popup::new(self.cx).render(area, buf);
+        }
+        if self.cx.select_popup.visible {
+            SelectPopup::new(self.cx).render(area, buf);
         }
     }
 }

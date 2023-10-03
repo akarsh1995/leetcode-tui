@@ -16,6 +16,7 @@ pub enum Event {
     Topic(DbTopic),
     Questions(Vec<DbQuestion>),
     Popup(Vec<String>),
+    SelectPopup(Vec<String>, tokio::sync::oneshot::Sender<usize>),
     Error(String),
 }
 
@@ -56,6 +57,10 @@ macro_rules! emit {
     (Popup($lines:expr)) => {
         $crate::Event::Popup($lines).emit();
     };
+    (SelectPopup($a: expr)) => {{
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        $crate::Event::SelectPopup($a, tx).wait(rx)
+    }};
     (Error($e:expr)) => {
         $crate::Event::Error($e).emit();
     };

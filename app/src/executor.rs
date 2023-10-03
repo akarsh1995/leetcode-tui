@@ -15,10 +15,20 @@ impl Executor {
             };
         }
 
+        if cx.select_popup.visible {
+            return match key {
+                Key::Enter => cx.select_popup.close(),
+                Key::Up | Key::Char('k') => cx.select_popup.prev_item(),
+                Key::Down | Key::Char('j') => cx.select_popup.next_item(),
+                _ => false,
+            };
+        }
+
         if cx.topic.visible {
             return match key {
                 Key::Char('T') => cx.topic.prev_topic(),
                 Key::Char('t') => cx.topic.next_topic(),
+                Key::Char('l') => cx.question.select_language(),
                 Key::Up => cx.question.prev_ques(),
                 Key::Down => cx.question.next_ques(),
                 Key::Enter => cx.question.show_question_content(),

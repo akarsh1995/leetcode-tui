@@ -1,8 +1,51 @@
 // use crossterm::terminal::Clear;
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Scrollbar, StatefulWidget, Widget, Wrap};
+use ratatui::widgets::{
+    Block, Borders, Clear, List, ListItem, Paragraph, Scrollbar, StatefulWidget, Widget, Wrap,
+};
 
 use crate::ctx::Ctx;
+
+pub struct SelectPopup<'a> {
+    ctx: &'a mut Ctx,
+}
+
+impl<'a> SelectPopup<'a> {
+    pub fn new(ctx: &'a mut Ctx) -> Self {
+        Self { ctx }
+    }
+}
+
+impl<'a> Widget for SelectPopup<'a> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let block = Block::default().title("Popup").borders(Borders::ALL);
+        let area = centered_rect(60, 60, area);
+        Clear.render(area, buf);
+        let inner = block.inner(area);
+        block.render(area, buf);
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(vec![Constraint::Percentage(100), Constraint::Min(1)])
+            .split(inner);
+        let content_area = chunks[0];
+        let lines = self.ctx.select_popup.get_lines().clone();
+
+        let list = List::new(
+            lines
+                .iter()
+                .map(|l| ListItem::new(vec![Line::from(l.as_ref())]))
+                .collect::<Vec<_>>(),
+        )
+        .highlight_style(Style::default().bg(Color::LightGreen))
+        .add_modifier(Modifier::BOLD);
+        StatefulWidget::render(list, content_area, buf, &mut self.ctx.select_popup.state);
+        // Scrollbar::default()
+        //     .orientation(ratatui::widgets::ScrollbarOrientation::VerticalRight)
+        //     .begin_symbol(Some("↑"))
+        //     .end_symbol(Some("↓"))
+        //     .render(scrollbar_area, buf, &mut self.ctx.popup.v_scroll_state)
+    }
+}
 
 pub struct Popup<'a> {
     ctx: &'a mut Ctx,

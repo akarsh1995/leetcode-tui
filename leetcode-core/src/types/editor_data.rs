@@ -29,3 +29,14 @@ pub struct QuestionEditorData {
 pub struct QuestionData {
     pub data: QuestionEditorData,
 }
+
+impl QuestionData {
+    pub fn get_languages(&self) -> Vec<&Language> {
+        self.data
+            .question
+            .code_snippets
+            .iter()
+            .map(|snippet| &snippet.lang_slug)
+            .collect()
+    }
+}

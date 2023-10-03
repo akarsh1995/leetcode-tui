@@ -34,6 +34,23 @@ impl Questions {
     pub fn hovered(&self) -> Option<&DbQuestion> {
         self.paginate.hovered()
     }
+}
+
+impl Questions {
+    pub fn get_questions_by_topic(&mut self, topic: DbTopic) {
+        tokio::spawn(async move {
+            let questions = topic.fetch_questions(DB_CLIENT.as_ref()).await;
+            match questions {
+                Ok(_questions) => {
+                    emit!(Questions(_questions));
+                }
+                Err(e) => {
+                    log::error!("Problem fetching questions for topic {topic:?}: {e}");
+                    emit!(Error(e.to_string()));
+                }
+            }
+        });
+    }
 
     pub fn show_question_content(&self) -> bool {
         if let Some(_hovered) = self.hovered() {
@@ -56,30 +73,35 @@ impl Questions {
                         emit!(Error(e.to_string()));
                     }
                 };
-                emit!(Render);
             });
         } else {
             log::debug!("hovered question is none");
         }
         false
     }
-}
 
-impl Questions {
-    pub fn get_questions_by_topic(&mut self, topic: DbTopic) {
-        tokio::spawn(async move {
-            let questions = topic.fetch_questions(DB_CLIENT.as_ref()).await;
-            match questions {
-                Ok(_questions) => {
-                    emit!(Questions(_questions));
+    pub fn select_language(&self) -> bool {
+        if let Some(_hovered) = self.hovered() {
+            let slug = _hovered.title_slug.clone();
+            tokio::spawn(async move {
+                let editor_data = leetcode_core::EditorDataRequest::new(slug)
+                    .send(REQ_CLIENT.as_ref())
+                    .await;
+                match editor_data {
+                    Ok(ed) => {
+                        let selected = emit!(SelectPopup(
+                            ed.get_languages().iter().map(|l| l.to_string()).collect()
+                        ))
+                        .await;
+                        println!("{selected}");
+                    }
+                    Err(e) => {
+                        emit!(Error(e.to_string()));
+                    }
                 }
-                Err(e) => {
-                    log::error!("Problem fetching questions for topic {topic:?}: {e}");
-                    emit!(Error(e.to_string()));
-                }
-            }
-            emit!(Render);
-        });
+            });
+        }
+        false
     }
 
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
