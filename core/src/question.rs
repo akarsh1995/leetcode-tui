@@ -1,16 +1,17 @@
+use crate::SendError;
 use crate::{emit, utils::Paginate};
-use color_eyre::eyre::Result;
 use config::log;
 use config::CONFIG;
 use config::DB_CLIENT;
 use config::REQ_CLIENT;
-use leetcode_core::{GQLLeetcodeRequest, QuestionContentRequest};
+use leetcode_core::graphql::query::RunOrSubmitCodeCheckResult;
+use leetcode_core::types::language::Language;
+use leetcode_core::{GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest};
 use leetcode_db::{DbQuestion, DbTopic};
-use std::path::PathBuf;
 pub(super) mod sol_dir;
 pub(crate) use sol_dir::init;
 
-use self::sol_dir::SOLUTION_FILE_MANAGER;
+use self::sol_dir::{SolutionFileManager, SOLUTION_FILE_MANAGER};
 
 pub struct Questions {
     paginate: Paginate<DbQuestion>,
@@ -18,7 +19,9 @@ pub struct Questions {
 
 impl Default for Questions {
     fn default() -> Self {
+        // let solutions_manager = CONFIG.as_ref().solutions_dir.clone().try_into().unwrap();
         Self {
+            // solutions_manager,
             paginate: Paginate::new(vec![]),
         }
     }
@@ -86,6 +89,46 @@ impl Questions {
         false
     }
 
+    pub fn run_solution(&self) -> bool {
+        if let Some(_hovered) = self.hovered() {
+            let id = _hovered.id.id.to_string();
+            if let Ok(lang_refs) = SOLUTION_FILE_MANAGER
+                .get()
+                .unwrap()
+                .read()
+                .unwrap()
+                .get_available_languages(id.as_str())
+                .emit()
+            {
+                let cloned_langs = lang_refs.iter().map(|v| v.to_string()).collect();
+                tokio::spawn(async move {
+                    if let Some(selected_lang) = emit!(SelectPopup(cloned_langs)).await {
+                        let selected_sol_file = SOLUTION_FILE_MANAGER
+                            .get()
+                            .unwrap()
+                            .read()
+                            .unwrap()
+                            .get_solution_file(id.as_str(), selected_lang)
+                            .cloned();
+                        if let Ok(_f) = selected_sol_file.emit() {
+                            let contents = _f.read_contents().await.unwrap();
+                            let lang = _f.language;
+                            if let Ok(response) =
+                                RunCodeRequest::new(lang, _f.question_id, contents, _f.title_slug)
+                                    .poll_check_response(REQ_CLIENT.as_ref())
+                                    .await
+                                    .emit()
+                            {
+                                emit!(Popup(vec![response.to_string()]));
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        false
+    }
+
     pub fn select_language(&self) -> bool {
         if let Some(_hovered) = self.hovered() {
             let slug = _hovered.title_slug.clone();
@@ -109,8 +152,7 @@ impl Questions {
                                         match SOLUTION_FILE_MANAGER
                                             .get()
                                             .unwrap()
-                                            .lock()
-                                            .as_mut()
+                                            .write()
                                             .unwrap()
                                             .create_solution_file(f_name.as_str(), e_data)
                                         {

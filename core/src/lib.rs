@@ -29,6 +29,9 @@ pub mod errors {
 
         #[error("File name is not a valid utf8: {0}")]
         Utf8ValidityError(PathBuf),
+
+        #[error("QuestionId: {0} does not exist")]
+        QuestionIdDoesNotExist(String),
     }
 
     pub type CoreResult<T> = Result<T, CoreError>;

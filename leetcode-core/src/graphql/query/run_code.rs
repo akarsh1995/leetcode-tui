@@ -1,5 +1,5 @@
 use super::{GQLLeetcodeRequest, RunOrSubmitCodeCheckResult};
-use crate::types::{
+pub use crate::types::{
     run::{RunCodeIntermediateResponse, RunCodeRequest},
     run_submit_response::RunSubmitResult,
 };

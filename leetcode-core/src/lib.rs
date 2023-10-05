@@ -4,6 +4,7 @@ pub mod types;
 
 pub use graphql::client::GQLLeetcodeRequest;
 pub use graphql::query::problemset_question_list::Query as QuestionRequest;
+pub use graphql::query::run_code::RunCodeRequest;
 pub use graphql::query::EditorDataRequest;
 pub use reqwest::Client;
 pub use types::editor_data::QuestionData as EditorDataResponse;

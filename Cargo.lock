@@ -744,6 +744,7 @@ dependencies = [
  "color-eyre",
  "config",
  "crossterm",
+ "indexmap 2.0.1",
  "leetcode-core",
  "leetcode-db",
  "ratatui",

@@ -11,7 +11,7 @@ use async_trait::async_trait;
 pub use editor_data::Query as EditorDataRequest;
 
 #[async_trait]
-trait RunOrSubmitCodeCheckResult<IntermediateResponse>:
+pub trait RunOrSubmitCodeCheckResult<IntermediateResponse>:
     GQLLeetcodeRequest<T = IntermediateResponse>
 where
     IntermediateResponse: GQLLeetcodeRequest<T = RunSubmitResult> + Send,

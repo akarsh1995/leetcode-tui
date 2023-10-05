@@ -125,7 +125,7 @@ impl RunSubmitResult {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Display)]
 pub enum ParsedResponse {
     Pending,
     CompileError(CompileError),

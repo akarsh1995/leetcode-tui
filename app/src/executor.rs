@@ -33,6 +33,7 @@ impl Executor {
                 Key::Up => cx.question.prev_ques(),
                 Key::Down => cx.question.next_ques(),
                 Key::Enter => cx.question.show_question_content(),
+                Key::Char('r') => cx.question.run_solution(),
                 _ => false,
             };
         }

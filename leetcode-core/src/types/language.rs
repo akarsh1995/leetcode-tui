@@ -21,7 +21,7 @@ struct Languages {
 }
 
 // Generate the enum for languages
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Hash)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Hash, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Language {
     Cpp,

@@ -1,5 +1,5 @@
-// use std::io::prelude::*;
-use std::{collections::HashMap, path::PathBuf, sync::Mutex};
+use indexmap::IndexSet;
+use std::{collections::HashMap, hash::Hash, path::PathBuf, sync::RwLock};
 use tokio::fs::read_to_string;
 
 use config::CONFIG;
@@ -9,19 +9,26 @@ use std::sync::OnceLock;
 
 use crate::errors::{CoreError, CoreResult};
 pub static FILENAME_REGEX: OnceLock<regex::Regex> = OnceLock::new();
-pub static SOLUTION_FILE_MANAGER: OnceLock<Mutex<SolutionFileManager>> = OnceLock::new();
+pub static SOLUTION_FILE_MANAGER: OnceLock<RwLock<SolutionFileManager>> = OnceLock::new();
 
 pub(crate) fn init() {
     SOLUTION_FILE_MANAGER
-        .get_or_init(|| Mutex::new(CONFIG.as_ref().solutions_dir.clone().try_into().unwrap()));
+        .get_or_init(|| RwLock::new(CONFIG.as_ref().solutions_dir.clone().try_into().unwrap()));
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SolutionFile {
     path: PathBuf,
-    question_id: String,
-    title_slug: String,
-    language: Language,
+    pub(crate) question_id: String,
+    pub(crate) title_slug: String,
+    pub(crate) language: Language,
+}
+
+impl Hash for SolutionFile {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.question_id.hash(state);
+        self.language.hash(state);
+    }
 }
 
 impl SolutionFile {
@@ -32,7 +39,7 @@ impl SolutionFile {
 
 #[derive(Debug, Default)]
 pub struct SolutionFileManager {
-    id_language_map: HashMap<String, Vec<SolutionFile>>,
+    id_language_map: HashMap<String, IndexSet<SolutionFile>>,
 }
 
 impl SolutionFileManager {
@@ -40,7 +47,7 @@ impl SolutionFileManager {
         self.id_language_map
             .entry(file.question_id.clone())
             .or_default()
-            .push(file)
+            .insert(file);
     }
 
     pub(crate) fn create_solution_file(
@@ -55,6 +62,24 @@ impl SolutionFileManager {
         }
         self.add_solution_file(file_path.clone().try_into()?);
         Ok(file_path.clone())
+    }
+
+    pub(crate) fn get_available_languages(&self, question_id: &str) -> CoreResult<Vec<&Language>> {
+        self.id_language_map
+            .get(question_id)
+            .ok_or(CoreError::QuestionIdDoesNotExist(question_id.into()))
+            .map(|v| v.iter().map(|sf| &sf.language).collect::<Vec<_>>())
+    }
+
+    pub(crate) fn get_solution_file(
+        &self,
+        question_id: &str,
+        selected: usize,
+    ) -> CoreResult<&SolutionFile> {
+        self.id_language_map
+            .get(question_id)
+            .ok_or(CoreError::QuestionIdDoesNotExist(question_id.into()))
+            .map(|v| v.get_index(selected).expect("Index does not exist"))
     }
 }
 
