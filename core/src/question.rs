@@ -1,5 +1,4 @@
-use std::path::PathBuf;
-
+use crate::{emit, utils::Paginate};
 use color_eyre::eyre::Result;
 use config::log;
 use config::CONFIG;
@@ -7,8 +6,11 @@ use config::DB_CLIENT;
 use config::REQ_CLIENT;
 use leetcode_core::{GQLLeetcodeRequest, QuestionContentRequest};
 use leetcode_db::{DbQuestion, DbTopic};
+use std::path::PathBuf;
+pub(super) mod sol_dir;
+pub(crate) use sol_dir::init;
 
-use crate::{emit, utils::Paginate};
+use self::sol_dir::SOLUTION_FILE_MANAGER;
 
 pub struct Questions {
     paginate: Paginate<DbQuestion>,
@@ -104,7 +106,14 @@ impl Questions {
                             match file_name {
                                 Ok(f_name) => {
                                     if let Some(e_data) = editor_data {
-                                        match write_to_solutions_dir(f_name.as_str(), e_data) {
+                                        match SOLUTION_FILE_MANAGER
+                                            .get()
+                                            .unwrap()
+                                            .lock()
+                                            .as_mut()
+                                            .unwrap()
+                                            .create_solution_file(f_name.as_str(), e_data)
+                                        {
                                             Ok(written_path) => {
                                                 emit!(Open(written_path));
                                             }
@@ -144,13 +153,4 @@ impl Questions {
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
         self.paginate.update_list(questions)
     }
-}
-
-fn write_to_solutions_dir(file_name: &str, contents: &str) -> Result<PathBuf> {
-    let sol = &CONFIG.as_ref().solutions_dir;
-    let file_path = sol.as_path().join(file_name);
-    if !file_path.exists() {
-        std::fs::write(file_path.as_path(), contents)?;
-    }
-    Ok(file_path)
 }

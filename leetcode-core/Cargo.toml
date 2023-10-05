@@ -13,4 +13,3 @@ html2text = "^0"
 async-trait = "*"
 strum = { version = "^0", features = ["derive"] }
 serde_with = { version = "3.3.0", features = ["macros"] }
-regex = { workspace = true }

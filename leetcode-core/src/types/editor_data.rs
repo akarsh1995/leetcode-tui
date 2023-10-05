@@ -1,10 +1,6 @@
 use super::language::Language;
 use crate::errors::{AppResult, LcAppError};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
-
-pub static FILENAME_REGEX: OnceLock<regex::Regex> = OnceLock::new();
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,18 +8,6 @@ pub struct CodeSnippet {
     pub lang: String,
     pub lang_slug: Language,
     pub code: String,
-}
-
-impl From<Language> for CodeSnippet {
-    fn from(value: Language) -> Self {
-        let lang = value.to_string();
-        let code = "".to_string();
-        Self {
-            lang,
-            lang_slug: value,
-            code,
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -83,79 +67,47 @@ impl QuestionData {
     }
 }
 
-impl TryFrom<&str> for Question {
-    type Error = LcAppError;
+// impl TryFrom<&str> for Question {
+//     type Error = LcAppError;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let regex = FILENAME_REGEX.get_or_init(|| {
-            Regex::new(r"0+(?P<q_id>\d*?)_(?P<slug>[\w-]*?)_(?P<lang_id>\d+).(?P<ext>\w+)")
-                .expect("Could not compile regex.")
-        });
+//     fn try_from(value: &str) -> Result<Self, Self::Error> {}
+// }
 
-        let captures = regex.captures(value);
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-        let ids = ["q_id", "slug", "lang_id"];
-        let err = Err(LcAppError::FileNameFormatDoesNotMatch(value.to_string()));
-        let mut res: [Option<&str>; 3] = [None, None, None];
-        if let Some(_captures) = captures {
-            for (i, cap_id) in ids.iter().enumerate() {
-                res[i] = _captures.name(cap_id).map(|v| v.as_str());
-            }
-        } else {
-            return err;
-        }
+//     #[test]
+//     fn test_filename_encoding() {
+//         let qed = QuestionData {
+//             data: QuestionEditorData {
+//                 question: Question {
+//                     question_id: "1".into(),
+//                     question_frontend_id: "1".into(),
+//                     code_snippets: vec![Language::Python3.into()],
+//                     title_slug: "two-sum".into(),
+//                     enable_run_code: false,
+//                 },
+//             },
+//         };
+//         assert_eq!(
+//             qed.get_filename(&Language::Python3).unwrap(),
+//             "0001_two-sum_11.py"
+//         );
+//     }
 
-        if let (Some(qid), Some(slug), Some(lang_id)) = (res[0], res[1], res[2]) {
-            let lang: Language = lang_id.parse::<u32>()?.into();
-            let code_snippet: CodeSnippet = lang.into();
-            Ok(Question {
-                question_id: qid.to_string(),
-                question_frontend_id: qid.to_string(),
-                code_snippets: vec![code_snippet],
-                title_slug: slug.to_string(),
-                enable_run_code: Default::default(),
-            })
-        } else {
-            return err;
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_filename_encoding() {
-        let qed = QuestionData {
-            data: QuestionEditorData {
-                question: Question {
-                    question_id: "1".into(),
-                    question_frontend_id: "1".into(),
-                    code_snippets: vec![Language::Python3.into()],
-                    title_slug: "two-sum".into(),
-                    enable_run_code: false,
-                },
-            },
-        };
-        assert_eq!(
-            qed.get_filename(&Language::Python3).unwrap(),
-            "0001_two-sum_11.py"
-        );
-    }
-
-    #[test]
-    fn test_filename_decoding() -> AppResult<()> {
-        let test_data = Question {
-            question_id: "22".into(),
-            question_frontend_id: "22".into(),
-            code_snippets: vec![Language::Kotlin.into()],
-            title_slug: "three-sum".into(),
-            enable_run_code: false,
-        };
-        let target: Question = ("0022_three-sum_11.kt").try_into()?;
-        assert_eq!(target.question_id, test_data.question_id);
-        assert_eq!(target.title_slug, test_data.title_slug);
-        Ok(())
-    }
-}
+//     #[test]
+//     fn test_filename_decoding() -> AppResult<()> {
+//         let test_data = Question {
+//             question_id: "22".into(),
+//             question_frontend_id: "22".into(),
+//             code_snippets: vec![Language::Kotlin.into()],
+//             title_slug: "three-sum".into(),
+//             enable_run_code: false,
+//         };
+//         let target: Question = ("0022_three-sum_11.kt").try_into()?;
+//         assert_eq!(target.question_id, test_data.question_id);
+//         assert_eq!(target.title_slug, test_data.title_slug);
+//         Ok(())
+//     }
+// }
