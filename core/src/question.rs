@@ -1,6 +1,15 @@
+use std::path::Path;
+use std::path::PathBuf;
+
+use color_eyre::eyre::Result;
+use config::constants::EDITOR;
 use config::log;
+use config::CONFIG;
 use config::DB_CLIENT;
 use config::REQ_CLIENT;
+use leetcode_core::types::editor_data;
+use leetcode_core::types::editor_data::QuestionEditorData;
+use leetcode_core::types::language::Language;
 use leetcode_core::{GQLLeetcodeRequest, QuestionContentRequest};
 use leetcode_db::{DbQuestion, DbTopic};
 
@@ -94,9 +103,38 @@ impl Questions {
                         ))
                         .await
                         {
-                            println!("{selected}");
+                            let selected_lang = ed.get_languages()[selected];
+                            let editor_data = ed.get_editor_data_by_language(selected_lang);
+                            let file_name = ed.get_filename(selected_lang);
+                            match file_name {
+                                Ok(f_name) => {
+                                    if let Some(e_data) = editor_data {
+                                        match write_to_solutions_dir(f_name.as_str(), e_data) {
+                                            Ok(written_path) => {
+                                                emit!(Open(written_path));
+                                            }
+                                            Err(e) => {
+                                                let err_msg =  format!(
+                                                    "Could not write to the solution directory {e} question: {:?}, lang: {:?}",
+                                                     ed.data.question.title_slug,
+                                                     selected_lang
+                                                );
+                                                emit!(Error(err_msg));
+                                            }
+                                        };
+                                    } else {
+                                        emit!(Error(format!(
+                                            "Editor data not found for question: {:?}, lang: {:?}",
+                                            ed.data.question.title_slug, selected_lang,
+                                        )));
+                                    }
+                                }
+                                Err(e) => {
+                                    emit!(Error(e.to_string()));
+                                }
+                            }
                         } else {
-                            println!("quitting popup unselected");
+                            log::info!("quitting popup unselected");
                         }
                     }
                     Err(e) => {
@@ -111,4 +149,11 @@ impl Questions {
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
         self.paginate.update_list(questions)
     }
+}
+
+fn write_to_solutions_dir(file_name: &str, contents: &str) -> Result<PathBuf> {
+    let sol = &CONFIG.as_ref().solutions_dir;
+    let file_path = sol.as_path().join(file_name);
+    std::fs::write(file_path.as_path(), contents)?;
+    Ok(file_path)
 }

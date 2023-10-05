@@ -4,7 +4,6 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use std::mem;
-// use futures::StreamExt;
 use std::{
     io::Stdout,
     ops::{Deref, DerefMut},
@@ -44,13 +43,13 @@ impl Term {
 
     pub fn suspend(&mut self) -> Result<()> {
         self.exit()?;
-        #[cfg(not(windows))]
-        signal_hook::low_level::raise(signal_hook::consts::signal::SIGTSTP)?;
         Ok(())
     }
 
     pub fn resume(&mut self) -> Result<()> {
         self.enter()?;
+        let size = self.size()?;
+        self.resize(size)?;
         Ok(())
     }
 

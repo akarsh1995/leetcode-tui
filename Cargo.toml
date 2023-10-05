@@ -29,6 +29,7 @@ tokio-util = "^0"
 color-eyre = "^0"
 surrealdb = { version = "^1", features = ["kv-mem"] }
 reqwest = { version = "^0" }
+regex = { version = "^1" }
 
 [profile.release]
 lto = true

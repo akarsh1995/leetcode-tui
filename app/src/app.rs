@@ -1,7 +1,7 @@
 use core::{emit, Event};
 
 use color_eyre::Result;
-use config::DB_CLIENT;
+use config::{constants::EDITOR, DB_CLIENT};
 use crossterm::event::KeyEvent;
 use leetcode_db::{DbQuestion, DbTopic};
 use shared::tui::Term;
@@ -37,6 +37,7 @@ impl App {
                 Event::Popup(lines) => app.dispatch_popup(lines),
                 Event::SelectPopup(lines, result_sender) => app.dispatch_select_popup(lines, result_sender),
                 Event::Error(e) => app.dispatch_popup(vec![e]),
+                Event::Open(file_path) => app.dispatch_opener(file_path),
                 _ => {}
                 // Event::Paste(str) => app.dispatch_paste(str),
                 // Event::Resize(..) => app.dispatch_resize(),
@@ -61,7 +62,7 @@ impl App {
 
     fn dispatch_question_update(&mut self, questions: Vec<DbQuestion>) {
         self.cx.question.set_questions(questions);
-        self.dispatch_render();
+        emit!(Render);
     }
 
     fn dispatch_render(&mut self) {
@@ -75,7 +76,7 @@ impl App {
     fn dispatch_popup(&mut self, lines: Vec<String>) {
         self.cx.popup.set_lines(lines);
         self.cx.popup.toggle();
-        self.dispatch_render();
+        emit!(Render);
     }
 
     fn dispatch_select_popup(
@@ -85,6 +86,27 @@ impl App {
     ) {
         self.cx.select_popup.with_items(lines, sender);
         self.cx.select_popup.toggle();
-        self.dispatch_render();
+        emit!(Render);
+    }
+
+    fn dispatch_opener(&mut self, file_path: std::path::PathBuf) {
+        // TODO: unwraps handling
+        if let Some(term) = &mut self.term {
+            term.suspend().unwrap();
+            let editor = EDITOR.get().expect("editor not set");
+            std::process::Command::new("sh")
+                .arg("-c")
+                .arg(&format!(
+                    "{} {}",
+                    editor,
+                    file_path.as_os_str().to_str().unwrap()
+                ))
+                .spawn()
+                .unwrap()
+                .wait()
+                .unwrap();
+            term.resume().unwrap();
+            emit!(Render);
+        }
     }
 }

@@ -1,3 +1,5 @@
+use std::num::ParseIntError;
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -16,6 +18,15 @@ pub enum LcAppError {
 
     #[error("Error while building reqwest client: {0}")]
     ClientBuildError(#[from] reqwest::header::InvalidHeaderValue),
+
+    #[error("Language does not exist for question {0}")]
+    LanguageDoesNotExistError(String),
+
+    #[error("Filename format does not match: {0}")]
+    FileNameFormatDoesNotMatch(String),
+
+    #[error("Couldn't parse language id: {0}")]
+    LangIdParseError(#[from] ParseIntError),
 }
 
 pub type AppResult<T> = Result<T, LcAppError>;

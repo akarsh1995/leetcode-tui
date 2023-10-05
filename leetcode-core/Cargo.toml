@@ -8,8 +8,9 @@ edition.workspace = true
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-reqwest = { workspace = true, features = [ "json", ] }
+reqwest = { workspace = true, features = ["json"] }
 html2text = "^0"
 async-trait = "*"
 strum = { version = "^0", features = ["derive"] }
 serde_with = { version = "3.3.0", features = ["macros"] }
+regex = { workspace = true }

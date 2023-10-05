@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crossterm::event::KeyEvent;
 use leetcode_db::{DbQuestion, DbTopic};
 use shared::RoCell;
@@ -17,6 +19,7 @@ pub enum Event {
     Questions(Vec<DbQuestion>),
     Popup(Vec<String>),
     SelectPopup(Vec<String>, tokio::sync::oneshot::Sender<Option<usize>>),
+    Open(PathBuf),
     Error(String),
 }
 
@@ -63,6 +66,9 @@ macro_rules! emit {
     }};
     (Error($e:expr)) => {
         $crate::Event::Error($e).emit();
+    };
+    (Open($e:expr)) => {
+        $crate::Event::Open($e).emit();
     };
     ($event:ident) => {
         $crate::Event::$event.emit();

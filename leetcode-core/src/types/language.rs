@@ -54,6 +54,76 @@ pub enum Language {
     Unknown(u32),
 }
 
+impl From<u32> for Language {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => Language::Cpp,
+            1 => Language::Java,
+            2 => Language::Python,
+            3 => Language::Mysql,
+            4 => Language::C,
+            5 => Language::Csharp,
+            6 => Language::Javascript,
+            7 => Language::Ruby,
+            8 => Language::Bash,
+            9 => Language::Swift,
+            10 => Language::Golang,
+            11 => Language::Python3,
+            12 => Language::Scala,
+            13 => Language::Kotlin,
+            14 => Language::Mssql,
+            15 => Language::Oraclesql,
+            16 => Language::Html,
+            17 => Language::Pythonml,
+            18 => Language::Rust,
+            19 => Language::Php,
+            20 => Language::Typescript,
+            21 => Language::Racket,
+            22 => Language::Erlang,
+            23 => Language::Elixir,
+            24 => Language::Dart,
+            25 => Language::Pythondata,
+            26 => Language::React,
+            _ => Language::Unknown(value),
+        }
+    }
+}
+
+impl From<Language> for u32 {
+    fn from(value: Language) -> Self {
+        match value {
+            Language::Cpp => 0,
+            Language::Java => 1,
+            Language::Python => 2,
+            Language::Mysql => 3,
+            Language::C => 4,
+            Language::Csharp => 5,
+            Language::Javascript => 6,
+            Language::Ruby => 7,
+            Language::Bash => 8,
+            Language::Swift => 9,
+            Language::Golang => 10,
+            Language::Python3 => 11,
+            Language::Scala => 12,
+            Language::Kotlin => 13,
+            Language::Mssql => 14,
+            Language::Oraclesql => 15,
+            Language::Html => 16,
+            Language::Pythonml => 17,
+            Language::Rust => 18,
+            Language::Php => 19,
+            Language::Typescript => 20,
+            Language::Racket => 21,
+            Language::Erlang => 22,
+            Language::Elixir => 23,
+            Language::Dart => 24,
+            Language::Pythondata => 25,
+            Language::React => 26,
+            Language::Unknown(id) => id,
+        }
+    }
+}
+
 impl Language {
     pub fn from_id(id: u32) -> Language {
         match id {
