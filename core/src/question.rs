@@ -1,15 +1,10 @@
-use std::path::Path;
 use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
-use config::constants::EDITOR;
 use config::log;
 use config::CONFIG;
 use config::DB_CLIENT;
 use config::REQ_CLIENT;
-use leetcode_core::types::editor_data;
-use leetcode_core::types::editor_data::QuestionEditorData;
-use leetcode_core::types::language::Language;
 use leetcode_core::{GQLLeetcodeRequest, QuestionContentRequest};
 use leetcode_db::{DbQuestion, DbTopic};
 
@@ -154,6 +149,8 @@ impl Questions {
 fn write_to_solutions_dir(file_name: &str, contents: &str) -> Result<PathBuf> {
     let sol = &CONFIG.as_ref().solutions_dir;
     let file_path = sol.as_path().join(file_name);
-    std::fs::write(file_path.as_path(), contents)?;
+    if !file_path.exists() {
+        std::fs::write(file_path.as_path(), contents)?;
+    }
     Ok(file_path)
 }
