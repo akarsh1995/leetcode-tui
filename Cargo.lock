@@ -141,6 +141,7 @@ dependencies = [
  "ratatui",
  "shared",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

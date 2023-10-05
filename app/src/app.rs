@@ -91,6 +91,7 @@ impl App {
 
     fn dispatch_opener(&mut self, file_path: std::path::PathBuf) {
         // TODO: unwraps handling
+        self.signals.stop_looking_for_io_events();
         if let Some(term) = &mut self.term {
             term.suspend().unwrap();
             let editor = EDITOR.get().expect("editor not set");
@@ -108,5 +109,6 @@ impl App {
             term.resume().unwrap();
             emit!(Render);
         }
+        self.signals.start_looking_for_io_events();
     }
 }
