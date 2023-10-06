@@ -128,7 +128,7 @@ impl Questions {
         false
     }
 
-    pub fn select_language(&self) -> bool {
+    pub fn solve_for_language(&self) -> bool {
         if let Some(_hovered) = self.hovered() {
             let slug = _hovered.title_slug.clone();
             tokio::spawn(async move {

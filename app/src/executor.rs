@@ -29,7 +29,7 @@ impl Executor {
             return match key {
                 Key::Char('T') => cx.topic.prev_topic(),
                 Key::Char('t') => cx.topic.next_topic(),
-                Key::Char('l') => cx.question.select_language(),
+                Key::Char('l') => cx.question.solve_for_language(),
                 Key::Up => cx.question.prev_ques(),
                 Key::Down => cx.question.next_ques(),
                 Key::Enter => cx.question.show_question_content(),
