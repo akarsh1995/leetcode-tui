@@ -1,4 +1,4 @@
-use crossterm::event;
+use crossterm::event::{self, KeyEventState, KeyModifiers};
 use std::fmt;
 
 /// Represents an key.
@@ -119,6 +119,26 @@ impl fmt::Display for Key {
             | Key::PageUp
             | Key::PageDown => write!(f, "<{:?}>", self),
             _ => write!(f, "{:?}", self),
+        }
+    }
+}
+
+impl Into<event::KeyEvent> for Key {
+    fn into(self) -> event::KeyEvent {
+        match self {
+            Key::Up => event::KeyEvent {
+                code: event::KeyCode::Up,
+                modifiers: KeyModifiers::empty(),
+                kind: event::KeyEventKind::Press,
+                state: KeyEventState::empty(),
+            },
+            Key::Down => event::KeyEvent {
+                code: event::KeyCode::Down,
+                modifiers: KeyModifiers::empty(),
+                kind: event::KeyEventKind::Press,
+                state: KeyEventState::empty(),
+            },
+            _ => unimplemented!(),
         }
     }
 }

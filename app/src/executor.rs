@@ -25,6 +25,20 @@ impl Executor {
             };
         }
 
+        if cx.input.visible {
+            return match key {
+                Key::Esc => cx.input.close(),
+                Key::Char(c) => cx.input.char(c),
+                Key::Backspace => cx.input.remove_char(),
+                Key::Up | Key::Down => {
+                    cx.input.close();
+                    app_core::emit!(Key(key.into()));
+                    true
+                }
+                _ => false,
+            };
+        }
+
         if cx.topic.visible {
             return match key {
                 Key::Char('T') => cx.topic.prev_topic(),
@@ -35,6 +49,7 @@ impl Executor {
                 Key::Enter => cx.question.show_question_content(),
                 Key::Char('r') => cx.question.run_solution(),
                 Key::Char('s') => cx.question.submit_solution(),
+                Key::Char('/') => cx.question.toggle_search(),
                 _ => false,
             };
         }

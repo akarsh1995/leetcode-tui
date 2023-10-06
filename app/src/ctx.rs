@@ -1,3 +1,4 @@
+use app_core::input::Input;
 use app_core::popup::{Popup, SelectPopup};
 use app_core::question::Questions;
 use app_core::topic::Topic;
@@ -8,6 +9,7 @@ pub struct Ctx {
     pub question: Questions,
     pub popup: Popup,
     pub select_popup: SelectPopup<String>,
+    pub input: Input,
 }
 
 impl Ctx {
@@ -17,6 +19,7 @@ impl Ctx {
             question: Questions::default(),
             popup: Default::default(),
             select_popup: Default::default(),
+            input: Default::default(),
         }
     }
 }

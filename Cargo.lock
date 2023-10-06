@@ -151,6 +151,7 @@ dependencies = [
  "color-eyre",
  "config",
  "crossterm",
+ "fuzzy-matcher",
  "indexmap 2.0.1",
  "leetcode-core",
  "leetcode-db",

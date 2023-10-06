@@ -17,8 +17,10 @@ pub enum Event {
     Resize(u16, u16),
     Topic(DbTopic),
     Questions(Vec<DbQuestion>),
+    QuestionFilter(Option<String>),
     Popup(Vec<String>),
     SelectPopup(Vec<String>, tokio::sync::oneshot::Sender<Option<usize>>),
+    Input(super::UBStrSender, Option<String>),
     Open(PathBuf),
     Error(String),
 }
@@ -69,6 +71,14 @@ macro_rules! emit {
     };
     (Open($e:expr)) => {
         $crate::Event::Open($e).emit();
+    };
+    (Input($e:expr)) => {{
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        $crate::Event::Input(tx, $e).emit();
+        rx
+    }};
+    (QuestionFilter($e:expr)) => {
+        $crate::Event::QuestionFilter($e).emit();
     };
     ($event:ident) => {
         $crate::Event::$event.emit();

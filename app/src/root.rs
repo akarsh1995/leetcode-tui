@@ -1,5 +1,5 @@
 use ratatui::prelude::*;
-use ratatui::widgets::Widget;
+use ratatui::widgets::{Paragraph, Widget};
 
 use crate::ctx::Ctx;
 use crate::popup::{Popup, SelectPopup};
@@ -50,6 +50,17 @@ impl<'a> Widget for Root<'a> {
         }
         if self.cx.select_popup.visible {
             SelectPopup::new(self.cx).render(area, buf);
+        }
+
+        if self.cx.input.visible {
+            if let Some(input_text) = self.cx.input.text() {
+                let _input_text = format!("/{input_text}");
+                let line = Line::from(_input_text.as_str());
+                Paragraph::new(line).render(_bottom_bar, buf);
+            } else {
+                let line = Line::from("/");
+                Paragraph::new(line).render(_bottom_bar, buf);
+            }
         }
     }
 }

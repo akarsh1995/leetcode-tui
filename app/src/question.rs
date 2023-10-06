@@ -1,4 +1,3 @@
-use leetcode_db::DbQuestion;
 use ratatui::prelude::*;
 use ratatui::style::Color;
 use ratatui::widgets::{List, ListItem, Widget};

@@ -1,8 +1,7 @@
-use app_core::{emit, Event};
+use app_core::{emit, Event, UBStrSender};
 
 use color_eyre::Result;
-use config::{constants::EDITOR, DB_CLIENT};
-use crossterm::event::KeyEvent;
+use config::{constants::EDITOR, key::Key, DB_CLIENT};
 use leetcode_db::{DbQuestion, DbTopic};
 use shared::tui::Term;
 
@@ -30,15 +29,18 @@ impl App {
                     // app.dispatch_quit();
                     break;
                 }
+                Event::Input(sender, default_input) => app.dispatch_input(sender, default_input),
                 Event::Key(key) => app.dispatch_key(key),
                 Event::Render(_) => app.dispatch_render(),
                 Event::Topic(topic) => app.dispatch_topic_update(topic),
                 Event::Questions(qs) => app.dispatch_question_update(qs),
                 Event::Popup(lines) => app.dispatch_popup(lines),
-                Event::SelectPopup(lines, result_sender) => app.dispatch_select_popup(lines, result_sender),
+                Event::SelectPopup(lines, result_sender) => {
+                    app.dispatch_select_popup(lines, result_sender)
+                }
                 Event::Error(e) => app.dispatch_popup(vec![e]),
                 Event::Open(file_path) => app.dispatch_opener(file_path),
-                _ => {}
+                e => app.dispatch_module_event(e),
                 // Event::Paste(str) => app.dispatch_paste(str),
                 // Event::Resize(..) => app.dispatch_resize(),
                 // Event::Stop(state, tx) => app.dispatch_stop(state, tx),
@@ -49,9 +51,8 @@ impl App {
         Ok(())
     }
 
-    fn dispatch_key(&mut self, key: KeyEvent) {
-        let key = config::key::Key::from(key);
-        if Executor::handle(&mut self.cx, key) {
+    fn dispatch_key(&mut self, key: impl Into<Key>) {
+        if Executor::handle(&mut self.cx, key.into()) {
             emit!(Render);
         }
     }
@@ -110,5 +111,19 @@ impl App {
             emit!(Render);
         }
         self.signals.start_looking_for_io_events();
+    }
+
+    fn dispatch_module_event(&mut self, e: Event) {
+        match e {
+            Event::QuestionFilter(needle) => self.cx.question.filter_by(needle),
+            _ => {}
+        }
+        emit!(Render);
+    }
+
+    fn dispatch_input(&mut self, sender: UBStrSender, default_input: Option<String>) {
+        self.cx.input.toggle();
+        self.cx.input.reset_with(sender, default_input);
+        emit!(Render);
     }
 }

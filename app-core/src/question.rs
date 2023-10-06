@@ -1,30 +1,41 @@
 use crate::SendError;
 use crate::{emit, utils::Paginate};
 use config::log;
-use config::CONFIG;
 use config::DB_CLIENT;
 use config::REQ_CLIENT;
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use leetcode_core::graphql::query::RunOrSubmitCodeCheckResult;
-use leetcode_core::types::language::Language;
 use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
 use leetcode_db::{DbQuestion, DbTopic};
+use std::rc::Rc;
 pub(super) mod sol_dir;
+use self::sol_dir::SOLUTION_FILE_MANAGER;
 pub(crate) use sol_dir::init;
 
-use self::sol_dir::{SolutionFileManager, SOLUTION_FILE_MANAGER};
+#[derive(Debug, Default)]
+pub enum Mode {
+    Search,
+    #[default]
+    Normal,
+}
 
 pub struct Questions {
-    paginate: Paginate<DbQuestion>,
+    paginate: Paginate<Rc<DbQuestion>>,
+    ques_haystack: Vec<Rc<DbQuestion>>,
+    needle: Option<String>,
+    matcher: SkimMatcherV2,
 }
 
 impl Default for Questions {
     fn default() -> Self {
-        // let solutions_manager = CONFIG.as_ref().solutions_dir.clone().try_into().unwrap();
         Self {
-            // solutions_manager,
             paginate: Paginate::new(vec![]),
+            needle: Default::default(),
+            ques_haystack: vec![],
+            matcher: Default::default(),
         }
     }
 }
@@ -38,11 +49,11 @@ impl Questions {
         self.paginate.next_elem()
     }
 
-    pub fn window(&self) -> &[DbQuestion] {
+    pub fn window(&self) -> &[Rc<DbQuestion>] {
         self.paginate.window()
     }
 
-    pub fn hovered(&self) -> Option<&DbQuestion> {
+    pub fn hovered(&self) -> Option<&Rc<DbQuestion>> {
         self.paginate.hovered()
     }
 }
@@ -195,6 +206,50 @@ impl Questions {
     }
 
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
-        self.paginate.update_list(questions)
+        self.ques_haystack = questions.into_iter().map(|q| Rc::new(q)).collect();
+        self.filter_questions();
+    }
+}
+
+impl Questions {
+    pub fn toggle_search(&mut self) -> bool {
+        let existing_needle = self.needle.clone();
+        tokio::spawn(async move {
+            let mut rx = emit!(Input(existing_needle));
+            while let Some(maybe_needle) = rx.recv().await {
+                if let Some(needle) = maybe_needle {
+                    emit!(QuestionFilter(Some(needle)));
+                } else {
+                    break;
+                }
+            }
+        });
+        false
+    }
+
+    pub fn filter_by(&mut self, string: Option<String>) {
+        if self.needle != string {
+            self.needle = string;
+            self.filter_questions();
+        }
+    }
+
+    fn filter_questions(&mut self) {
+        let fil_quests = if let Some(needle) = self.needle.as_ref() {
+            let quests: Vec<Rc<DbQuestion>> = self
+                .ques_haystack
+                .iter()
+                .filter(|q| {
+                    self.matcher
+                        .fuzzy_match(&q.title, needle.as_str())
+                        .is_some()
+                })
+                .cloned()
+                .collect();
+            quests
+        } else {
+            self.ques_haystack.clone()
+        };
+        self.paginate.update_list(fil_quests);
     }
 }
