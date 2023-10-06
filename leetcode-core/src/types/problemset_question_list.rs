@@ -13,11 +13,11 @@ pub struct TopicTag {
 #[serde(rename_all = "camelCase")]
 pub struct Question {
     pub ac_rate: Option<f64>,
-    pub difficulty: Option<String>,
+    pub difficulty: String,
     pub freq_bar: Option<f64>,
     pub frontend_question_id: String,
     pub is_favor: Option<bool>,
-    pub paid_only: Option<bool>,
+    pub paid_only: bool,
     pub status: Option<String>,
     pub title: String,
     pub title_slug: String,

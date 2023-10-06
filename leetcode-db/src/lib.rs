@@ -1,5 +1,7 @@
 pub mod errors;
 
+use std::fmt::Display;
+
 use errors::{DBResult, DbErr};
 use leetcode_core as api;
 
@@ -22,13 +24,18 @@ impl TryFrom<Question> for DbQuestion {
             value.frontend_question_id.parse()?,
             value.title.as_str(),
             value.title_slug.as_str(),
+            value.difficulty,
+            value.paid_only,
+            value.status,
         );
         if let Some(tts) = value.topic_tags {
-            for topic in tts {
-                db_quest.add_topic(topic.id.as_str(), topic.slug.as_str());
+            if !tts.is_empty() {
+                for topic in tts {
+                    db_quest.add_topic(topic.id.as_str(), topic.slug.as_str());
+                }
+            } else {
+                db_quest.add_topic("unknown", "unknown");
             }
-        } else {
-            db_quest.add_topic("unknown", "unknown");
         }
         Ok(db_quest)
     }
@@ -55,7 +62,7 @@ impl DbTopic {
     pub async fn fetch_questions(&self, db: &Db) -> DBResult<Vec<DbQuestion>> {
         let mut k: Vec<DbQuestions> = db
             .query(format!(
-                "select <-belongs_to_topic<-question as questions from {} fetch questions",
+                "select array::sort::asc(<-belongs_to_topic<-question) as questions from {} fetch questions",
                 self.id
             ))
             .await?
@@ -70,6 +77,9 @@ pub struct DbQuestion {
     pub title: String,
     pub title_slug: String,
     pub topics: Vec<DbTopic>,
+    pub difficulty: String,
+    pub paid_only: bool,
+    pub status: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
@@ -77,8 +87,31 @@ pub struct Count {
     pub count: usize,
 }
 
+impl Display for DbQuestion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut w = String::new();
+        w.push_str(if self.paid_only { "🔐" } else { "  " });
+        w.push_str(if self.status == None {
+            "  "
+        } else if self.status == Some("ac".into()) {
+            "👑"
+        } else {
+            "🏃"
+        });
+        w.push_str(self.title.as_str());
+        write!(f, "{: >4}{w}", self.id.id.to_raw())
+    }
+}
+
 impl DbQuestion {
-    fn new(id: i64, title: &str, title_slug: &str) -> Self {
+    fn new(
+        id: i64,
+        title: &str,
+        title_slug: &str,
+        difficulty: String,
+        paid_only: bool,
+        status: Option<String>,
+    ) -> Self {
         Self {
             id: Thing {
                 tb: "question".into(),
@@ -87,6 +120,9 @@ impl DbQuestion {
             title: title.into(),
             title_slug: title_slug.into(),
             topics: Default::default(),
+            difficulty,
+            paid_only,
+            status,
         }
     }
 
