@@ -66,22 +66,16 @@ impl Questions {
             let slug = _hovered.title_slug.clone();
             tokio::spawn(async move {
                 let qc = QuestionContentRequest::new(slug);
-                let content = qc.send(REQ_CLIENT.as_ref()).await;
-                match content {
-                    Ok(c) => {
-                        let lines = c
-                            .data
-                            .question
-                            .html_to_text()
-                            .lines()
-                            .map(|l| l.to_string())
-                            .collect::<Vec<String>>();
-                        emit!(Popup(lines));
-                    }
-                    Err(e) => {
-                        emit!(Error(e.to_string()));
-                    }
-                };
+                if let Ok(content) = qc.send(REQ_CLIENT.as_ref()).await.emit() {
+                    let lines = content
+                        .data
+                        .question
+                        .html_to_text()
+                        .lines()
+                        .map(|l| l.to_string())
+                        .collect::<Vec<String>>();
+                    emit!(Popup(lines));
+                }
             });
         } else {
             log::debug!("hovered question is none");
@@ -111,15 +105,20 @@ impl Questions {
                             .get_solution_file(id.as_str(), selected_lang)
                             .cloned();
                         if let Ok(_f) = selected_sol_file.emit() {
-                            let contents = _f.read_contents().await.unwrap();
-                            let lang = _f.language;
-                            if let Ok(response) =
-                                RunCodeRequest::new(lang, _f.question_id, contents, _f.title_slug)
-                                    .poll_check_response(REQ_CLIENT.as_ref())
-                                    .await
-                                    .emit()
-                            {
-                                emit!(Popup(vec![response.to_string()]));
+                            if let Ok(contents) = _f.read_contents().await.emit() {
+                                let lang = _f.language;
+                                if let Ok(response) = RunCodeRequest::new(
+                                    lang,
+                                    _f.question_id,
+                                    contents,
+                                    _f.title_slug,
+                                )
+                                .poll_check_response(REQ_CLIENT.as_ref())
+                                .await
+                                .emit()
+                                {
+                                    emit!(Popup(vec![response.to_string()]));
+                                }
                             }
                         }
                     }
@@ -133,58 +132,38 @@ impl Questions {
         if let Some(_hovered) = self.hovered() {
             let slug = _hovered.title_slug.clone();
             tokio::spawn(async move {
-                let editor_data = leetcode_core::EditorDataRequest::new(slug)
+                if let Ok(editor_data) = leetcode_core::EditorDataRequest::new(slug)
                     .send(REQ_CLIENT.as_ref())
-                    .await;
-                match editor_data {
-                    Ok(ed) => {
-                        if let Some(selected) = emit!(SelectPopup(
-                            ed.get_languages().iter().map(|l| l.to_string()).collect()
-                        ))
-                        .await
-                        {
-                            let selected_lang = ed.get_languages()[selected];
-                            let editor_data = ed.get_editor_data_by_language(selected_lang);
-                            let file_name = ed.get_filename(selected_lang);
-                            match file_name {
-                                Ok(f_name) => {
-                                    if let Some(e_data) = editor_data {
-                                        match SOLUTION_FILE_MANAGER
-                                            .get()
-                                            .unwrap()
-                                            .write()
-                                            .unwrap()
-                                            .create_solution_file(f_name.as_str(), e_data)
-                                        {
-                                            Ok(written_path) => {
-                                                emit!(Open(written_path));
-                                            }
-                                            Err(e) => {
-                                                let err_msg =  format!(
-                                                    "Could not write to the solution directory {e} question: {:?}, lang: {:?}",
-                                                     ed.data.question.title_slug,
-                                                     selected_lang
-                                                );
-                                                emit!(Error(err_msg));
-                                            }
-                                        };
-                                    } else {
-                                        emit!(Error(format!(
-                                            "Editor data not found for question: {:?}, lang: {:?}",
-                                            ed.data.question.title_slug, selected_lang,
-                                        )));
-                                    }
+                    .await
+                    .emit()
+                {
+                    if let Some(selected) = emit!(SelectPopup(
+                        editor_data
+                            .get_languages()
+                            .iter()
+                            .map(|l| l.to_string())
+                            .collect()
+                    ))
+                    .await
+                    {
+                        let selected_lang = editor_data.get_languages()[selected];
+                        let editor_content = editor_data.get_editor_data_by_language(selected_lang);
+                        if let Ok(file_name) = editor_data.get_filename(selected_lang).emit() {
+                            if let Some(e_data) = editor_content {
+                                if let Ok(written_path) = SOLUTION_FILE_MANAGER
+                                    .get()
+                                    .unwrap()
+                                    .write()
+                                    .unwrap()
+                                    .create_solution_file(file_name.as_str(), e_data)
+                                    .emit()
+                                {
+                                    emit!(Open(written_path));
                                 }
-                                Err(e) => {
-                                    emit!(Error(e.to_string()));
-                                }
-                            }
-                        } else {
-                            log::info!("quitting popup unselected");
-                        }
-                    }
-                    Err(e) => {
-                        emit!(Error(e.to_string()));
+                            };
+                        };
+                    } else {
+                        log::info!("quitting popup unselected");
                     }
                 }
             });
