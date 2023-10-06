@@ -34,6 +34,7 @@ impl Executor {
                 Key::Down => cx.question.next_ques(),
                 Key::Enter => cx.question.show_question_content(),
                 Key::Char('r') => cx.question.run_solution(),
+                Key::Char('s') => cx.question.submit_solution(),
                 _ => false,
             };
         }

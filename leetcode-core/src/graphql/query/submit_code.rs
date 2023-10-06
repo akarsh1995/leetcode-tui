@@ -1,6 +1,6 @@
 use super::{GQLLeetcodeRequest, RunOrSubmitCodeCheckResult};
 use crate::types::run_submit_response::RunSubmitResult;
-use crate::types::submit::{SubmitCodeIntermediateResponse, SubmitCodeRequest};
+pub use crate::types::submit::{SubmitCodeIntermediateResponse, SubmitCodeRequest};
 
 impl GQLLeetcodeRequest for SubmitCodeRequest {
     type T = SubmitCodeIntermediateResponse;

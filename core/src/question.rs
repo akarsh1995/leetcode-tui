@@ -6,7 +6,9 @@ use config::DB_CLIENT;
 use config::REQ_CLIENT;
 use leetcode_core::graphql::query::RunOrSubmitCodeCheckResult;
 use leetcode_core::types::language::Language;
-use leetcode_core::{GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest};
+use leetcode_core::{
+    GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
+};
 use leetcode_db::{DbQuestion, DbTopic};
 pub(super) mod sol_dir;
 pub(crate) use sol_dir::init;
@@ -84,6 +86,14 @@ impl Questions {
     }
 
     pub fn run_solution(&self) -> bool {
+        self._run_solution(false)
+    }
+
+    pub fn submit_solution(&self) -> bool {
+        self._run_solution(true)
+    }
+
+    fn _run_solution(&self, is_submit: bool) -> bool {
         if let Some(_hovered) = self.hovered() {
             let id = _hovered.id.id.to_string();
             if let Ok(lang_refs) = SOLUTION_FILE_MANAGER
@@ -107,16 +117,27 @@ impl Questions {
                         if let Ok(_f) = selected_sol_file.emit_if_error() {
                             if let Ok(contents) = _f.read_contents().await.emit_if_error() {
                                 let lang = _f.language;
-                                if let Ok(response) = RunCodeRequest::new(
-                                    lang,
-                                    _f.question_id,
-                                    contents,
-                                    _f.title_slug,
-                                )
-                                .poll_check_response(REQ_CLIENT.as_ref())
-                                .await
-                                .emit_if_error()
-                                {
+                                let request = if is_submit {
+                                    SubmitCodeRequest::new(
+                                        lang,
+                                        _f.question_id,
+                                        contents,
+                                        _f.title_slug,
+                                    )
+                                    .poll_check_response(REQ_CLIENT.as_ref())
+                                    .await
+                                } else {
+                                    RunCodeRequest::new(
+                                        lang,
+                                        _f.question_id,
+                                        contents,
+                                        _f.title_slug,
+                                    )
+                                    .poll_check_response(REQ_CLIENT.as_ref())
+                                    .await
+                                };
+
+                                if let Ok(response) = request.emit_if_error() {
                                     emit!(Popup(vec![response.to_string()]));
                                 }
                             }
