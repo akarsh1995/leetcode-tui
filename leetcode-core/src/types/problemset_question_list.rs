@@ -101,11 +101,11 @@ mod tests {
 
         let question = &root.data.problemset_question_list.questions[0];
         assert_eq!(question.ac_rate, Some(45.35065222510613));
-        assert_eq!(question.difficulty, Some("Medium".to_string()));
+        assert_eq!(question.difficulty, "Medium".to_string());
         assert_eq!(question.freq_bar, None);
         assert_eq!(question.frontend_question_id, "6".to_string());
         assert_eq!(question.is_favor, Some(false));
-        assert_eq!(question.paid_only, Some(false));
+        assert_eq!(question.paid_only, false);
         assert_eq!(question.status, Some("ac".to_string()));
         assert_eq!(question.title, ("Zigzag Conversion".to_string()));
         assert_eq!(question.title_slug, ("zigzag-conversion".to_string()));

@@ -1,6 +1,6 @@
-use core::popup::{Popup, SelectPopup};
-use core::question::Questions;
-use core::topic::Topic;
+use app_core::popup::{Popup, SelectPopup};
+use app_core::question::Questions;
+use app_core::topic::Topic;
 use leetcode_db::Db;
 
 pub struct Ctx {

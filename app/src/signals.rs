@@ -1,4 +1,4 @@
-use core::Event;
+use app_core::Event;
 
 use color_eyre::Result;
 use crossterm::event::{Event as CrosstermEvent, EventStream, KeyEvent, KeyEventKind};

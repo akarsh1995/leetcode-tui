@@ -5,7 +5,7 @@ use color_eyre::Result;
 #[tokio::main]
 async fn main() -> Result<()> {
     config::init().await?;
-    core::init();
+    app_core::init();
 
     update_database_questions().await?;
 

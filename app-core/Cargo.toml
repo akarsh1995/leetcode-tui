@@ -1,5 +1,5 @@
 [package]
-name = "core"
+name = "app-core"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

@@ -1,4 +1,4 @@
-use core::{emit, Event};
+use app_core::{emit, Event};
 
 use color_eyre::Result;
 use config::{constants::EDITOR, DB_CLIENT};

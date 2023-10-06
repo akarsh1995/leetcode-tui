@@ -15,7 +15,7 @@ exclude = [".github", "vhs_tapes"]
 
 [workspace]
 # members = ["leetcode-core", "leetcode-db", "tui", "shared", "core"]
-members = ["shared", "core", "config", "app"]
+members = ["shared", "app-core", "config", "app"]
 resolver = "2"
 
 [workspace.dependencies]
