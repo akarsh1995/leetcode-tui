@@ -66,7 +66,7 @@ impl Questions {
             let slug = _hovered.title_slug.clone();
             tokio::spawn(async move {
                 let qc = QuestionContentRequest::new(slug);
-                if let Ok(content) = qc.send(REQ_CLIENT.as_ref()).await.emit() {
+                if let Ok(content) = qc.send(REQ_CLIENT.as_ref()).await.emit_if_error() {
                     let lines = content
                         .data
                         .question
@@ -92,7 +92,7 @@ impl Questions {
                 .read()
                 .unwrap()
                 .get_available_languages(id.as_str())
-                .emit()
+                .emit_if_error()
             {
                 let cloned_langs = lang_refs.iter().map(|v| v.to_string()).collect();
                 tokio::spawn(async move {
@@ -104,8 +104,8 @@ impl Questions {
                             .unwrap()
                             .get_solution_file(id.as_str(), selected_lang)
                             .cloned();
-                        if let Ok(_f) = selected_sol_file.emit() {
-                            if let Ok(contents) = _f.read_contents().await.emit() {
+                        if let Ok(_f) = selected_sol_file.emit_if_error() {
+                            if let Ok(contents) = _f.read_contents().await.emit_if_error() {
                                 let lang = _f.language;
                                 if let Ok(response) = RunCodeRequest::new(
                                     lang,
@@ -115,7 +115,7 @@ impl Questions {
                                 )
                                 .poll_check_response(REQ_CLIENT.as_ref())
                                 .await
-                                .emit()
+                                .emit_if_error()
                                 {
                                     emit!(Popup(vec![response.to_string()]));
                                 }
@@ -135,7 +135,7 @@ impl Questions {
                 if let Ok(editor_data) = leetcode_core::EditorDataRequest::new(slug)
                     .send(REQ_CLIENT.as_ref())
                     .await
-                    .emit()
+                    .emit_if_error()
                 {
                     if let Some(selected) = emit!(SelectPopup(
                         editor_data
@@ -148,7 +148,9 @@ impl Questions {
                     {
                         let selected_lang = editor_data.get_languages()[selected];
                         let editor_content = editor_data.get_editor_data_by_language(selected_lang);
-                        if let Ok(file_name) = editor_data.get_filename(selected_lang).emit() {
+                        if let Ok(file_name) =
+                            editor_data.get_filename(selected_lang).emit_if_error()
+                        {
                             if let Some(e_data) = editor_content {
                                 if let Ok(written_path) = SOLUTION_FILE_MANAGER
                                     .get()
@@ -156,7 +158,7 @@ impl Questions {
                                     .write()
                                     .unwrap()
                                     .create_solution_file(file_name.as_str(), e_data)
-                                    .emit()
+                                    .emit_if_error()
                                 {
                                     emit!(Open(written_path));
                                 }
