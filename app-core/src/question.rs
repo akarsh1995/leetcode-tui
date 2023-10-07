@@ -15,13 +15,6 @@ pub(super) mod sol_dir;
 use self::sol_dir::SOLUTION_FILE_MANAGER;
 pub(crate) use sol_dir::init;
 
-#[derive(Debug, Default)]
-pub enum Mode {
-    Search,
-    #[default]
-    Normal,
-}
-
 pub struct Questions {
     paginate: Paginate<Rc<DbQuestion>>,
     ques_haystack: Vec<Rc<DbQuestion>>,
