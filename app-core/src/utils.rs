@@ -44,9 +44,9 @@ where
             self.nth_window = self
                 .nth_window
                 .saturating_add(1)
-                .min(self.list.windows(self.get_limit()).count() - 1);
+                .min(self.list.windows(self.cursor_upper_bound()).count() - 1);
         } else {
-            self.cursor = (self.cursor + 1).min(self.get_limit() - 1);
+            self.cursor = (self.cursor + 1).min(self.cursor_upper_bound() - 1);
         }
         self.hovered = self.window().get(self.cursor).cloned();
         self.cursor != old_cursor || self.nth_window != old_window
@@ -68,22 +68,34 @@ where
     }
 
     fn set_cursor_range(&mut self) {
-        if self.nth_window == 0 {
-            self.cursor_range = 0..self.get_limit() - 3;
-        } else if self.nth_window == (self.list.windows(self.get_limit()).count() - 1) {
-            self.cursor_range = 3..self.get_limit();
+        let b;
+        if self.cursor_upper_bound() < self.term_height() {
+            b = self.cursor_upper_bound()
         } else {
-            self.cursor_range = 3..self.get_limit() - 3;
+            b = self.cursor_upper_bound().saturating_sub(3)
+        }
+        if self.nth_window == 0 {
+            //first window
+            self.cursor_range = 0..b;
+        } else if self.nth_window == (self.list.windows(self.cursor_upper_bound()).count() - 1) {
+            // last_window
+            self.cursor_range = 3..self.cursor_upper_bound();
+        } else {
+            self.cursor_range = 3..self.cursor_upper_bound() - 3;
         }
     }
 
-    fn get_limit(&self) -> usize {
-        ((Term::size().rows - HELP_MARGIN - TOP_MARGIN) as usize).min(self.list.len())
+    fn cursor_upper_bound(&self) -> usize {
+        self.term_height().min(self.list.len())
+    }
+
+    fn term_height(&self) -> usize {
+        (Term::size().rows - HELP_MARGIN - TOP_MARGIN) as usize
     }
 
     pub fn window(&self) -> &[T] {
         self.list
-            .windows(self.get_limit())
+            .windows(self.cursor_upper_bound())
             .nth(self.nth_window)
             .unwrap()
     }
