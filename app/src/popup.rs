@@ -18,7 +18,11 @@ impl<'a> SelectPopup<'a> {
 
 impl<'a> Widget for SelectPopup<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let block = Block::default().title("Popup").borders(Borders::ALL);
+        let mut block: Block<'_> = Block::default();
+        if let Some(title) = self.ctx.select_popup.get_title() {
+            block = Block::default().title(title);
+        }
+        let block = block.borders(Borders::ALL);
         let area = centered_rect(60, 60, area);
         Clear.render(area, buf);
         let inner = block.inner(area);
@@ -76,7 +80,11 @@ impl<'a> Popup<'a> {
 
 impl<'a> Widget for Popup<'a> {
     fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
-        let block = Block::default().title("Popup").borders(Borders::ALL);
+        let mut block: Block<'_> = Block::default();
+        if let Some(title) = self.ctx.popup.get_title() {
+            block = Block::default().title(title);
+        }
+        let block = block.borders(Borders::ALL);
         let area = centered_rect(60, 60, area);
         Clear.render(area, buf);
         let inner = block.inner(area);

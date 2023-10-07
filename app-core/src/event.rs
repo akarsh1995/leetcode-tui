@@ -18,8 +18,12 @@ pub enum Event {
     Topic(DbTopic),
     Questions(Vec<DbQuestion>),
     QuestionFilter(Option<String>),
-    Popup(Vec<String>),
-    SelectPopup(Vec<String>, tokio::sync::oneshot::Sender<Option<usize>>),
+    Popup(Option<String>, Vec<String>),
+    SelectPopup(
+        Option<String>,
+        Vec<String>,
+        tokio::sync::oneshot::Sender<Option<usize>>,
+    ),
     Input(super::UBStrSender, Option<String>),
     Open(PathBuf),
     Error(String),
@@ -60,11 +64,18 @@ macro_rules! emit {
         $crate::Event::Questions($questions).emit();
     };
     (Popup($lines:expr)) => {
-        $crate::Event::Popup($lines).emit();
+        $crate::Event::Popup(None, $lines).emit();
+    };
+    (Popup($title:expr, $lines:expr)) => {
+        $crate::Event::Popup(Some($title.into()), $lines).emit();
     };
     (SelectPopup($a: expr)) => {{
         let (tx, rx) = tokio::sync::oneshot::channel();
-        $crate::Event::SelectPopup($a, tx).wait(rx)
+        $crate::Event::SelectPopup(None, $a, tx).wait(rx)
+    }};
+    (SelectPopup($title:expr, $a: expr)) => {{
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        $crate::Event::SelectPopup(Some($title.into()), $a, tx).wait(rx)
     }};
     (Error($e:expr)) => {
         $crate::Event::Error($e).emit();

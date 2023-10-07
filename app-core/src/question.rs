@@ -77,6 +77,7 @@ impl Questions {
     pub fn show_question_content(&self) -> bool {
         if let Some(_hovered) = self.hovered() {
             let slug = _hovered.title_slug.clone();
+            let title = _hovered.title.clone();
             tokio::spawn(async move {
                 let qc = QuestionContentRequest::new(slug);
                 if let Ok(content) = qc.send(REQ_CLIENT.as_ref()).await.emit_if_error() {
@@ -87,7 +88,7 @@ impl Questions {
                         .lines()
                         .map(|l| l.to_string())
                         .collect::<Vec<String>>();
-                    emit!(Popup(lines));
+                    emit!(Popup(title, lines));
                 }
             });
         } else {
@@ -117,7 +118,9 @@ impl Questions {
             {
                 let cloned_langs = lang_refs.iter().map(|v| v.to_string()).collect();
                 tokio::spawn(async move {
-                    if let Some(selected_lang) = emit!(SelectPopup(cloned_langs)).await {
+                    if let Some(selected_lang) =
+                        emit!(SelectPopup("Available solutions in", cloned_langs)).await
+                    {
                         let selected_sol_file = SOLUTION_FILE_MANAGER
                             .get()
                             .unwrap()
@@ -170,6 +173,7 @@ impl Questions {
                     .emit_if_error()
                 {
                     if let Some(selected) = emit!(SelectPopup(
+                        "Select Language",
                         editor_data
                             .get_languages()
                             .iter()

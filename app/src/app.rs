@@ -34,11 +34,11 @@ impl App {
                 Event::Render(_) => app.dispatch_render(),
                 Event::Topic(topic) => app.dispatch_topic_update(topic),
                 Event::Questions(qs) => app.dispatch_question_update(qs),
-                Event::Popup(lines) => app.dispatch_popup(lines),
-                Event::SelectPopup(lines, result_sender) => {
-                    app.dispatch_select_popup(lines, result_sender)
+                Event::Popup(title, lines) => app.dispatch_popup(title, lines),
+                Event::SelectPopup(maybe_title, lines, result_sender) => {
+                    app.dispatch_select_popup(maybe_title, lines, result_sender)
                 }
-                Event::Error(e) => app.dispatch_popup(vec![e]),
+                Event::Error(e) => app.dispatch_popup(Some("Error".into()), vec![e]),
                 Event::Open(file_path) => app.dispatch_opener(file_path),
                 e => app.dispatch_module_event(e),
                 // Event::Paste(str) => app.dispatch_paste(str),
@@ -74,18 +74,19 @@ impl App {
         }
     }
 
-    fn dispatch_popup(&mut self, lines: Vec<String>) {
-        self.cx.popup.set_lines(lines);
+    fn dispatch_popup(&mut self, title: Option<String>, lines: Vec<String>) {
+        self.cx.popup.reset(title, lines);
         self.cx.popup.toggle();
         emit!(Render);
     }
 
     fn dispatch_select_popup(
         &mut self,
+        maybe_title: Option<String>,
         lines: Vec<String>,
         sender: tokio::sync::oneshot::Sender<Option<usize>>,
     ) {
-        self.cx.select_popup.with_items(lines, sender);
+        self.cx.select_popup.with_items(maybe_title, lines, sender);
         self.cx.select_popup.toggle();
         emit!(Render);
     }

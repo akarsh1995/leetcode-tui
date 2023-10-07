@@ -9,6 +9,13 @@ pub struct Popup {
     lines: Vec<String>,
     pub v_scroll_state: ScrollbarState,
     pub v_scroll: u16,
+    title: Option<String>,
+}
+
+impl Popup {
+    pub fn get_title(&self) -> Option<&str> {
+        self.title.as_ref().map(|v| v.as_str())
+    }
 }
 
 impl Popup {
@@ -30,9 +37,10 @@ impl Popup {
         &self.lines
     }
 
-    pub fn set_lines(&mut self, lines: Vec<String>) {
+    pub fn reset(&mut self, title: Option<String>, lines: Vec<String>) {
         let mut p = Self::new(lines);
         p.visible = self.visible;
+        p.title = title;
         *self = p;
     }
 
@@ -65,11 +73,19 @@ pub struct SelectPopup<T: Display> {
     pub state: ListState,
     items: Vec<T>,
     sender: Option<tokio::sync::oneshot::Sender<Option<usize>>>,
+    title: Option<String>,
+}
+
+impl<T: Display> SelectPopup<T> {
+    pub fn get_title(&self) -> Option<&str> {
+        self.title.as_ref().map(|v| v.as_str())
+    }
 }
 
 impl<T: Display> SelectPopup<T> {
     pub fn with_items(
         &mut self,
+        maybe_title: Option<String>,
         items: Vec<T>,
         sender: tokio::sync::oneshot::Sender<Option<usize>>,
     ) {
@@ -78,6 +94,7 @@ impl<T: Display> SelectPopup<T> {
             state: ListState::default(),
             items,
             sender: Some(sender),
+            title: maybe_title,
         };
         if !self.items.is_empty() {
             self.state.select(Some(0))
