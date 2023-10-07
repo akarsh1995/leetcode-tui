@@ -1,3 +1,6 @@
+pub(super) mod sol_dir;
+mod stats;
+use self::sol_dir::SOLUTION_FILE_MANAGER;
 use crate::SendError;
 use crate::{emit, utils::Paginate};
 use config::log;
@@ -10,16 +13,16 @@ use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
 use leetcode_db::{DbQuestion, DbTopic};
-use std::rc::Rc;
-pub(super) mod sol_dir;
-use self::sol_dir::SOLUTION_FILE_MANAGER;
 pub(crate) use sol_dir::init;
+use stats::Stats;
+use std::rc::Rc;
 
 pub struct Questions {
     paginate: Paginate<Rc<DbQuestion>>,
     ques_haystack: Vec<Rc<DbQuestion>>,
     needle: Option<String>,
     matcher: SkimMatcherV2,
+    show_stats: bool,
 }
 
 impl Default for Questions {
@@ -29,6 +32,7 @@ impl Default for Questions {
             needle: Default::default(),
             ques_haystack: vec![],
             matcher: Default::default(),
+            show_stats: Default::default(),
         }
     }
 }
@@ -248,5 +252,20 @@ impl Questions {
             self.ques_haystack.clone()
         };
         self.paginate.update_list(fil_quests);
+    }
+}
+
+impl Questions {
+    pub fn get_stats(&self) -> Stats<'_> {
+        Stats::new(&self.ques_haystack)
+    }
+
+    pub fn toggle_stats(&mut self) -> bool {
+        self.show_stats = !self.show_stats;
+        true
+    }
+
+    pub fn is_stats_visible(&self) -> bool {
+        self.show_stats
     }
 }

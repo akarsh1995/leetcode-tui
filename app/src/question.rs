@@ -4,6 +4,8 @@ use ratatui::widgets::{List, ListItem, Widget};
 
 use crate::ctx::Ctx;
 
+pub(crate) mod stats;
+
 pub struct Questions<'a> {
     cx: &'a Ctx,
 }
@@ -51,6 +53,9 @@ impl<'a> Widget for Questions<'a> {
         if let Some(ql) = self.get_questions_list() {
             let list = List::new(ql);
             list.render(area, buf);
+            if self.cx.question.is_stats_visible() {
+                stats::Stats::new(&self.cx.question).render(area, buf);
+            }
         }
     }
 }

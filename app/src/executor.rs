@@ -49,6 +49,7 @@ impl Executor {
                 Key::Enter => cx.question.show_question_content(),
                 Key::Char('r') => cx.question.run_solution(),
                 Key::Char('s') => cx.question.submit_solution(),
+                Key::Ctrl('s') => cx.question.toggle_stats(),
                 Key::Char('/') => cx.question.toggle_search(),
                 _ => false,
             };
