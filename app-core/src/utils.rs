@@ -1,5 +1,7 @@
 use shared::tui::Term;
 use std::ops::Range;
+
+use crate::emit;
 const HELP_MARGIN: u16 = 1;
 const TOP_MARGIN: u16 = 1;
 
@@ -36,6 +38,10 @@ where
     T: Clone,
 {
     pub fn next_elem(&mut self) -> bool {
+        if self.list.is_empty() {
+            emit!(Popup(vec!["List is empty".into()]));
+            return true;
+        }
         self.set_cursor_range();
         let old_cursor = self.cursor;
         let old_window = self.nth_window;
@@ -53,6 +59,10 @@ where
     }
 
     pub fn prev_elem(&mut self) -> bool {
+        if self.list.is_empty() {
+            emit!(Popup(vec!["List is empty".into()]));
+            return true;
+        }
         self.set_cursor_range();
         let old_cursor = self.cursor;
         let old_window = self.nth_window;
