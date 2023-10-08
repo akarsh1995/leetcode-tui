@@ -25,19 +25,18 @@ impl<'a> Widget for Root<'a> {
         if self.cx.popup.visible {
             Popup::new(self.cx).render(_area, buf);
         }
+
         if self.cx.select_popup.visible {
             SelectPopup::new(self.cx).render(_area, buf);
         }
 
         if self.cx.input.visible {
+            let mut search_text: String = "/".into();
             if let Some(input_text) = self.cx.input.text() {
-                let _input_text = format!("/{input_text}");
-                let line = Line::from(_input_text.as_str());
-                Paragraph::new(line).render(self.get_window().root.status_bar, buf);
-            } else {
-                let line = Line::from("/");
-                Paragraph::new(line).render(self.get_window().root.status_bar, buf);
+                search_text.push_str(input_text);
             }
+            let line = Line::from(search_text.as_str());
+            Paragraph::new(line).render(self.get_window().root.status_bar, buf);
         }
     }
 }
