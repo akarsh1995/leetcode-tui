@@ -26,7 +26,7 @@ impl<'a> Stats<'a> {
                 self.get_easy_count(),
             ),
             (
-                "Medium Acceped",
+                "Medium Accepted",
                 self.get_medium_accepted(),
                 self.get_medium_count(),
             ),
