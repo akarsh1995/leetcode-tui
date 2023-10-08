@@ -1,4 +1,4 @@
-use crossterm::event::{self, KeyEventState, KeyModifiers};
+use crossterm::event::{self, KeyEvent, KeyEventState, KeyModifiers};
 use std::fmt;
 
 /// Represents an key.
@@ -123,9 +123,9 @@ impl fmt::Display for Key {
     }
 }
 
-impl Into<event::KeyEvent> for Key {
-    fn into(self) -> event::KeyEvent {
-        match self {
+impl From<Key> for KeyEvent {
+    fn from(value: Key) -> Self {
+        match value {
             Key::Up => event::KeyEvent {
                 code: event::KeyCode::Up,
                 modifiers: KeyModifiers::empty(),

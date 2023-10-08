@@ -49,7 +49,7 @@ pub mod input {
 
         pub fn remove_char(&mut self) -> bool {
             if let Some(_text) = self.current_text.as_mut() {
-                if _text.len() != 0 {
+                if !_text.is_empty() {
                     _text.pop();
                     self.try_send();
                 }

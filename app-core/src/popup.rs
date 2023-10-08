@@ -14,7 +14,7 @@ pub struct Popup {
 
 impl Popup {
     pub fn get_title(&self) -> Option<&str> {
-        self.title.as_ref().map(|v| v.as_str())
+        self.title.as_deref()
     }
 }
 
@@ -78,7 +78,7 @@ pub struct SelectPopup<T: Display> {
 
 impl<T: Display> SelectPopup<T> {
     pub fn get_title(&self) -> Option<&str> {
-        self.title.as_ref().map(|v| v.as_str())
+        self.title.as_deref()
     }
 }
 

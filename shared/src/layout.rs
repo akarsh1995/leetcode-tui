@@ -132,16 +132,16 @@ impl Root {
             top_bar: chunks[0],
             center_layout: CenterLayout::new(chunks[1]),
             status_bar: chunks[2],
-            popup: centered_rect(60, 60, ar.clone()).into(),
-            q_stats: centered_rect(60, 60, ar.clone()).into(),
+            popup: centered_rect(60, 60, ar).into(),
+            q_stats: centered_rect(60, 60, ar).into(),
         };
         r.q_stats = r.center_layout.question.clone();
         r
     }
 }
 
-impl Window {
-    pub fn new() -> Self {
+impl Default for Window {
+    fn default() -> Self {
         let term_size = super::tui::Term::size();
         let window_rect = Rect::new(0, 0, term_size.columns, term_size.rows);
         Self {
@@ -152,19 +152,19 @@ impl Window {
 
 pub trait GetWindowStats {
     fn get_window(&self) -> Window {
-        Window::new()
+        Window::default()
     }
 }
 
 impl<T> GetWindowStats for T where T: Widget {}
 
 trait Blockify {
-    fn blockify(&self) -> Rect;
+    fn blockify(self) -> Rect;
 }
 
 impl Blockify for Rect {
-    fn blockify(&self) -> Rect {
-        Block::default().borders(Borders::ALL).inner(self.clone())
+    fn blockify(self) -> Rect {
+        Block::default().borders(Borders::ALL).inner(self)
     }
 }
 

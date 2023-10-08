@@ -50,7 +50,7 @@ impl Topic {
     }
 
     fn widget_height(&self) -> usize {
-        let window = Window::new();
+        let window = Window::default();
         let height = window.root.center_layout.topic.inner.height;
         height as usize
     }

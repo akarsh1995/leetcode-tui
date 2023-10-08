@@ -91,7 +91,7 @@ impl Display for DbQuestion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut w = String::new();
         w.push_str(if self.paid_only { "🔐" } else { "  " });
-        w.push_str(if self.status == None {
+        w.push_str(if self.status.is_none() {
             "  "
         } else if self.status == Some("ac".into()) {
             "👑"

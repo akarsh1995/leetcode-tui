@@ -56,7 +56,7 @@ impl Questions {
     }
 
     fn widget_height(&self) -> usize {
-        let window = Window::new();
+        let window = Window::default();
         let height = window.root.center_layout.question.inner.height;
         height as usize
     }
@@ -208,7 +208,7 @@ impl Questions {
     }
 
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
-        self.ques_haystack = questions.into_iter().map(|q| Rc::new(q)).collect();
+        self.ques_haystack = questions.into_iter().map(Rc::new).collect();
         self.filter_questions();
     }
 }

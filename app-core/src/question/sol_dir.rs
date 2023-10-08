@@ -144,7 +144,7 @@ impl TryFrom<PathBuf> for SolutionFile {
                 language: lang,
             })
         } else {
-            return err;
+            err
         }
     }
 }

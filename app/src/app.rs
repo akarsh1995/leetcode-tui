@@ -115,9 +115,8 @@ impl App {
     }
 
     fn dispatch_module_event(&mut self, e: Event) {
-        match e {
-            Event::QuestionFilter(needle) => self.cx.question.filter_by(needle),
-            _ => {}
+        if let Event::QuestionFilter(needle) = e {
+            self.cx.question.filter_by(needle)
         }
         emit!(Render);
     }

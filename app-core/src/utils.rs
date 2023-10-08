@@ -75,10 +75,8 @@ where
     }
 
     fn set_cursor_range(&mut self, wid_height: usize) {
-        let b;
-        if self.cursor_upper_bound(wid_height) < wid_height {
-            b = self.cursor_upper_bound(wid_height)
-        } else {
+        let mut b = self.cursor_upper_bound(wid_height);
+        if self.cursor_upper_bound(wid_height) >= wid_height {
             b = self.cursor_upper_bound(wid_height).saturating_sub(3)
         }
         if self.nth_window == 0 {
