@@ -1,6 +1,7 @@
 use ratatui::prelude::*;
 use ratatui::style::Color;
-use ratatui::widgets::{List, ListItem, Widget};
+use ratatui::widgets::{Block, Borders, List, ListItem, Widget};
+use shared::layout::GetWindowStats;
 
 use crate::ctx::Ctx;
 
@@ -12,10 +13,18 @@ impl<'a> Topic<'a> {
     pub(super) fn new(cx: &'a Ctx) -> Self {
         Self { cx }
     }
+
+    fn get_styled_block(&self) -> Block {
+        Block::default()
+            .borders(Borders::ALL)
+            .cyan()
+            .title("Topics")
+            .title_alignment(Alignment::Center)
+    }
 }
 
 impl<'a> Widget for Topic<'a> {
-    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+    fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
         if let Some(hovered) = self.cx.topic.hovered() {
             let lines = self
                 .cx
@@ -36,8 +45,10 @@ impl<'a> Widget for Topic<'a> {
                         })
                 })
                 .collect::<Vec<_>>();
+            self.get_styled_block()
+                .render(self.get_window().root.center_layout.topic.outer, buf);
             let list = List::new(lines);
-            list.render(area, buf);
+            list.render(self.get_window().root.center_layout.topic.inner, buf);
         }
     }
 }

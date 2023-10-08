@@ -13,6 +13,7 @@ use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
 use leetcode_db::{DbQuestion, DbTopic};
+use shared::layout::Window;
 pub(crate) use sol_dir::init;
 use stats::Stats;
 use std::rc::Rc;
@@ -39,19 +40,25 @@ impl Default for Questions {
 
 impl Questions {
     pub fn prev_ques(&mut self) -> bool {
-        self.paginate.prev_elem()
+        self.paginate.prev_elem(self.widget_height())
     }
 
     pub fn next_ques(&mut self) -> bool {
-        self.paginate.next_elem()
+        self.paginate.next_elem(self.widget_height())
     }
 
     pub fn window(&self) -> &[Rc<DbQuestion>] {
-        self.paginate.window()
+        self.paginate.window(self.widget_height())
     }
 
     pub fn hovered(&self) -> Option<&Rc<DbQuestion>> {
         self.paginate.hovered()
+    }
+
+    fn widget_height(&self) -> usize {
+        let window = Window::new();
+        let height = window.root.center_layout.question.inner.height;
+        height as usize
     }
 }
 

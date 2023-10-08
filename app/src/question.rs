@@ -1,6 +1,7 @@
 use ratatui::prelude::*;
 use ratatui::style::Color;
-use ratatui::widgets::{List, ListItem, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, Widget};
+use shared::layout::GetWindowStats;
 
 use crate::ctx::Ctx;
 
@@ -49,12 +50,23 @@ impl<'a> Questions<'a> {
 }
 
 impl<'a> Widget for Questions<'a> {
-    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+    fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+        let q_area_surrounding_block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .cyan()
+            .title("Questions")
+            .title_alignment(Alignment::Center);
+
+        let term_window = self.get_window();
+
+        q_area_surrounding_block.render(term_window.root.center_layout.question.outer, buf);
+
         if let Some(ql) = self.get_questions_list() {
             let list = List::new(ql);
-            list.render(area, buf);
+            list.render(term_window.root.center_layout.question.inner, buf);
             if self.cx.question.is_stats_visible() {
-                stats::Stats::new(&self.cx.question).render(area, buf);
+                stats::Stats::new(&self.cx.question).render(term_window.root.q_stats.outer, buf);
             }
         }
     }

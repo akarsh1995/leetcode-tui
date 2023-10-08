@@ -1,7 +1,7 @@
-use crate::emit;
-
 use super::utils::Paginate;
+use crate::emit;
 use leetcode_db::{Db, DbTopic};
+use shared::layout::Window;
 
 pub struct Topic {
     pub visible: bool,
@@ -20,7 +20,7 @@ impl Topic {
     }
 
     pub fn next_topic(&mut self) -> bool {
-        let has_topic_changed = self.paginate.next_elem();
+        let has_topic_changed = self.paginate.next_elem(self.widget_height());
         if has_topic_changed {
             self.notify_change();
         }
@@ -34,7 +34,7 @@ impl Topic {
     }
 
     pub fn prev_topic(&mut self) -> bool {
-        let has_topic_changed = self.paginate.prev_elem();
+        let has_topic_changed = self.paginate.prev_elem(self.widget_height());
         if has_topic_changed {
             self.notify_change()
         };
@@ -42,11 +42,17 @@ impl Topic {
     }
 
     pub fn window(&self) -> &[DbTopic] {
-        self.paginate.window()
+        self.paginate.window(self.widget_height())
     }
 
     pub fn set_visible(&mut self) {
         self.visible = true;
+    }
+
+    fn widget_height(&self) -> usize {
+        let window = Window::new();
+        let height = window.root.center_layout.topic.inner.height;
+        height as usize
     }
 }
 

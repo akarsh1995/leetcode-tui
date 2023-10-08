@@ -1,5 +1,6 @@
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Gauge, Widget};
+use shared::layout::GetWindowStats;
 
 pub(super) struct Stats<'a> {
     cx: &'a app_core::question::Questions,
@@ -36,24 +37,26 @@ impl<'a> Stats<'a> {
     fn create_block(title: &str) -> Block {
         Block::default()
             .borders(Borders::ALL)
-            .style(Style::default().fg(Color::Gray))
             .title(Span::styled(
                 title,
                 Style::default().add_modifier(Modifier::BOLD),
             ))
+            .title_alignment(Alignment::Center)
+            .cyan()
     }
 }
 
 impl<'a> Widget for Stats<'a> {
-    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+    fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
         let block = Self::create_block("Stats");
-        let inner_area = block.inner(area);
-        block.render(area, buf);
 
+        block.render(self.get_window().root.q_stats.outer, buf);
+
+        Clear.render(self.get_window().root.q_stats.inner, buf);
         let horizontal_partition = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(inner_area);
+            .split(self.get_window().root.q_stats.inner);
 
         let left_partition = Layout::default()
             .direction(Direction::Vertical)
@@ -68,8 +71,6 @@ impl<'a> Widget for Stats<'a> {
                 Constraint::Percentage(33),
             ])
             .split(horizontal_partition[1]);
-
-        Clear.render(area, buf);
 
         for ((title, numerator, denominator), render_area) in
             self.cx.get_stats().get_ratios().into_iter().zip(
