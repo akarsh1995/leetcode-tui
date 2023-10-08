@@ -1,11 +1,10 @@
 pub mod event;
 pub mod step;
-pub mod topic;
 pub use event::Event;
 use std::error::Error;
+pub mod content;
 pub mod errors;
 pub mod popup;
-pub mod question;
 pub mod utils;
 
 pub type UBStrSender = tokio::sync::mpsc::UnboundedSender<Option<String>>;
@@ -98,5 +97,5 @@ where
 }
 
 pub fn init() {
-    question::init();
+    content::question::init();
 }

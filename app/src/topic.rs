@@ -25,10 +25,11 @@ impl<'a> Topic<'a> {
 
 impl<'a> Widget for Topic<'a> {
     fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
-        if let Some(hovered) = self.cx.topic.hovered() {
+        if let Some(hovered) = self.cx.content.get_topic().hovered() {
             let lines = self
                 .cx
-                .topic
+                .content
+                .get_topic()
                 .window()
                 .iter()
                 .map(|t| {

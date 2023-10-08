@@ -1,13 +1,14 @@
+use app_core::content;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Gauge, Widget};
 use shared::layout::GetWindowStats;
 
 pub(super) struct Stats<'a> {
-    cx: &'a app_core::question::Questions,
+    cx: &'a content::question::Questions,
 }
 
 impl<'a> Stats<'a> {
-    pub(super) fn new(quests: &'a app_core::question::Questions) -> Self {
+    pub(super) fn new(quests: &'a content::question::Questions) -> Self {
         Self { cx: quests }
     }
 }

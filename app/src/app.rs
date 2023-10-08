@@ -1,7 +1,7 @@
 use app_core::{emit, Event, UBStrSender};
 
 use color_eyre::Result;
-use config::{constants::EDITOR, key::Key, DB_CLIENT};
+use config::{constants::EDITOR, key::Key};
 use leetcode_db::{DbQuestion, DbTopic};
 use shared::tui::Term;
 
@@ -18,7 +18,7 @@ impl App {
         let term = Term::start()?;
         let signals = Signals::start()?;
         let mut app = Self {
-            cx: Ctx::new(DB_CLIENT.as_ref()).await,
+            cx: Ctx::new().await,
             term: Some(term),
             signals,
         };
@@ -58,11 +58,14 @@ impl App {
     }
 
     fn dispatch_topic_update(&mut self, topic: DbTopic) {
-        self.cx.question.get_questions_by_topic(topic)
+        self.cx
+            .content
+            .get_questions_mut()
+            .get_questions_by_topic(topic)
     }
 
     fn dispatch_question_update(&mut self, questions: Vec<DbQuestion>) {
-        self.cx.question.set_questions(questions);
+        self.cx.content.get_questions_mut().set_questions(questions);
         emit!(Render);
     }
 
@@ -116,7 +119,7 @@ impl App {
 
     fn dispatch_module_event(&mut self, e: Event) {
         if let Event::QuestionFilter(needle) = e {
-            self.cx.question.filter_by(needle)
+            self.cx.content.get_questions_mut().filter_by(needle)
         }
         emit!(Render);
     }

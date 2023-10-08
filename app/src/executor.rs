@@ -39,18 +39,18 @@ impl Executor {
             };
         }
 
-        if cx.topic.visible {
+        if cx.content.is_visible() {
             return match key {
-                Key::Char('T') => cx.topic.prev_topic(),
-                Key::Char('t') => cx.topic.next_topic(),
-                Key::Char('e') => cx.question.solve_for_language(),
-                Key::Up | Key::Char('k') => cx.question.prev_ques(),
-                Key::Down | Key::Char('j') => cx.question.next_ques(),
-                Key::Enter => cx.question.show_question_content(),
-                Key::Char('r') => cx.question.run_solution(),
-                Key::Char('s') => cx.question.submit_solution(),
-                Key::Ctrl('s') => cx.question.toggle_stats(),
-                Key::Char('/') => cx.question.toggle_search(),
+                Key::Char('T') => cx.content.get_topic_mut().prev_topic(),
+                Key::Char('t') => cx.content.get_topic_mut().next_topic(),
+                Key::Char('e') => cx.content.get_questions_mut().solve_for_language(),
+                Key::Up | Key::Char('k') => cx.content.get_questions_mut().prev_ques(),
+                Key::Down | Key::Char('j') => cx.content.get_questions_mut().next_ques(),
+                Key::Enter => cx.content.get_questions_mut().show_question_content(),
+                Key::Char('r') => cx.content.get_questions_mut().run_solution(),
+                Key::Char('s') => cx.content.get_questions_mut().submit_solution(),
+                Key::Ctrl('s') => cx.content.get_questions_mut().toggle_stats(),
+                Key::Char('/') => cx.content.get_questions_mut().toggle_search(),
                 _ => false,
             };
         }

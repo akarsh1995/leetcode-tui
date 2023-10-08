@@ -1,19 +1,17 @@
-use super::utils::Paginate;
 use crate::emit;
+use crate::utils::Paginate;
 use leetcode_db::{Db, DbTopic};
 use shared::layout::Window;
 
 pub struct Topic {
-    pub visible: bool,
-    pub paginate: Paginate<DbTopic>,
+    paginate: Paginate<DbTopic>,
 }
 
 impl Topic {
-    pub async fn new(db: &Db) -> Self {
+    pub(crate) async fn new(db: &Db) -> Self {
         let topics = DbTopic::fetch_all(db).await.unwrap();
         let s = Self {
             paginate: Paginate::new(topics),
-            visible: true,
         };
         s.notify_change();
         s
@@ -43,10 +41,6 @@ impl Topic {
 
     pub fn window(&self) -> &[DbTopic] {
         self.paginate.window(self.widget_height())
-    }
-
-    pub fn set_visible(&mut self) {
-        self.visible = true;
     }
 
     fn widget_height(&self) -> usize {
