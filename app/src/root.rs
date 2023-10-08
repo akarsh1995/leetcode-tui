@@ -1,5 +1,6 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Widget};
+use ratatui::widgets::{Paragraph, Widget};
+use shared::layout::GetWindowStats;
 
 use crate::ctx::Ctx;
 use crate::popup::{Popup, SelectPopup};
@@ -17,60 +18,25 @@ impl<'a> Root<'a> {
 }
 
 impl<'a> Widget for Root<'a> {
-    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
-        let chunks = Layout::new()
-            .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Length(1),
-                    Constraint::Min(0),
-                    Constraint::Length(1),
-                ]
-                .as_ref(),
-            )
-            .split(area);
-
-        let _top_bar = chunks[0];
-        let vert_center = chunks[1];
-        let _bottom_bar = chunks[2];
-
-        let center_block = Block::default()
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .cyan();
-
-        let vert_center_inner_area = center_block.inner(vert_center);
-
-        center_block.render(vert_center, buf);
-
-        // let vert_center
-
-        let center_chunks = Layout::new()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-            .split(vert_center_inner_area);
-
-        let topic_area = center_chunks[0];
-        let question_area = center_chunks[1];
-
-        Topic::new(self.cx).render(topic_area, buf);
-        Questions::new(self.cx).render(question_area, buf);
+    fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+        Topic::new(self.cx).render(_area, buf);
+        Questions::new(self.cx).render(_area, buf);
 
         if self.cx.popup.visible {
-            Popup::new(self.cx).render(area, buf);
+            Popup::new(self.cx).render(_area, buf);
         }
         if self.cx.select_popup.visible {
-            SelectPopup::new(self.cx).render(area, buf);
+            SelectPopup::new(self.cx).render(_area, buf);
         }
 
         if self.cx.input.visible {
             if let Some(input_text) = self.cx.input.text() {
                 let _input_text = format!("/{input_text}");
                 let line = Line::from(_input_text.as_str());
-                Paragraph::new(line).render(_bottom_bar, buf);
+                Paragraph::new(line).render(self.get_window().root.status_bar, buf);
             } else {
                 let line = Line::from("/");
-                Paragraph::new(line).render(_bottom_bar, buf);
+                Paragraph::new(line).render(self.get_window().root.status_bar, buf);
             }
         }
     }
