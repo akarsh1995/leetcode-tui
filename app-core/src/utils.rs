@@ -106,7 +106,7 @@ where
         self.list
             .windows(self.cursor_upper_bound(wid_height))
             .nth(self.nth_window)
-            .unwrap()
+            .unwrap_or(&[])
     }
     pub fn hovered(&self) -> Option<&T> {
         self.hovered.as_ref()
