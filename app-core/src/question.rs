@@ -66,14 +66,8 @@ impl Questions {
     pub fn get_questions_by_topic(&mut self, topic: DbTopic) {
         tokio::spawn(async move {
             let questions = topic.fetch_questions(DB_CLIENT.as_ref()).await;
-            match questions {
-                Ok(_questions) => {
-                    emit!(Questions(_questions));
-                }
-                Err(e) => {
-                    log::error!("Problem fetching questions for topic {topic:?}: {e}");
-                    emit!(Error(e.to_string()));
-                }
+            if let Ok(_questions) = questions.emit_if_error() {
+                emit!(Questions(_questions));
             }
         });
     }
