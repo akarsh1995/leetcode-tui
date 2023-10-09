@@ -1,8 +1,9 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Paragraph, Widget};
+use ratatui::widgets::*;
 use shared::layout::GetWindowStats;
 
 use crate::ctx::Ctx;
+use crate::help::Help;
 use crate::popup::{Popup, SelectPopup};
 use crate::question::Questions;
 use crate::topic::Topic;
@@ -19,6 +20,11 @@ impl<'a> Root<'a> {
 
 impl<'a> Widget for Root<'a> {
     fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+        if self.cx.help.is_visible() {
+            Help::new(self.cx).render(_area, buf);
+            return;
+        }
+
         Topic::new(self.cx).render(_area, buf);
         Questions::new(self.cx).render(_area, buf);
 

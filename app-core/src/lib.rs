@@ -4,6 +4,7 @@ pub use event::Event;
 use std::error::Error;
 pub mod content;
 pub mod errors;
+pub mod help;
 pub mod input;
 pub mod popup;
 pub mod utils;

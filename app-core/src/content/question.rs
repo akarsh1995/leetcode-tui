@@ -1,7 +1,6 @@
 pub(super) mod sol_dir;
 mod stats;
 
-use self::sol_dir::SOLUTION_FILE_MANAGER;
 use crate::SendError;
 use crate::{emit, utils::Paginate};
 use config::log;
@@ -16,6 +15,7 @@ use leetcode_core::{
 use leetcode_db::{DbQuestion, DbTopic};
 use shared::layout::Window;
 pub(crate) use sol_dir::init;
+use sol_dir::SOLUTION_FILE_MANAGER;
 use stats::Stats;
 use std::rc::Rc;
 

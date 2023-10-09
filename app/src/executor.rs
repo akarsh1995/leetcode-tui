@@ -6,9 +6,27 @@ pub struct Executor;
 
 impl Executor {
     pub fn handle(cx: &mut Ctx, key: Key) -> bool {
+        if matches!(key, Key::Char('?')) {
+            return cx.help.toggle();
+        }
+
+        if cx.help.is_visible() {
+            return match key {
+                Key::Down | Key::Char('j') => cx.help.next(),
+                Key::Up | Key::Char('k') => cx.help.previous(),
+                Key::Char('?') | Key::Esc => cx.help.toggle(),
+                Key::Enter => {
+                    cx.help.toggle()
+                    //TODO: emit key event
+                    // emit!(Key());
+                }
+                _ => false,
+            };
+        }
+
         if cx.popup.visible {
             return match key {
-                Key::Enter => cx.popup.toggle(),
+                Key::Enter | Key::Esc => cx.popup.toggle(),
                 Key::Up | Key::Char('k') => cx.popup.scroll_up(),
                 Key::Down | Key::Char('j') => cx.popup.scroll_down(),
                 _ => false,
