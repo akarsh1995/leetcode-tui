@@ -130,6 +130,22 @@ impl DbQuestion {
         self.topics.push(DbTopic::new(id, slug))
     }
 
+    pub async fn mark_accepted(&mut self, db: &Db) -> DBResult<Option<Vec<Self>>> {
+        if self.status.is_none() || self.status == Some("notac".into()) {
+            self.status = Some("ac".into());
+            return Ok(Some(self.update_in_db(db).await?));
+        }
+        Ok(None)
+    }
+
+    pub async fn mark_attempted(&mut self, db: &Db) -> DBResult<Option<Vec<Self>>> {
+        if self.status.is_none() {
+            self.status = Some("notac".into());
+            return Ok(Some(self.update_in_db(db).await?));
+        }
+        Ok(None)
+    }
+
     pub async fn update_in_db(&self, db: &Db) -> DBResult<Vec<Self>> {
         let q: Vec<Self> = db.update("question").content(self).await?;
         // TODO: topics may change update them
@@ -266,5 +282,82 @@ mod test {
         res.title_slug = "Helloworld".to_string();
         let updated = res.update_in_db(&db).await.unwrap();
         assert_eq!(updated[0].title_slug, "Helloworld");
+    }
+
+    #[tokio::test]
+    async fn test_mark_question_attempted() {
+        let db = connect("mem://").await.unwrap();
+        db.use_ns("test").use_db("test").await.unwrap();
+        let root: Root = serde_json::from_str(JSON).unwrap();
+        let mut q: DbQuestion = root.get_questions().pop().unwrap().try_into().unwrap();
+        q.status = None;
+        let mut res = q.to_db(&db).await.unwrap();
+        assert_eq!(res.status, None);
+        let attempted = res
+            .mark_attempted(&db)
+            .await
+            .unwrap()
+            .unwrap()
+            .pop()
+            .unwrap();
+        assert_eq!(attempted.status, Some("notac".into()));
+        let db_quest: DbQuestion = db.select(("question", 6)).await.unwrap().unwrap();
+        assert_eq!(db_quest.status, Some("notac".into()));
+    }
+
+    #[tokio::test]
+    async fn test_mark_question_accepted() {
+        let db = connect("mem://").await.unwrap();
+        db.use_ns("test").use_db("test").await.unwrap();
+        let root: Root = serde_json::from_str(JSON).unwrap();
+        let mut q: DbQuestion = root.get_questions().pop().unwrap().try_into().unwrap();
+        q.status = None;
+        let mut res = q.to_db(&db).await.unwrap();
+        assert_eq!(res.status, None);
+        let accepted = res
+            .mark_accepted(&db)
+            .await
+            .unwrap()
+            .unwrap()
+            .pop()
+            .unwrap();
+        assert_eq!(accepted.status, Some("ac".into()));
+        let db_quest: DbQuestion = db.select(("question", 6)).await.unwrap().unwrap();
+        assert_eq!(db_quest.status, Some("ac".into()));
+    }
+
+    #[tokio::test]
+    async fn test_mark_attempted_question_accepted() {
+        let db = connect("mem://").await.unwrap();
+        db.use_ns("test").use_db("test").await.unwrap();
+        let root: Root = serde_json::from_str(JSON).unwrap();
+        let mut q: DbQuestion = root.get_questions().pop().unwrap().try_into().unwrap();
+        q.status = Some("notac".into());
+        let mut res = q.to_db(&db).await.unwrap();
+        assert_eq!(res.status, Some("notac".into()));
+        let accepted = res
+            .mark_accepted(&db)
+            .await
+            .unwrap()
+            .unwrap()
+            .pop()
+            .unwrap();
+        assert_eq!(accepted.status, Some("ac".into()));
+        let db_quest: DbQuestion = db.select(("question", 6)).await.unwrap().unwrap();
+        assert_eq!(db_quest.status, Some("ac".into()));
+    }
+
+    #[tokio::test]
+    async fn test_try_mark_accepted_question_attempted() {
+        let db = connect("mem://").await.unwrap();
+        db.use_ns("test").use_db("test").await.unwrap();
+        let root: Root = serde_json::from_str(JSON).unwrap();
+        let q: DbQuestion = root.get_questions().pop().unwrap().try_into().unwrap();
+        let mut res = q.to_db(&db).await.unwrap();
+        assert_eq!(res.status, Some("ac".into()));
+        let maybe_accepted = res.mark_attempted(&db).await.unwrap();
+        assert_eq!(maybe_accepted, None);
+        let db_quest: DbQuestion = db.select(("question", 6)).await.unwrap().unwrap();
+        assert_eq!(db_quest.status, Some("ac".into()));
     }
 }

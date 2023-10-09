@@ -27,6 +27,7 @@ pub enum Event {
     Input(super::UBStrSender, Option<String>),
     Open(PathBuf),
     Error(String),
+    QuestionUpdate,
 }
 
 impl Event {

@@ -25,7 +25,7 @@ impl Topic {
         has_topic_changed
     }
 
-    fn notify_change(&self) {
+    pub fn notify_change(&self) {
         if let Some(hovered) = self.hovered() {
             emit!(Topic(hovered.clone()));
         }

@@ -9,6 +9,7 @@ use config::REQ_CLIENT;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use leetcode_core::graphql::query::RunOrSubmitCodeCheckResult;
+use leetcode_core::types::run_submit_response::ParsedResponse;
 use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
@@ -106,6 +107,7 @@ impl Questions {
 
     fn _run_solution(&self, is_submit: bool) -> bool {
         if let Some(_hovered) = self.hovered() {
+            let mut cloned_quest = _hovered.as_ref().clone();
             let id = _hovered.id.id.to_string();
             if let Ok(lang_refs) = SOLUTION_FILE_MANAGER
                 .get()
@@ -151,6 +153,35 @@ impl Questions {
                                 };
 
                                 if let Ok(response) = request.emit_if_error() {
+                                    if let Ok(update_result) = cloned_quest
+                                        .mark_attempted(DB_CLIENT.as_ref())
+                                        .await
+                                        .emit_if_error()
+                                    {
+                                        // when solution is just run against sample cases
+                                        if update_result.is_some() {
+                                            // fetches latest result from db
+                                            emit!(QuestionUpdate);
+                                        }
+                                    }
+
+                                    if is_submit {
+                                        let is_submission_accepted =
+                                            matches!(response, ParsedResponse::Success(..));
+                                        if is_submission_accepted {
+                                            if let Ok(update_result) = cloned_quest
+                                                .mark_accepted(DB_CLIENT.as_ref())
+                                                .await
+                                                .emit_if_error()
+                                            {
+                                                // when solution is accepted
+                                                if update_result.is_some() {
+                                                    // fetches latest result from db
+                                                    emit!(QuestionUpdate);
+                                                }
+                                            };
+                                        }
+                                    }
                                     emit!(Popup(vec![response.to_string()]));
                                 }
                             }

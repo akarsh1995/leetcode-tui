@@ -118,8 +118,10 @@ impl App {
     }
 
     fn dispatch_module_event(&mut self, e: Event) {
-        if let Event::QuestionFilter(needle) = e {
-            self.cx.content.get_questions_mut().filter_by(needle)
+        match e {
+            Event::QuestionFilter(needle) => self.cx.content.get_questions_mut().filter_by(needle),
+            Event::QuestionUpdate => self.cx.content.get_topic().notify_change(),
+            _ => (),
         }
         emit!(Render);
     }
