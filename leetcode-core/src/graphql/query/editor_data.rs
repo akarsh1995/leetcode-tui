@@ -42,4 +42,8 @@ impl Query {
 
 impl GQLLeetcodeRequest for Query {
     type T = crate::types::editor_data::QuestionData;
+
+    fn use_cache(&self) -> bool {
+        true
+    }
 }

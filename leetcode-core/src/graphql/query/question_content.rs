@@ -34,4 +34,8 @@ impl Query {
 
 impl GQLLeetcodeRequest for Query {
     type T = crate::types::question_content::Data;
+
+    fn use_cache(&self) -> bool {
+        true
+    }
 }

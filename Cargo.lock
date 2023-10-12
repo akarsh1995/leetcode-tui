@@ -1800,6 +1800,7 @@ version = "0.3.0"
 dependencies = [
  "async-trait",
  "html2text",
+ "lru",
  "reqwest",
  "serde",
  "serde_json",
