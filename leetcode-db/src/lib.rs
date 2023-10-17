@@ -163,6 +163,18 @@ impl DbQuestion {
             Err(DbErr::QuestionsNotFoundInDb("".into()))
         }
     }
+
+    pub fn is_hard(&self) -> bool {
+        self.difficulty == "Hard"
+    }
+
+    pub fn is_medium(&self) -> bool {
+        self.difficulty == "Medium"
+    }
+
+    pub fn is_easy(&self) -> bool {
+        self.difficulty == "Easy"
+    }
 }
 
 impl DbQuestion {

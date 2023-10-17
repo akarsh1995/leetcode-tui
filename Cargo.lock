@@ -127,6 +127,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea50b14b7a4b9343f8c627a7a53c52076482bd4bdad0a24fd3ec533ed616cc2c"
 
 [[package]]
+name = "anyhow"
+version = "1.0.75"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
+
+[[package]]
 name = "app"
 version = "0.3.0"
 dependencies = [
@@ -719,6 +725,7 @@ dependencies = [
 name = "config"
 version = "0.3.0"
 dependencies = [
+ "anyhow",
  "better-panic",
  "clap",
  "color-eyre",
@@ -727,12 +734,13 @@ dependencies = [
  "human-panic",
  "libc",
  "log",
+ "ratatui",
  "reqwest",
  "serde",
  "shared",
  "strip-ansi-escapes",
  "surrealdb",
- "toml 0.5.11",
+ "toml 0.7.8",
  "tracing",
  "tracing-error",
  "tracing-subscriber",

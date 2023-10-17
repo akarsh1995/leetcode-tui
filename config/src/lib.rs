@@ -2,6 +2,7 @@ pub mod clients;
 pub mod constants;
 pub mod error_handling;
 pub mod key;
+pub mod theme;
 pub mod utils;
 
 pub use clients::{DB_CLIENT, REQ_CLIENT};
@@ -10,6 +11,7 @@ pub use log;
 use serde::Deserialize;
 use shared::RoCell;
 use std::path::PathBuf;
+use theme::Theme;
 use utils::get_config_dir;
 
 pub static CONFIG: RoCell<Config> = RoCell::new();
@@ -39,6 +41,7 @@ pub struct Config {
     db: Database,
     #[serde(default = "get_solutions_dir_path")]
     pub solutions_dir: PathBuf,
+    pub theme: Theme,
 }
 
 #[derive(Deserialize, Debug)]

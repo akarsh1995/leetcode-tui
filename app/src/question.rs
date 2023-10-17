@@ -1,5 +1,5 @@
+use config::CONFIG;
 use ratatui::prelude::*;
-use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, Widget};
 use shared::layout::GetWindowStats;
 
@@ -21,17 +21,33 @@ impl<'a> Questions<'a> {
         q: &'b leetcode_db::DbQuestion,
         hovered: &'b leetcode_db::DbQuestion,
     ) -> ListItem<'b> {
-        ListItem::new(q.to_string())
-            .bg(if q.id == hovered.id {
-                Color::Green
+        let config = &CONFIG.as_ref().theme.question;
+        let c_hovered = &config.hovered;
+        let normal = &config.normal;
+        let easy_hovered = c_hovered.easy.into();
+        let medium_hovered = c_hovered.medium.into();
+        let hard_hovered = c_hovered.hard.into();
+        let easy = normal.easy.into();
+        let medium = normal.medium.into();
+        let hard = normal.hard.into();
+
+        ListItem::new(q.to_string()).style(if q.id == hovered.id {
+            if q.is_easy() {
+                easy_hovered
+            } else if q.is_medium() {
+                medium_hovered
             } else {
-                Color::default()
-            })
-            .fg(if q.id == hovered.id {
-                Color::White
+                hard_hovered
+            }
+        } else {
+            if q.is_easy() {
+                easy
+            } else if q.is_medium() {
+                medium
             } else {
-                Color::default()
-            })
+                hard
+            }
+        })
     }
 
     fn get_questions_list(&self) -> Option<Vec<ListItem<'_>>> {
@@ -55,6 +71,7 @@ impl<'a> Widget for Questions<'a> {
         let q_area_surrounding_block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
+            .border_style(CONFIG.as_ref().theme.border.hovered.into())
             .cyan()
             .title("Questions")
             .title_alignment(Alignment::Center);

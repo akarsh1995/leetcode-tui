@@ -29,3 +29,5 @@ clap = { version = "^4", features = [
 better-panic = "^0"
 strip-ansi-escapes = "^0"
 human-panic = "^1"
+ratatui = { workspace = true }
+anyhow = "*"

@@ -1,5 +1,5 @@
+use config::CONFIG;
 use ratatui::prelude::*;
-use ratatui::style::Color;
 use ratatui::widgets::{Block, Borders, List, ListItem, Widget};
 use shared::layout::GetWindowStats;
 
@@ -17,6 +17,7 @@ impl<'a> Topic<'a> {
     fn get_styled_block(&self) -> Block {
         Block::default()
             .borders(Borders::ALL)
+            .border_style(CONFIG.as_ref().theme.border.normal.into())
             .cyan()
             .title("Topics")
             .title_alignment(Alignment::Center)
@@ -26,6 +27,10 @@ impl<'a> Topic<'a> {
 impl<'a> Widget for Topic<'a> {
     fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
         if let Some(hovered) = self.cx.content.get_topic().hovered() {
+            let config = &CONFIG.as_ref().theme.topic;
+            let c_hovered = config.hovered.into();
+            let normal = config.normal.into();
+
             let lines = self
                 .cx
                 .content
@@ -33,17 +38,11 @@ impl<'a> Widget for Topic<'a> {
                 .window()
                 .iter()
                 .map(|t| {
-                    ListItem::new(t.slug.as_str())
-                        .bg(if t.slug == hovered.slug {
-                            Color::White
-                        } else {
-                            Color::default()
-                        })
-                        .fg(if t.slug == hovered.slug {
-                            Color::LightYellow
-                        } else {
-                            Color::default()
-                        })
+                    ListItem::new(t.slug.as_str()).style(if t.slug == hovered.slug {
+                        c_hovered
+                    } else {
+                        normal
+                    })
                 })
                 .collect::<Vec<_>>();
             self.get_styled_block()
