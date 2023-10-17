@@ -1,4 +1,5 @@
 use crate::ctx::Ctx;
+use config::CONFIG;
 use ratatui::prelude::*;
 use ratatui::widgets::{
     Block, Borders, Clear, List, ListItem, Paragraph, Scrollbar, StatefulWidget, Widget, Wrap,
@@ -17,11 +18,14 @@ impl<'a> SelectPopup<'a> {
 
 impl<'a> Widget for SelectPopup<'a> {
     fn render(self, _area: Rect, buf: &mut Buffer) {
+        let c_def = &CONFIG.as_ref().theme.defaults;
         let mut block: Block<'_> = Block::default();
         if let Some(title) = self.ctx.select_popup.get_title() {
             block = Block::default().title(title);
         }
-        let block = block.borders(Borders::ALL);
+        let block = block
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(c_def.info.into()));
         Clear.render(self.get_window().root.popup.outer, buf);
         block.render(self.get_window().root.popup.outer, buf);
         let chunks = Layout::default()
@@ -34,11 +38,15 @@ impl<'a> Widget for SelectPopup<'a> {
         let list = List::new(
             lines
                 .iter()
-                .map(|l| ListItem::new(vec![Line::from(l.as_ref())]))
+                .map(|l| ListItem::new(vec![Line::from(l.as_ref())]).fg(c_def.fg_dark))
                 .collect::<Vec<_>>(),
         )
-        .highlight_style(Style::default().bg(Color::LightGreen))
-        .add_modifier(Modifier::BOLD);
+        .highlight_style(
+            Style::default()
+                .bg(c_def.bg_highlight.into())
+                .fg(c_def.fg.into())
+                .add_modifier(Modifier::BOLD),
+        );
         StatefulWidget::render(list, content_area, buf, &mut self.ctx.select_popup.state);
         // Scrollbar::default()
         //     .orientation(ratatui::widgets::ScrollbarOrientation::VerticalRight)
@@ -66,6 +74,7 @@ impl<'a> Popup<'a> {
         Paragraph::new(self.prepare_lines())
             .scroll((self.ctx.popup.v_scroll, 0))
             .wrap(Wrap { trim: true })
+            .style(Style::default().fg(CONFIG.as_ref().theme.defaults.fg.into()))
     }
 }
 
@@ -77,11 +86,14 @@ impl<'a> Popup<'a> {
 
 impl<'a> Widget for Popup<'a> {
     fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+        let c_def = &CONFIG.as_ref().theme.defaults;
         let mut block: Block<'_> = Block::default();
         if let Some(title) = self.ctx.popup.get_title() {
             block = Block::default().title(title);
         }
-        let block = block.borders(Borders::ALL);
+        let block = block
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(c_def.info.into()));
         Clear.render(self.get_window().root.popup.outer, buf);
         block.render(self.get_window().root.popup.outer, buf);
         let chunks = Layout::default()

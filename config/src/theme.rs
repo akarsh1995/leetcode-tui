@@ -4,6 +4,8 @@ pub mod style;
 use crate::theme::style::Style;
 use serde::Deserialize;
 
+use self::color::Color;
+
 #[derive(Debug, Deserialize)]
 pub struct Difficulty {
     pub easy: Style,
@@ -30,8 +32,24 @@ pub struct Border {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Defaults {
+    pub bg_dark: Color,
+    pub bg: Color,
+    pub bg_highlight: Color,
+    pub terminal_black: Color,
+    pub fg: Color,
+    pub fg_dark: Color,
+    pub fg_gutter: Color,
+    pub dark3: Color,
+    pub comment: Color,
+    pub dark5: Color,
+    pub info: Color,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Theme {
     pub question: Question,
     pub topic: Topic,
     pub border: Border,
+    pub defaults: Defaults,
 }
