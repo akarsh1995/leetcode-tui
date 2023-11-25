@@ -134,7 +134,7 @@ checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "app"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "app-core",
  "color-eyre",
@@ -152,7 +152,7 @@ dependencies = [
 
 [[package]]
 name = "app-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "color-eyre",
  "config",
@@ -723,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "config"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "better-panic",
@@ -740,7 +740,7 @@ dependencies = [
  "shared",
  "strip-ansi-escapes",
  "surrealdb",
- "toml 0.7.8",
+ "toml 0.5.11",
  "tracing",
  "tracing-error",
  "tracing-subscriber",
@@ -1804,7 +1804,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "html2text",
@@ -1819,7 +1819,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-db"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "leetcode-core",
  "serde",
@@ -3256,7 +3256,7 @@ dependencies = [
 
 [[package]]
 name = "shared"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "color-eyre",
  "crossterm",
