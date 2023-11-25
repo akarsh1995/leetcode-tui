@@ -4,6 +4,10 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 
+[[bin]]
+name = "leetui"
+path = "src/main.rs"
+
 [dependencies]
 leetcode-core = { path = "../leetcode-core" }
 leetcode-db = { path = "../leetcode-db" }
