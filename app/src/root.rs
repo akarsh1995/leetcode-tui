@@ -1,3 +1,4 @@
+use config::CONFIG;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 use shared::layout::GetWindowStats;
@@ -23,6 +24,16 @@ impl<'a> Widget for Root<'a> {
         if self.cx.help.is_visible() {
             Help::new(self.cx).render(_area, buf);
             return;
+        } else {
+            let line = Line::from(vec![Span::styled(
+                " [?] Help ",
+                Style::default()
+                    .bg(CONFIG.as_ref().theme.defaults.info.into())
+                    .fg(CONFIG.as_ref().theme.defaults.terminal_black.into()),
+            )]);
+            Paragraph::new(line)
+                .alignment(Alignment::Right)
+                .render(self.get_window().root.status_bar.message_area, buf);
         }
 
         Topic::new(self.cx).render(_area, buf);
@@ -42,7 +53,7 @@ impl<'a> Widget for Root<'a> {
                 search_text.push_str(input_text);
             }
             let line = Line::from(search_text.as_str());
-            Paragraph::new(line).render(self.get_window().root.status_bar, buf);
+            Paragraph::new(line).render(self.get_window().root.status_bar.search_area, buf);
         }
     }
 }
