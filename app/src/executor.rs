@@ -57,6 +57,15 @@ impl Executor {
             };
         }
 
+        if cx.content.get_questions().is_stats_visible() {
+            return match key {
+                Key::Ctrl('s') | Key::Esc | Key::Enter => {
+                    cx.content.get_questions_mut().toggle_stats()
+                }
+                _ => false,
+            };
+        }
+
         if cx.content.is_visible() {
             return match key {
                 Key::Char('T') => cx.content.get_topic_mut().prev_topic(),
