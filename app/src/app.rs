@@ -103,7 +103,7 @@ impl App {
             std::process::Command::new("sh")
                 .arg("-c")
                 .arg(&format!(
-                    "{} {}",
+                    r#"{} "{}""#,
                     editor,
                     file_path.as_os_str().to_str().unwrap()
                 ))
