@@ -1,3 +1,4 @@
+use app_core::emit;
 use config::key::Key;
 
 use crate::ctx::Ctx;
@@ -59,6 +60,8 @@ impl Executor {
 
         if cx.content.get_questions().is_stats_visible() {
             return match key {
+                Key::Char('T') => cx.content.get_topic_mut().prev_topic(),
+                Key::Char('t') => cx.content.get_topic_mut().next_topic(),
                 Key::Ctrl('s') | Key::Esc | Key::Enter => {
                     cx.content.get_questions_mut().toggle_stats()
                 }
@@ -78,6 +81,10 @@ impl Executor {
                 Key::Char('s') => cx.content.get_questions_mut().submit_solution(),
                 Key::Ctrl('s') => cx.content.get_questions_mut().toggle_stats(),
                 Key::Char('/') => cx.content.get_questions_mut().toggle_search(),
+                Key::Char('q') => {
+                    emit!(Quit);
+                    false
+                }
                 _ => false,
             };
         }

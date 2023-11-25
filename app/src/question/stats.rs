@@ -29,7 +29,7 @@ fn create_gauge(title: &str, val: usize, total: usize, style: Style) -> Gauge {
 
     Gauge::default()
         .block(Block::default().title(block_title).borders(Borders::ALL))
-        .gauge_style(style.fg(Color::Gray))
+        .gauge_style(style)
         .percent(percentage as u16)
         .label(label)
 }
@@ -73,7 +73,7 @@ impl<'a> Widget for Stats<'a> {
             ])
             .split(horizontal_partition[1]);
 
-        for ((title, numerator, denominator), render_area) in
+        for ((question_status, numerator, denominator), render_area) in
             self.cx.get_stats().get_ratios().into_iter().zip(
                 [
                     left_partition[0],
@@ -85,7 +85,13 @@ impl<'a> Widget for Stats<'a> {
                 .iter(),
             )
         {
-            create_gauge(title, numerator, denominator, Style::default()).render(*render_area, buf)
+            create_gauge(
+                question_status.to_string().as_str(),
+                numerator,
+                denominator,
+                question_status.into(),
+            )
+            .render(*render_area, buf)
         }
     }
 }

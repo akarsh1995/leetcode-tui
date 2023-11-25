@@ -1,5 +1,7 @@
+use config::CONFIG;
 use leetcode_db::DbQuestion;
-use std::rc::Rc;
+use ratatui::style::Style;
+use std::{fmt::Display, rc::Rc};
 
 pub struct Stats<'a> {
     qm: &'a Vec<Rc<DbQuestion>>,
@@ -11,27 +13,65 @@ impl<'a> Stats<'a> {
     }
 }
 
+#[derive(Debug)]
+pub enum QuestionStatus {
+    Accepted,
+    Attempted,
+    EasyAccepted,
+    MediumAccepted,
+    HardAccepted,
+}
+
+use QuestionStatus::*;
+
+impl Display for QuestionStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string = match self {
+            Accepted => "Accepted",
+            Attempted => "Attempted",
+            EasyAccepted => "Easy Accepted",
+            MediumAccepted => "Medium Accepted",
+            HardAccepted => "Hard Accepted",
+        };
+        write!(f, "{}", string)
+    }
+}
+
+impl Into<Style> for QuestionStatus {
+    fn into(self) -> Style {
+        match self {
+            Accepted => CONFIG.as_ref().theme.question.normal.easy,
+            Attempted => CONFIG.as_ref().theme.question.normal.easy,
+            EasyAccepted => CONFIG.as_ref().theme.question.normal.easy,
+            MediumAccepted => CONFIG.as_ref().theme.question.normal.medium,
+            HardAccepted => CONFIG.as_ref().theme.question.normal.hard,
+        }
+        .into()
+    }
+}
+
 impl<'a> Stats<'a> {
-    pub fn get_ratios(&self) -> Vec<(&'static str, usize, usize)> {
+    pub fn get_ratios(&self) -> Vec<(QuestionStatus, usize, usize)> {
+        use QuestionStatus::*;
         vec![
-            ("Accepted", self.get_accepted(), self.get_total_question()),
+            (Accepted, self.get_accepted(), self.get_total_question()),
             (
-                "Attempted",
+                Attempted,
                 self.get_total_question() - self.get_not_attempted(),
                 self.get_total_question(),
             ),
             (
-                "Easy Accepted",
+                EasyAccepted,
                 self.get_easy_accepted(),
                 self.get_easy_count(),
             ),
             (
-                "Medium Accepted",
+                MediumAccepted,
                 self.get_medium_accepted(),
                 self.get_medium_count(),
             ),
             (
-                "Hard Accepted",
+                HardAccepted,
                 self.get_hard_accepted(),
                 self.get_hard_count(),
             ),
