@@ -274,8 +274,19 @@ impl Questions {
                 .ques_haystack
                 .iter()
                 .filter(|q| {
+                    let search_string = format!(
+                        "{} {} {}", // id, topics, title
+                        q.id,
+                        q.topics
+                            .iter()
+                            .map(|t| t.slug.as_str())
+                            .collect::<Vec<&str>>()
+                            .join(", "),
+                        q.title
+                    );
+
                     self.matcher
-                        .fuzzy_match(&q.title, needle.as_str())
+                        .fuzzy_match(search_string.as_str(), &needle)
                         .is_some()
                 })
                 .cloned()
