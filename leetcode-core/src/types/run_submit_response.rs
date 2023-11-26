@@ -3,6 +3,7 @@ use crate::errors::AppResult;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::from_value;
 use strum::Display;
+mod res_display;
 
 #[derive(Debug, Deserialize, Serialize, Display)]
 #[serde(rename_all = "UPPERCASE")]
@@ -95,8 +96,23 @@ impl RunSubmitResult {
             } => {
                 let status_code = status_message.clone().into();
                 match status_message {
-                    StatusMessage::Accepted | StatusMessage::WrongAnswer => {
-                        ParsedResponse::Success(from_value(value_copy)?)
+                    StatusMessage::Accepted => {
+                        let potentially_run_or_submit = value_copy.clone();
+                        let compile_result: CompileResult = from_value(value_copy)?;
+                        if compile_result.is_run() {
+                            if compile_result.is_run_success() {
+                                ParsedResponse::RunAccepted(from_value(potentially_run_or_submit)?)
+                            } else {
+                                ParsedResponse::RunWrongAnswer(from_value(
+                                    potentially_run_or_submit,
+                                )?)
+                            }
+                        } else {
+                            ParsedResponse::SubmitAccepted(from_value(potentially_run_or_submit)?)
+                        }
+                    }
+                    StatusMessage::WrongAnswer => {
+                        ParsedResponse::SubmitWrongAnswer(from_value(value_copy)?)
                     }
                     StatusMessage::MemoryLimitExceeded => {
                         ParsedResponse::MemoryLimitExceeded(from_value(value_copy)?)
@@ -125,7 +141,7 @@ impl RunSubmitResult {
     }
 }
 
-#[derive(Deserialize, Debug, Display)]
+#[derive(Deserialize, Debug)]
 pub enum ParsedResponse {
     Pending,
     CompileError(CompileError),
@@ -136,7 +152,10 @@ pub enum ParsedResponse {
     InternalError(InternalError),
     Unknown(u32),
     TimeOut(Timeout),
-    Success(Success),
+    RunAccepted(RunAccepted),
+    SubmitAccepted(SubmitAccepted),
+    RunWrongAnswer(RunWrongAnswer),
+    SubmitWrongAnswer(SubmitWrongAnswer),
 }
 
 #[derive(Deserialize, Debug)]
@@ -160,7 +179,7 @@ pub struct RuntimeError {
 
 #[derive(Deserialize, Debug)]
 pub struct MemoryLimitExceeded {
-    pub memory: u32,
+    pub memory: Memory,
 }
 
 #[derive(Deserialize, Debug)]
@@ -175,47 +194,115 @@ pub struct TimeLimitExceeded {
 
 #[derive(Deserialize, Debug)]
 pub struct OutputLimitExceed {
-    pub memory: u32,
+    pub memory: Memory,
     pub question_id: String,
     pub compare_result: String,
     pub std_output: String,
     pub last_testcase: String,
     pub expected_output: String,
     pub finished: bool,
+    pub code_output: String,
     pub total_correct: i32,
     pub total_testcases: i32,
     pub submission_id: String,
 }
 
 #[derive(Deserialize, Debug)]
-#[serde(untagged)]
-pub enum Success {
-    Run {
-        status_runtime: String,
-        memory: u32,
-        question_id: Option<String>,
-        elapsed_time: u32,
-        code_answer: Vec<String>,
-        std_output_list: Vec<String>,
-        expected_code_answer: Vec<String>,
-        correct_answer: bool,
-        total_correct: Option<u32>,
-        total_testcases: Option<u32>,
-        runtime_percentile: Option<f32>,
-        status_memory: String,
-        memory_percentile: Option<f32>,
-    },
-    Submit {
-        status_runtime: String,
-        memory: u32,
-        question_id: Option<String>,
-        elapsed_time: u32,
-        std_output: String,
-        expected_output: String,
-        total_correct: Option<u32>,
-        total_testcases: Option<u32>,
-        runtime_percentile: Option<f32>,
-        status_memory: String,
-        memory_percentile: Option<f32>,
-    },
+pub struct CompileResult {
+    task_name: String,
+    compare_result: String,
+}
+
+impl CompileResult {
+    fn is_run(&self) -> bool {
+        self.task_name.contains("RunCode")
+    }
+
+    fn is_correct(&self) -> bool {
+        self.compare_result.chars().filter(|c| *c == '1').count() == self.compare_result.len()
+    }
+
+    fn is_run_success(&self) -> bool {
+        self.is_run() && self.is_correct()
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Memory(u32);
+
+impl Memory {
+    fn to_megabytes(&self) -> f32 {
+        self.0 as f32 / 1000000.0
+    }
+}
+
+impl std::fmt::Display for Memory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:.2} MB", self.to_megabytes())
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RunAccepted {
+    pub status_runtime: String,
+    pub memory: Memory,
+    pub elapsed_time: u32,
+    pub code_answer: Vec<String>,
+    pub std_output_list: Vec<String>,
+    pub expected_code_answer: Vec<String>,
+    pub correct_answer: bool,
+    pub total_correct: u32,
+    pub total_testcases: u32,
+    pub runtime_percentile: Option<f32>,
+    pub memory_percentile: Option<f32>,
+    pub status_memory: String,
+    pub status_msg: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct RunWrongAnswer {
+    pub status_runtime: String,
+    pub memory: Memory,
+    pub elapsed_time: u32,
+    pub code_answer: Vec<String>,
+    pub std_output_list: Vec<String>,
+    pub expected_code_answer: Vec<String>,
+    pub correct_answer: bool,
+    pub total_correct: u32,
+    pub total_testcases: u32,
+    pub runtime_percentile: Option<f32>,
+    pub memory_percentile: Option<f32>,
+    pub status_memory: String,
+    pub status_msg: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SubmitAccepted {
+    pub status_runtime: String,
+    pub memory: Memory,
+    pub question_id: String,
+    pub elapsed_time: u32,
+    pub std_output: String,
+    pub expected_output: String,
+    pub total_correct: u32,
+    pub total_testcases: u32,
+    pub runtime_percentile: f32,
+    pub status_memory: String,
+    pub memory_percentile: f32,
+    pub status_msg: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SubmitWrongAnswer {
+    pub status_runtime: String,
+    pub memory: Memory,
+    pub question_id: String,
+    pub elapsed_time: u32,
+    pub std_output: String,
+    pub total_correct: u32,
+    pub total_testcases: u32,
+    pub status_memory: String,
+    pub status_msg: String,
+    pub last_testcase: String,
+    pub expected_output: String,
 }

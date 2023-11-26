@@ -167,7 +167,7 @@ impl Questions {
 
                                     if is_submit {
                                         let is_submission_accepted =
-                                            matches!(response, ParsedResponse::Success(..));
+                                            matches!(response, ParsedResponse::SubmitAccepted(..));
                                         if is_submission_accepted {
                                             if let Ok(update_result) = cloned_quest
                                                 .mark_accepted(DB_CLIENT.as_ref())

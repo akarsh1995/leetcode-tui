@@ -1,4 +1,34 @@
 {
+  "pending": {
+    "state": "PENDING"
+  },
+  "started": {
+    "state": "STARTED"
+  },
+  "memory_limit_exceeded": {
+    "status_code": 12,
+    "lang": "python3",
+    "run_success": false,
+    "status_runtime": "N/A",
+    "memory": 976692000,
+    "code_answer": [],
+    "code_output": [],
+    "std_output_list": [
+      ""
+    ],
+    "elapsed_time": 1638,
+    "task_finish_time": 1690182098359,
+    "task_name": "judger.runcodetask.RunCode",
+    "total_correct": null,
+    "total_testcases": null,
+    "runtime_percentile": null,
+    "status_memory": "N/A",
+    "memory_percentile": null,
+    "pretty_lang": "Python3",
+    "submission_id": "runcode_1690182094.4995568_1dCAthLRtZ",
+    "status_msg": "Memory Limit Exceeded",
+    "state": "SUCCESS"
+  },
   "output_limit": {
     "status_code": 13,
     "lang": "python3",
@@ -76,7 +106,7 @@
     "status_msg": "Runtime Error",
     "state": "SUCCESS"
   },
-  "success": {
+  "run_correct": {
     "status_code": 10,
     "lang": "rust",
     "run_success": true,
@@ -125,7 +155,86 @@
     "status_msg": "Accepted",
     "state": "SUCCESS"
   },
-  "wrong_answer": {
+  "run_wrong": {
+    "status_code": 10,
+    "lang": "python3",
+    "run_success": true,
+    "status_runtime": "82 ms",
+    "memory": 16388000,
+    "code_answer": [
+      "[4,4]",
+      "[4,4]",
+      "[4,4]"
+    ],
+    "code_output": [],
+    "std_output_list": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "elapsed_time": 137,
+    "task_finish_time": 1700928419688,
+    "task_name": "judger.runcodetask.RunCode",
+    "expected_status_code": 10,
+    "expected_lang": "cpp",
+    "expected_run_success": true,
+    "expected_status_runtime": "2",
+    "expected_memory": 6508000,
+    "expected_code_answer": [
+      "[0,1]",
+      "[1,2]",
+      "[0,1]"
+    ],
+    "expected_code_output": [],
+    "expected_std_output_list": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "expected_elapsed_time": 27,
+    "expected_task_finish_time": 1700927362928,
+    "expected_task_name": "judger.interprettask.Interpret",
+    "correct_answer": false,
+    "compare_result": "000",
+    "total_correct": 0,
+    "total_testcases": 3,
+    "runtime_percentile": null,
+    "status_memory": "16.4 MB",
+    "memory_percentile": null,
+    "pretty_lang": "Python3",
+    "submission_id": "runcode_1700928417.2898548_vyhvNxFWEv",
+    "status_msg": "Accepted",
+    "state": "SUCCESS"
+  },
+  "submit_correct": {
+    "status_code": 10,
+    "lang": "rust",
+    "run_success": true,
+    "status_runtime": "2 ms",
+    "memory": 2348000,
+    "question_id": "1",
+    "elapsed_time": 16,
+    "compare_result": "111111111111111111111111111111111111111111111111111111111",
+    "code_output": "",
+    "std_output": "",
+    "last_testcase": "",
+    "expected_output": "",
+    "task_finish_time": 1690563958315,
+    "task_name": "judger.judgetask.Judge",
+    "finished": true,
+    "total_correct": 57,
+    "total_testcases": 57,
+    "runtime_percentile": 83.9281,
+    "status_memory": "2.3 MB",
+    "memory_percentile": 39.723299999999995,
+    "pretty_lang": "Rust",
+    "submission_id": "1006307118",
+    "status_msg": "Accepted",
+    "state": "SUCCESS"
+  },
+  "submit_wrong": {
     "status_code": 11,
     "lang": "rust",
     "run_success": true,
@@ -151,62 +260,6 @@
     "input_formatted": "\"sadbutsad\", \"sad\"",
     "input": "\"sadbutsad\"\n\"sad\"",
     "status_msg": "Wrong Answer",
-    "state": "SUCCESS"
-  },
-  "memory_limit_exceeded": {
-    "status_code": 12,
-    "lang": "python3",
-    "run_success": false,
-    "status_runtime": "N/A",
-    "memory": 976692000,
-    "code_answer": [],
-    "code_output": [],
-    "std_output_list": [
-      ""
-    ],
-    "elapsed_time": 1638,
-    "task_finish_time": 1690182098359,
-    "task_name": "judger.runcodetask.RunCode",
-    "total_correct": null,
-    "total_testcases": null,
-    "runtime_percentile": null,
-    "status_memory": "N/A",
-    "memory_percentile": null,
-    "pretty_lang": "Python3",
-    "submission_id": "runcode_1690182094.4995568_1dCAthLRtZ",
-    "status_msg": "Memory Limit Exceeded",
-    "state": "SUCCESS"
-  },
-  "pending": {
-    "state": "PENDING"
-  },
-  "started": {
-    "state": "STARTED"
-  },
-  "submit_successful": {
-    "status_code": 10,
-    "lang": "rust",
-    "run_success": true,
-    "status_runtime": "2 ms",
-    "memory": 2348000,
-    "question_id": "1",
-    "elapsed_time": 16,
-    "compare_result": "111111111111111111111111111111111111111111111111111111111",
-    "code_output": "",
-    "std_output": "",
-    "last_testcase": "",
-    "expected_output": "",
-    "task_finish_time": 1690563958315,
-    "task_name": "judger.judgetask.Judge",
-    "finished": true,
-    "total_correct": 57,
-    "total_testcases": 57,
-    "runtime_percentile": 83.9281,
-    "status_memory": "2.3 MB",
-    "memory_percentile": 39.723299999999995,
-    "pretty_lang": "Rust",
-    "submission_id": "1006307118",
-    "status_msg": "Accepted",
     "state": "SUCCESS"
   }
 }
