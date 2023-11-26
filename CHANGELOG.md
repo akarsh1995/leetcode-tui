@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+
 ## [Unreleased]
 
 - Sort questions by:
@@ -18,21 +22,30 @@ All notable changes to this project will be documented in this file.
 
 - Invalidate questions cache through `userSessionProgress`
 
-- Locked problems
 
+## [0.4.0] - 2023-11-25
 
 ### Added
 
 - Lock symbol in front of the question when it is marked premium
+- New Key Bindings
+- New Layout
+- Show help for Keybindings using ? key
+- Following symbols for status of the question:
+    - Locked problems: 🔐
+    - Already Solved: 👑
+    - Attempted: 🏃
 
 ### Fixed
 
 - Error Serialization dserialization failed key=`memory missing` for lc_1143
-
 - Fix re-request when there's network error in fetching question.
 
+### Removed
 
-## [0.2.1] - 2023-08-10
+- Question jump feature (123G)
+
+## [0.3.0] - 2023-08-10
 
 ### Added
 

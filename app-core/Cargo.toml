@@ -1,0 +1,19 @@
+[package]
+name = "app-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }
+shared = { path = "../shared" }
+config = { path = "../config" }
+tokio = { workspace = true }
+leetcode-db = { path = "../leetcode-db/" }
+leetcode-core = { path = "../leetcode-core" }
+crossterm = { workspace = true }
+ratatui = { workspace = true }
+color-eyre = { workspace = true }
+regex = { workspace = true }
+indexmap = "^2"
+fuzzy-matcher = "*"
