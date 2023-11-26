@@ -1,5 +1,6 @@
 use crate::errors::{AppResult, LcAppError};
 use async_trait::async_trait;
+use config::log;
 use lru::LruCache;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
@@ -78,7 +79,12 @@ pub trait GQLLeetcodeRequest: Serialize + Sync {
             let mut c = get_cache().write().unwrap();
             c.put(self.get_query_hash(), result.clone());
         }
-
-        Ok(serde_json::from_str(result.as_str())?)
+        match serde_json::from_str(result.as_str()) {
+            Ok(parsed_message) => Ok(parsed_message),
+            Err(e) => {
+                log::debug!("{}\n{}", &e, result.as_str());
+                Err(LcAppError::DeserializeError(e))
+            }
+        }
     }
 }

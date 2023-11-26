@@ -9,6 +9,7 @@ use config::REQ_CLIENT;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use leetcode_core::graphql::query::RunOrSubmitCodeCheckResult;
+use leetcode_core::types::run_submit_response::display::CustomDisplay;
 use leetcode_core::types::run_submit_response::ParsedResponse;
 use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
@@ -129,27 +130,39 @@ impl Questions {
                             .unwrap()
                             .get_solution_file(id.as_str(), selected_lang)
                             .cloned();
-                        if let Ok(_f) = selected_sol_file.emit_if_error() {
-                            if let Ok(contents) = _f.read_contents().await.emit_if_error() {
-                                let lang = _f.language;
+                        if let Ok(f) = selected_sol_file.emit_if_error() {
+                            if let Ok(contents) = f.read_contents().await.emit_if_error() {
+                                let lang = f.language;
                                 let request = if is_submit {
                                     SubmitCodeRequest::new(
                                         lang,
-                                        _f.question_id,
+                                        f.question_id,
                                         contents,
-                                        _f.title_slug,
+                                        f.title_slug,
                                     )
                                     .poll_check_response(REQ_CLIENT.as_ref())
                                     .await
                                 } else {
-                                    RunCodeRequest::new(
+                                    let mut run_code_req = RunCodeRequest::new(
                                         lang,
-                                        _f.question_id,
+                                        None,
+                                        f.question_id,
                                         contents,
-                                        _f.title_slug,
-                                    )
-                                    .poll_check_response(REQ_CLIENT.as_ref())
-                                    .await
+                                        f.title_slug,
+                                    );
+                                    if let Err(e) = run_code_req
+                                        .set_sample_test_cases_if_none(REQ_CLIENT.as_ref())
+                                        .await
+                                        .emit_if_error()
+                                    {
+                                        log::info!(
+                                            "error while setting the sample testcase list {}",
+                                            e
+                                        );
+                                        return;
+                                    } else {
+                                        run_code_req.poll_check_response(REQ_CLIENT.as_ref()).await
+                                    }
                                 };
 
                                 if let Ok(response) = request.emit_if_error() {
@@ -182,7 +195,7 @@ impl Questions {
                                             };
                                         }
                                     }
-                                    emit!(Popup(vec![response.to_string()]));
+                                    emit!(Popup(response.get_display_lines()));
                                 }
                             }
                         }

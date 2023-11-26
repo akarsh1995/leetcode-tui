@@ -3,7 +3,7 @@ use crate::errors::AppResult;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::from_value;
 use strum::Display;
-mod res_display;
+pub mod display;
 
 #[derive(Debug, Deserialize, Serialize, Display)]
 #[serde(rename_all = "UPPERCASE")]

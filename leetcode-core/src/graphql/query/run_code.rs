@@ -1,8 +1,11 @@
+use reqwest::Client;
+
 use super::{GQLLeetcodeRequest, RunOrSubmitCodeCheckResult};
 pub use crate::types::{
     run::{RunCodeIntermediateResponse, RunCodeRequest},
     run_submit_response::RunSubmitResult,
 };
+use crate::{errors::LcAppError, graphql::query::console_panel_config};
 
 impl GQLLeetcodeRequest for RunCodeRequest {
     type T = RunCodeIntermediateResponse;
@@ -22,6 +25,25 @@ impl GQLLeetcodeRequest for RunCodeIntermediateResponse {
     fn get_endpoint(&self) -> String {
         let interpret_id = self.interpret_id.as_str();
         format!("https://leetcode.com/submissions/detail/{interpret_id}/check/")
+    }
+}
+
+impl RunCodeRequest {
+    pub async fn set_sample_test_cases_if_none(
+        &mut self,
+        client: &Client,
+    ) -> Result<(), LcAppError> {
+        if self.test_cases_stdin.is_none() {
+            let fetched_test_cases = console_panel_config::Query::new(self.slug.clone())
+                .send(client)
+                .await?
+                .data
+                .question
+                .example_testcase_list
+                .join("\n");
+            self.test_cases_stdin = Some(fetched_test_cases);
+        }
+        Ok(())
     }
 }
 
