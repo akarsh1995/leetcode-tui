@@ -6,11 +6,11 @@ edition.workspace = true
 
 [dependencies]
 thiserror = { workspace = true }
-shared = { path = "../shared" }
-config = { path = "../config" }
+shared = { path = "../shared", version = '0.4.0' }
+config = { path = "../config", version = '0.4.0' }
 tokio = { workspace = true }
-leetcode-db = { path = "../leetcode-db/" }
-leetcode-core = { path = "../leetcode-core" }
+leetcode-db = { path = "../leetcode-db/", version = '0.4.0' }
+leetcode-core = { path = "../leetcode-core", version = '0.4.0' }
 crossterm = { workspace = true }
 ratatui = { workspace = true }
 color-eyre = { workspace = true }

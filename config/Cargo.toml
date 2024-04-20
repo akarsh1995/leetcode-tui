@@ -5,7 +5,7 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
-shared = { path = "../shared" }
+shared = { path = "../shared", version = "0.4.0" }
 crossterm = { workspace = true }
 native_db = { workspace = true }
 reqwest = { workspace = true }

@@ -9,13 +9,13 @@ name = "leetui"
 path = "src/main.rs"
 
 [dependencies]
-leetcode-core = { path = "../leetcode-core" }
-leetcode-db = { path = "../leetcode-db" }
+leetcode-core = { path = "../leetcode-core", version = "0.4.0" }
+leetcode-db = { path = "../leetcode-db", version = "0.4.0" }
 kdam = { version = "^0" }
 
-config = { path = "../config" }
-app-core = { path = "../app-core" }
-shared = { path = "../shared" }
+config = { path = "../config", version = '0.4.0' }
+app-core = { path = "../app-core", version = '0.4.0' }
+shared = { path = "../shared", version = '0.4.0' }
 
 tokio = { workspace = true }
 tokio-util = { workspace = true }
