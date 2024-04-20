@@ -20,4 +20,4 @@ ratatui = { workspace = true }
 color-eyre = { workspace = true }
 regex = { workspace = true }
 indexmap = "^2"
-fuzzy-matcher = "*"
+fuzzy-matcher = "^0"
