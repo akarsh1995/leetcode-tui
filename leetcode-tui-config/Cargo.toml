@@ -6,6 +6,7 @@ authors.workspace = true
 edition.workspace = true
 keywords.workspace = true
 license.workspace = true
+repository.workspace = true
 
 [dependencies]
 leetcode-tui-shared = { path = "../leetcode-tui-shared", version = "0.4.0" }
