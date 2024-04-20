@@ -1,5 +1,5 @@
 use app_core::emit;
-use config::key::Key;
+use config::{key::Key, utils::get_config_file_path};
 
 use crate::ctx::Ctx;
 
@@ -9,6 +9,12 @@ impl Executor {
     pub fn handle(cx: &mut Ctx, key: Key) -> bool {
         if matches!(key, Key::Char('?')) {
             return cx.help.toggle();
+        }
+
+        // open config file
+        if matches!(key, Key::Char('c')) {
+            emit!(Open(get_config_file_path()));
+            return false;
         }
 
         if cx.help.is_visible() {

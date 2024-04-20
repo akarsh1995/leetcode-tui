@@ -17,14 +17,9 @@ config = { path = "../config" }
 app-core = { path = "../app-core" }
 shared = { path = "../shared" }
 
-# thiserror = { workspace = true }
-# serde = { workspace = true }
-# serde_json = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 color-eyre = { workspace = true }
 ratatui = { workspace = true }
 crossterm = { workspace = true }
 futures = "0.3.28"
-# log = "0.4.20"
-# kdam = "^0"

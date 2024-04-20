@@ -1,20 +1,17 @@
 use super::theme::Theme;
 pub use crate::clients::{DB_CLIENT, REQ_CLIENT};
-use crate::utils::get_config_dir;
+use crate::utils::{get_config_dir, get_config_file_path};
 use color_eyre::Result;
-pub use log;
 use serde::{Deserialize, Serialize};
 use shared::RoCell;
-use std::{fs::create_dir_all, path::PathBuf};
-
 use std::fs::File;
 use std::io::prelude::*;
+use std::{fs::create_dir_all, path::PathBuf};
 pub static CONFIG: RoCell<Config> = RoCell::new();
 
 pub fn init() -> Result<()> {
     CONFIG.init({
-        let config_dir = get_config_dir();
-        let config_file = config_dir.join("config.toml");
+        let config_file = get_config_file_path();
         if !config_file.exists() {
             Config::create_default_config(&config_file);
             Config::create_default_solution_dir();
@@ -75,17 +72,13 @@ impl Config {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Database {
-    pub(crate) conn: String,
-    pub(crate) namespace: String,
-    pub(crate) database: String,
+    pub(crate) path: String,
 }
 
 impl Default for Database {
     fn default() -> Self {
         Self {
-            conn: "default".into(),
-            namespace: "default".into(),
-            database: "ws://localhost:8000".into(),
+            path: get_config_dir().join("questions.db").display().to_string(),
         }
     }
 }

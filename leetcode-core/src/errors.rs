@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LcAppError {
-    #[error("Looks like your cookies has been expired kindly update your cookies in config.toml")]
+    #[error("Looks like your cookies has been expired kindly update your cookies in config.toml Look for help to edit the config file.")]
     CookiesExpiredError,
 
     #[error("Deserialization/serialization failed: {0}")]

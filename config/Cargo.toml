@@ -7,7 +7,7 @@ edition.workspace = true
 [dependencies]
 shared = { path = "../shared" }
 crossterm = { workspace = true }
-surrealdb = { workspace = true }
+native_db = { workspace = true }
 reqwest = { workspace = true }
 color-eyre = { workspace = true }
 serde = { workspace = true }

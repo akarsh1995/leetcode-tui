@@ -9,11 +9,12 @@ pub mod utils;
 use color_eyre::Result;
 pub use config::{CONFIG, DB_CLIENT, REQ_CLIENT};
 pub use log;
+use native_db::DatabaseBuilder;
 
-pub async fn init() -> Result<()> {
+pub async fn init(db_builder: &'static DatabaseBuilder) -> Result<()> {
     constants::init();
     config::init()?;
-    clients::init().await?;
+    clients::init(db_builder).await?;
     error_handling::initialize_logging()?;
     error_handling::initialize_panic_handler()?;
     Ok(())

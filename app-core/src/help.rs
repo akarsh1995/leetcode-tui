@@ -23,6 +23,7 @@ impl Default for Help {
                 vec!["r", "Run Solution"],
                 vec!["s", "Submit Solution"],
                 vec!["/", "Search"],
+                vec!["c", "Open config file"],
             ],
             visible: Default::default(),
         };

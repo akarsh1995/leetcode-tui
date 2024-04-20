@@ -68,7 +68,7 @@ impl Questions {
 impl Questions {
     pub fn get_questions_by_topic(&mut self, topic: DbTopic) {
         tokio::spawn(async move {
-            let questions = topic.fetch_questions(DB_CLIENT.as_ref()).await;
+            let questions = topic.fetch_questions(DB_CLIENT.as_ref());
             if let Ok(_questions) = questions.emit_if_error() {
                 emit!(Questions(_questions));
             }
@@ -109,7 +109,7 @@ impl Questions {
     fn _run_solution(&self, is_submit: bool) -> bool {
         if let Some(_hovered) = self.hovered() {
             let mut cloned_quest = _hovered.as_ref().clone();
-            let id = _hovered.id.id.to_string();
+            let id = _hovered.id.to_string();
             if let Ok(lang_refs) = SOLUTION_FILE_MANAGER
                 .get()
                 .unwrap()
@@ -168,7 +168,6 @@ impl Questions {
                                 if let Ok(response) = request.emit_if_error() {
                                     if let Ok(update_result) = cloned_quest
                                         .mark_attempted(DB_CLIENT.as_ref())
-                                        .await
                                         .emit_if_error()
                                     {
                                         // when solution is just run against sample cases
@@ -184,7 +183,6 @@ impl Questions {
                                         if is_submission_accepted {
                                             if let Ok(update_result) = cloned_quest
                                                 .mark_accepted(DB_CLIENT.as_ref())
-                                                .await
                                                 .emit_if_error()
                                             {
                                                 // when solution is accepted

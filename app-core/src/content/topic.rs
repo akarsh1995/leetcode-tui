@@ -1,15 +1,16 @@
 use crate::emit;
 use crate::utils::Paginate;
-use leetcode_db::{Db, DbTopic};
+use config::clients::Db;
+use leetcode_db::DbTopic;
 use shared::layout::Window;
 
 pub struct Topic {
     paginate: Paginate<DbTopic>,
 }
 
-impl Topic {
-    pub(crate) async fn new(db: &Db) -> Self {
-        let topics = DbTopic::fetch_all(db).await.unwrap();
+impl<'a> Topic {
+    pub(crate) async fn new(db: &Db<'a>) -> Self {
+        let topics = DbTopic::fetch_all(db).unwrap();
         let s = Self {
             paginate: Paginate::new(topics),
         };

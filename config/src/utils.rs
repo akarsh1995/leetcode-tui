@@ -29,6 +29,10 @@ pub fn get_config_dir() -> PathBuf {
     directory
 }
 
+pub fn get_config_file_path() -> PathBuf {
+    get_config_dir().join("config.toml")
+}
+
 pub fn version() -> String {
     let author = clap::crate_authors!();
 

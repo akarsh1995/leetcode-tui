@@ -6,8 +6,9 @@ edition.workspace = true
 
 [dependencies]
 leetcode-core = { path = "../leetcode-core" }
-surrealdb = { workspace = true }
+shared = { path = "../shared" }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-tokio = { workspace = true }
+native_db = { workspace = true }
+native_model = { workspace = true }

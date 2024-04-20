@@ -1,25 +1,20 @@
 use color_eyre::Result;
 use shared::RoCell;
 
-use reqwest::Client;
-use surrealdb::engine::any::Any;
-use surrealdb::Surreal;
-
+use native_db::{Database, DatabaseBuilder};
 use reqwest::header::{HeaderMap, HeaderValue};
-pub use surrealdb::engine::any::connect;
+use reqwest::Client;
 
 use crate::CONFIG;
-pub type Db = Surreal<Any>;
+pub type Db<'a> = Database<'a>;
 pub static DB_CLIENT: RoCell<Db> = RoCell::new();
 pub static REQ_CLIENT: RoCell<Client> = RoCell::new();
 
-pub(crate) async fn init() -> Result<()> {
+pub(crate) async fn init(db_builder: &'static DatabaseBuilder) -> Result<()> {
     DB_CLIENT.init({
-        let db = connect(&CONFIG.as_ref().db.conn).await?;
-        db.use_ns(&CONFIG.as_ref().db.namespace)
-            .use_db(&CONFIG.as_ref().db.database)
-            .await?;
-        db
+        db_builder
+            .create(CONFIG.as_ref().db.path.as_str())
+            .expect("Error while creating db conn.")
     });
     REQ_CLIENT
         .init(build_reqwest_client(&CONFIG.as_ref().csrftoken, &CONFIG.as_ref().lc_session).await?);
