@@ -1,0 +1,14 @@
+[package]
+name = "leetcode-db"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+leetcode-core = { path = "../leetcode-core" }
+shared = { path = "../shared" }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+native_db = { workspace = true }
+native_model = { workspace = true }

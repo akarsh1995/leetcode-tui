@@ -1,0 +1,25 @@
+[package]
+name = "app"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "leetui"
+path = "src/main.rs"
+
+[dependencies]
+leetcode-core = { path = "../leetcode-core" }
+leetcode-db = { path = "../leetcode-db" }
+kdam = { version = "^0" }
+
+config = { path = "../config" }
+app-core = { path = "../app-core" }
+shared = { path = "../shared" }
+
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+color-eyre = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+futures = "0.3.28"

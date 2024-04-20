@@ -23,9 +23,9 @@ Post installation
 ```sh
 leetui
 
-# This is going to create `~/.config/leetcode_tui/config.toml`.
+# This is going to create a config file depending on your os.
 
-# Get the Cookies from the browser `LEETCODE_SESSION` and `csrftoken` and paste it in `~/.config/leetcode_tui/config.toml`
+# Get the Cookies from the browser `LEETCODE_SESSION` and `csrftoken` and paste it in the config file
 
 # run the command again to populate db
 leetui
@@ -35,14 +35,13 @@ leetui
 
 - Question grouped by categories
 - Read Question
-- Jump to question using vim like keybinding (123G).
 - Open question in `EDITOR`
 - Solve question in multiple languages
 - Submit and run solution in multiple languages
-- Read Stats of your performance
-- Solved questions are marked with ✔️
+- Read Stats of your performance (Ctrl+s)
+- Solved questions are marked with "👑"
 - Neetcode 75
-- For Fuzzy search questions in the question list use `/`
+- For Fuzzy search the question list use `/` -- searchable by question id, topic and question_title.
 
 Few related projects:
 

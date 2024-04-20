@@ -1,0 +1,33 @@
+[package]
+name = "config"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+shared = { path = "../shared" }
+crossterm = { workspace = true }
+native_db = { workspace = true }
+reqwest = { workspace = true }
+color-eyre = { workspace = true }
+serde = { workspace = true }
+toml = "^0"
+libc = "^0"
+log = "^0"
+tracing = "^0"
+tracing-error = "^0"
+directories = "^5"
+tracing-subscriber = { version = "^0", features = ["env-filter", "serde"] }
+clap = { version = "^4", features = [
+  "derive",
+  "cargo",
+  "wrap_help",
+  "unicode",
+  "string",
+  "unstable-styles",
+] }
+better-panic = "^0"
+strip-ansi-escapes = "^0"
+human-panic = "^1"
+ratatui = { workspace = true }
+anyhow = "*"
