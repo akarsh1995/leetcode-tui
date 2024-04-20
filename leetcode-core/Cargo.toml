@@ -15,7 +15,7 @@ thiserror = { workspace = true }
 leetcode-tui-config = { path = "../leetcode-tui-config", version = '0.4.0' }
 reqwest = { workspace = true, features = ["json"] }
 html2text = "^0"
-async-trait = "*"
+async-trait = "^0"
 strum = { version = "^0", features = ["derive"] }
 serde_with = { version = "3.3.0", features = ["macros"] }
-lru = "*"
+lru = "^0"
