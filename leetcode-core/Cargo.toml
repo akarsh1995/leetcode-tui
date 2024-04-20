@@ -1,8 +1,11 @@
 [package]
 name = "leetcode-core"
+description = "This library helps to talk to leetcode APIs via REST interface"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
+keywords.workspace = true
+license.workspace = true
 
 [dependencies]
 serde = { workspace = true }

@@ -1,8 +1,11 @@
 [package]
 name = "leetcode-tui-core"
+description = "Leetcode tui related core modules"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
+keywords.workspace = true
+license.workspace = true
 
 [dependencies]
 thiserror = { workspace = true }

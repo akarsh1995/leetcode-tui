@@ -1,8 +1,11 @@
 [package]
 name = "leetcode-tui-rs"
+description = "Leetcode terminal UI. Helps you browse leetcode stats and manage your leetcode from terminal."
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
+license.workspace = true
+keywords.workspace = true
 
 [[bin]]
 name = "leetui"

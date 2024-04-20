@@ -1,8 +1,11 @@
 [package]
 name = "leetcode-tui-db"
+description = "Leetcode tui database"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
+keywords.workspace = true
+license.workspace = true
 
 [dependencies]
 leetcode-core = { path = "../leetcode-core", version = '0.4.0' }

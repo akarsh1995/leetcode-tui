@@ -1,8 +1,12 @@
 [package]
 name = "leetcode-tui-shared"
+description = "Leetcode tui shared library"
+readme = "README.md"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
+keywords.workspace = true
+license.workspace = true
 
 [dependencies]
 ratatui = { workspace = true }
