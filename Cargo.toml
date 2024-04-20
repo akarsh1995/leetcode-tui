@@ -14,7 +14,8 @@ exclude = [".github", "vhs_tapes"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace]
-members = ["shared", "app-core", "config", "app"]
+members = ["leetcode-tui-shared", "leetcode-*"]
+default-members = ["leetcode-tui-rs"]
 resolver = "2"
 
 [workspace.dependencies]

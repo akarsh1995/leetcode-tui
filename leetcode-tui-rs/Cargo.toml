@@ -1,0 +1,25 @@
+[package]
+name = "leetcode-tui-rs"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "leetui"
+path = "src/main.rs"
+
+[dependencies]
+leetcode-core = { path = "../leetcode-core", version = "0.4.0" }
+leetcode-tui-db = { path = "../leetcode-tui-db", version = "0.4.0" }
+kdam = { version = "^0" }
+
+leetcode-tui-config = { path = "../leetcode-tui-config", version = '0.4.0' }
+leetcode-tui-core = { path = "../leetcode-tui-core", version = '0.4.0' }
+leetcode-tui-shared = { path = "../leetcode-tui-shared", version = '0.4.0' }
+
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+color-eyre = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+futures = "0.3.28"

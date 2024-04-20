@@ -107,42 +107,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
-name = "app"
-version = "0.4.0"
-dependencies = [
- "app-core",
- "color-eyre",
- "config",
- "crossterm",
- "futures",
- "kdam",
- "leetcode-core",
- "leetcode-db",
- "ratatui",
- "shared",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "app-core"
-version = "0.4.0"
-dependencies = [
- "color-eyre",
- "config",
- "crossterm",
- "fuzzy-matcher",
- "indexmap 2.0.1",
- "leetcode-core",
- "leetcode-db",
- "ratatui",
- "regex",
- "shared",
- "thiserror",
- "tokio",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -375,31 +339,6 @@ name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
-
-[[package]]
-name = "config"
-version = "0.4.0"
-dependencies = [
- "anyhow",
- "better-panic",
- "clap",
- "color-eyre",
- "crossterm",
- "directories",
- "human-panic",
- "libc",
- "log",
- "native_db",
- "ratatui",
- "reqwest",
- "serde",
- "shared",
- "strip-ansi-escapes",
- "toml",
- "tracing",
- "tracing-error",
- "tracing-subscriber",
-]
 
 [[package]]
 name = "console"
@@ -1061,8 +1000,8 @@ name = "leetcode-core"
 version = "0.4.0"
 dependencies = [
  "async-trait",
- "config",
  "html2text",
+ "leetcode-tui-config",
  "lru",
  "reqwest",
  "serde",
@@ -1073,16 +1012,89 @@ dependencies = [
 ]
 
 [[package]]
-name = "leetcode-db"
+name = "leetcode-tui-config"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "better-panic",
+ "clap",
+ "color-eyre",
+ "crossterm",
+ "directories",
+ "human-panic",
+ "leetcode-tui-shared",
+ "libc",
+ "log",
+ "native_db",
+ "ratatui",
+ "reqwest",
+ "serde",
+ "strip-ansi-escapes",
+ "toml",
+ "tracing",
+ "tracing-error",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "leetcode-tui-core"
+version = "0.4.0"
+dependencies = [
+ "color-eyre",
+ "crossterm",
+ "fuzzy-matcher",
+ "indexmap 2.0.1",
+ "leetcode-core",
+ "leetcode-tui-config",
+ "leetcode-tui-db",
+ "leetcode-tui-shared",
+ "ratatui",
+ "regex",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "leetcode-tui-db"
 version = "0.4.0"
 dependencies = [
  "leetcode-core",
+ "leetcode-tui-shared",
  "native_db",
  "native_model",
  "serde",
  "serde_json",
- "shared",
  "thiserror",
+]
+
+[[package]]
+name = "leetcode-tui-rs"
+version = "0.4.0"
+dependencies = [
+ "color-eyre",
+ "crossterm",
+ "futures",
+ "kdam",
+ "leetcode-core",
+ "leetcode-tui-config",
+ "leetcode-tui-core",
+ "leetcode-tui-db",
+ "leetcode-tui-shared",
+ "ratatui",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "leetcode-tui-shared"
+version = "0.4.0"
+dependencies = [
+ "color-eyre",
+ "crossterm",
+ "ratatui",
+ "signal-hook",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -1879,18 +1891,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "900fba806f70c630b0a382d0d825e17a0f19fcd059a2ade1ff237bcddf446b31"
 dependencies = [
  "lazy_static",
-]
-
-[[package]]
-name = "shared"
-version = "0.4.0"
-dependencies = [
- "color-eyre",
- "crossterm",
- "ratatui",
- "signal-hook",
- "tokio",
- "tokio-util",
 ]
 
 [[package]]

@@ -1,0 +1,14 @@
+[package]
+name = "leetcode-tui-db"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+leetcode-core = { path = "../leetcode-core", version = '0.4.0' }
+leetcode-tui-shared = { path = "../leetcode-tui-shared", version = '0.4.0' }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+native_db = { workspace = true }
+native_model = { workspace = true }

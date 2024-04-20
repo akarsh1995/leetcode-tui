@@ -1,6 +1,6 @@
 use crate::errors::{AppResult, LcAppError};
 use async_trait::async_trait;
-use config::log;
+use leetcode_tui_config::log;
 use lru::LruCache;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};

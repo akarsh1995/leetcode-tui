@@ -8,7 +8,7 @@ edition.workspace = true
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-config = { path = "../config", version = '0.4.0' }
+leetcode-tui-config = { path = "../leetcode-tui-config", version = '0.4.0' }
 reqwest = { workspace = true, features = ["json"] }
 html2text = "^0"
 async-trait = "*"
