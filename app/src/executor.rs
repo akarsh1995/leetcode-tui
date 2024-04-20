@@ -12,7 +12,7 @@ impl Executor {
         }
 
         // open config file
-        if matches!(key, Key::Char('c')) {
+        if matches!(key, Key::Char('c')) && !cx.input.visible {
             emit!(Open(get_config_file_path()));
             return false;
         }
