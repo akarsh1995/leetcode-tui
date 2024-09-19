@@ -86,13 +86,15 @@ where
 
         self.cursor = thread_rng().gen_range(0..self.cursor_upper_bound(wid_height));
 
-        self.nth_window = thread_rng().gen_range(
-            0..self
-                .list
-                .windows(self.cursor_upper_bound(wid_height))
-                .count()
-                - 1,
-        );
+        let upper = self
+            .list
+            .windows(self.cursor_upper_bound(wid_height))
+            .count()
+            - 1;
+
+        if upper > 0 {
+            self.nth_window = thread_rng().gen_range(0..upper);
+        }
 
         self.hovered = self.window(wid_height).get(self.cursor).cloned();
         self.cursor != old_cursor || self.nth_window != old_window
