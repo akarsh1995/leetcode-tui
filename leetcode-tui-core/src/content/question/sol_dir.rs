@@ -2,8 +2,8 @@ use indexmap::IndexSet;
 use std::{collections::HashMap, hash::Hash, path::PathBuf, sync::RwLock};
 use tokio::fs::read_to_string;
 
-use leetcode_tui_config::CONFIG;
 use leetcode_core::types::language::Language;
+use leetcode_tui_config::CONFIG;
 use regex::Regex;
 use std::sync::OnceLock;
 

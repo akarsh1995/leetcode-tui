@@ -1,8 +1,8 @@
 use api::{Client, GQLLeetcodeRequest, QuestionRequest};
 use color_eyre::Result;
-use leetcode_tui_config::clients::Db;
 use kdam::BarExt;
 use leetcode_core as api;
+use leetcode_tui_config::clients::Db;
 use leetcode_tui_db::DbQuestion;
 
 pub async fn update_database_questions() -> Result<()> {

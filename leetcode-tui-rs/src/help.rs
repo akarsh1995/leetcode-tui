@@ -26,14 +26,16 @@ impl<'a> Widget for Help<'a> {
             Row::new(cells)
         });
 
-        let t = Table::new(rows)
-            .block(Block::default().borders(Borders::ALL).title("Help"))
-            .highlight_style(selected_style)
-            .widths(&[
+        let t = Table::new(
+            rows,
+            [
                 Constraint::Percentage(50),
                 Constraint::Max(30),
                 Constraint::Min(10),
-            ]);
+            ],
+        )
+        .block(Block::default().borders(Borders::ALL).title("Help"))
+        .highlight_style(selected_style);
         Clear.render(area, buf);
         ratatui::widgets::StatefulWidget::render(t, area, buf, self.cx.help.get_mut_state());
     }

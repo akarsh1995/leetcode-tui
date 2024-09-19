@@ -3,9 +3,6 @@ mod stats;
 
 use crate::SendError;
 use crate::{emit, utils::Paginate};
-use leetcode_tui_config::log;
-use leetcode_tui_config::DB_CLIENT;
-use leetcode_tui_config::REQ_CLIENT;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use leetcode_core::graphql::query::RunOrSubmitCodeCheckResult;
@@ -14,6 +11,9 @@ use leetcode_core::types::run_submit_response::ParsedResponse;
 use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
+use leetcode_tui_config::log;
+use leetcode_tui_config::DB_CLIENT;
+use leetcode_tui_config::REQ_CLIENT;
 use leetcode_tui_db::{DbQuestion, DbTopic};
 use leetcode_tui_shared::layout::Window;
 pub(crate) use sol_dir::init;

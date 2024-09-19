@@ -91,10 +91,11 @@ pub struct StatusBar {
 
 impl From<Rect> for StatusBar {
     fn from(value: Rect) -> Self {
-        let left_and_right_div = Layout::new()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(value);
+        let left_and_right_div = Layout::new(
+            Direction::Horizontal,
+            [Constraint::Percentage(50), Constraint::Percentage(50)],
+        )
+        .split(value);
         Self {
             search_area: left_and_right_div[0],
             message_area: left_and_right_div[1],
@@ -119,10 +120,11 @@ pub struct CenterLayout {
 
 impl CenterLayout {
     fn new(chunks: Rect) -> Self {
-        let center_chunks = Layout::new()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
-            .split(chunks);
+        let center_chunks = Layout::new(
+            Direction::Horizontal,
+            [Constraint::Percentage(20), Constraint::Percentage(80)],
+        )
+        .split(chunks);
 
         let topic_area = center_chunks[0];
         let question_area = center_chunks[1];
@@ -135,17 +137,15 @@ impl CenterLayout {
 
 impl Root {
     fn new(ar: Rect) -> Self {
-        let chunks = Layout::new()
-            .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Length(1),
-                    Constraint::Min(0),
-                    Constraint::Length(1),
-                ]
-                .as_ref(),
-            )
-            .split(ar);
+        let chunks = Layout::new(
+            Direction::Vertical,
+            [
+                Constraint::Length(1),
+                Constraint::Min(0),
+                Constraint::Length(1),
+            ],
+        )
+        .split(ar);
 
         let mut r = Self {
             top_bar: chunks[0],

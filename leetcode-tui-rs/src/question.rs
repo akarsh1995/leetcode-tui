@@ -1,7 +1,7 @@
 use leetcode_tui_config::CONFIG;
+use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, Widget};
-use leetcode_tui_shared::layout::GetWindowStats;
 
 use crate::ctx::Ctx;
 
@@ -24,12 +24,12 @@ impl<'a> Questions<'a> {
         let config = &CONFIG.as_ref().theme.question;
         let c_hovered = &config.hovered;
         let normal = &config.normal;
-        let easy_hovered = c_hovered.easy.into();
-        let medium_hovered = c_hovered.medium.into();
-        let hard_hovered = c_hovered.hard.into();
-        let easy = normal.easy.into();
-        let medium = normal.medium.into();
-        let hard = normal.hard.into();
+        let easy_hovered = c_hovered.easy;
+        let medium_hovered = c_hovered.medium;
+        let hard_hovered = c_hovered.hard;
+        let easy = normal.easy;
+        let medium = normal.medium;
+        let hard = normal.hard;
 
         ListItem::new(q.to_string()).style(if q.id == hovered.id {
             if q.is_easy() {
@@ -71,7 +71,7 @@ impl<'a> Widget for Questions<'a> {
         let q_area_surrounding_block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(CONFIG.as_ref().theme.border.hovered.into())
+            .border_style(CONFIG.as_ref().theme.border.hovered)
             .cyan()
             .title("Questions")
             .title_alignment(Alignment::Center);
@@ -82,7 +82,7 @@ impl<'a> Widget for Questions<'a> {
 
         if let Some(ql) = self.get_questions_list() {
             let list = List::new(ql);
-            list.render(term_window.root.center_layout.question.inner, buf);
+            Widget::render(list, term_window.root.center_layout.question.inner, buf);
             if self.cx.content.get_questions().is_stats_visible() {
                 stats::Stats::new(&self.cx.content.get_questions())
                     .render(term_window.root.q_stats.outer, buf);

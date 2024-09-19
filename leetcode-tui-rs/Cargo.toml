@@ -28,3 +28,6 @@ color-eyre = { workspace = true }
 ratatui = { workspace = true }
 crossterm = { workspace = true }
 futures = "0.3.28"
+# tui-markdown = "0.2.8"
+
+tui-markdown = { git = "https://github.com/mxple/tui-markdown.git" }

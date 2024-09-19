@@ -6,8 +6,8 @@ pub mod key;
 pub mod theme;
 pub mod utils;
 
-use color_eyre::Result;
 pub use crate::config::{CONFIG, DB_CLIENT, REQ_CLIENT};
+use color_eyre::Result;
 pub use log;
 use native_db::DatabaseBuilder;
 
