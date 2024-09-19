@@ -24,7 +24,7 @@ impl Popup {
             lines,
             ..Default::default()
         };
-        p.v_scroll_state = p.v_scroll_state.content_length(p.lines.len().into());
+        p.v_scroll_state = p.v_scroll_state.content_length(p.lines.len() as u16);
         p
     }
 
@@ -33,8 +33,8 @@ impl Popup {
         true
     }
 
-    pub fn get_text(&self) -> String {
-        self.lines.join("\n\n")
+    pub fn get_text(&self) -> &Vec<String> {
+        &self.lines
     }
 
     pub fn reset(&mut self, title: Option<String>, lines: Vec<String>) {
@@ -53,7 +53,7 @@ impl Popup {
             return false;
         }
         self.v_scroll = self.v_scroll.saturating_add(1);
-        self.v_scroll_state = self.v_scroll_state.position(self.v_scroll.into());
+        self.v_scroll_state = self.v_scroll_state.position(self.v_scroll);
         true
     }
 
@@ -62,7 +62,7 @@ impl Popup {
             return false;
         }
         self.v_scroll = self.v_scroll.saturating_sub(1);
-        self.v_scroll_state = self.v_scroll_state.position(self.v_scroll.into());
+        self.v_scroll_state = self.v_scroll_state.position(self.v_scroll);
         true
     }
 }

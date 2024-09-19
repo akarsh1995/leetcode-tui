@@ -1,7 +1,7 @@
-use color_eyre::Result;
-use leetcode_tui_db;
 use leetcode_tui_rs::app::App;
 use leetcode_tui_rs::utils::update_database_questions;
+use color_eyre::Result;
+use leetcode_tui_db;
 
 #[tokio::main]
 async fn main() -> Result<()> {

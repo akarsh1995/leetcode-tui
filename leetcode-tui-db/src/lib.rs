@@ -1,10 +1,10 @@
 pub mod errors;
 pub mod models;
 use leetcode_core as api;
-use leetcode_tui_shared::RoCell;
 pub use models::{question::DbQuestion, topic::DbTopic};
 use models::{QuestionTopicMap, TopicQuestionMap};
 use native_db::DatabaseBuilder;
+use leetcode_tui_shared::RoCell;
 
 pub static DB_BUILDER: RoCell<DatabaseBuilder> = RoCell::new();
 

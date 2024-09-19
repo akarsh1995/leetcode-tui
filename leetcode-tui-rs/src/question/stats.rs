@@ -1,7 +1,7 @@
 use leetcode_tui_core::content;
-use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Gauge, Widget};
+use leetcode_tui_shared::layout::GetWindowStats;
 
 pub(super) struct Stats<'a> {
     cx: &'a content::question::Questions,

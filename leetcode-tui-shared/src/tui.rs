@@ -3,7 +3,6 @@ use crossterm::{
     cursor,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::layout::Rect;
 use std::mem;
 use std::{
     io::Stdout,
@@ -13,7 +12,7 @@ use std::{
 use color_eyre::eyre::Result;
 use ratatui::{prelude::CrosstermBackend as Backend, Terminal};
 
-pub type Frame<'a> = ratatui::Frame<'a>;
+pub type Frame<'a> = ratatui::Frame<'a, Backend<std::io::Stdout>>;
 
 pub struct Term {
     pub terminal: Terminal<Backend<Stdout>>,
@@ -50,7 +49,7 @@ impl Term {
     pub fn resume(&mut self) -> Result<()> {
         self.enter()?;
         let size = self.size()?;
-        self.resize(Rect::new(0, 0, size.width, size.height))?;
+        self.resize(size)?;
         Ok(())
     }
 

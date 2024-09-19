@@ -24,7 +24,7 @@ serde_json = "^1"
 thiserror = "^1"
 tokio = { version = "^1", features = ["full"] }
 crossterm = { version = "^0", features = ["event-stream"] }
-ratatui = { version = "0.28.1", features = ["all-widgets"] }
+ratatui = { version = "^0.23", features = ["all-widgets"] }
 tokio-util = "^0"
 color-eyre = "^0"
 native_db = "^0"
