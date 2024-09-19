@@ -28,7 +28,13 @@ impl DbTopic {
     }
 
     pub fn fetch_questions<'a>(&self, db: &'a Database<'a>) -> DBResult<Vec<DbQuestion>> {
-        let q_ids = TopicQuestionMap::get_all_question_by_topic(self, db)?;
+        let q_ids = if self.slug.eq("all") {
+            (1..=DbQuestion::get_total_questions(db).unwrap())
+                .map(|x| x as u32)
+                .collect()
+        } else {
+            TopicQuestionMap::get_all_question_by_topic(self, db)?
+        };
         let mut v = vec![];
         for q_id in q_ids {
             let q = DbQuestion::get_question_by_id(db, q_id)?;
