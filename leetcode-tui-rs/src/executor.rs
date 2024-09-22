@@ -1,5 +1,5 @@
-use leetcode_tui_core::emit;
 use leetcode_tui_config::{key::Key, utils::get_config_file_path};
+use leetcode_tui_core::emit;
 
 use crate::ctx::Ctx;
 
@@ -82,8 +82,9 @@ impl Executor {
                 Key::Char('e') => cx.content.get_questions_mut().solve_for_language(),
                 Key::Up | Key::Char('k') => cx.content.get_questions_mut().prev_ques(),
                 Key::Down | Key::Char('j') => cx.content.get_questions_mut().next_ques(),
+                Key::Char('r') => cx.content.get_questions_mut().rand_ques(),
                 Key::Enter => cx.content.get_questions_mut().show_question_content(),
-                Key::Char('r') => cx.content.get_questions_mut().run_solution(),
+                Key::Char('R') => cx.content.get_questions_mut().run_solution(),
                 Key::Char('s') => cx.content.get_questions_mut().submit_solution(),
                 Key::Ctrl('s') => cx.content.get_questions_mut().toggle_stats(),
                 Key::Char('/') => cx.content.get_questions_mut().toggle_search(),

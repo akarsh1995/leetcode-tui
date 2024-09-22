@@ -10,7 +10,8 @@ pub struct Topic {
 
 impl<'a> Topic {
     pub(crate) async fn new(db: &Db<'a>) -> Self {
-        let topics = DbTopic::fetch_all(db).unwrap();
+        let mut topics = vec![DbTopic::new("all")];
+        topics.extend(DbTopic::fetch_all(db).unwrap());
         let s = Self {
             paginate: Paginate::new(topics),
         };

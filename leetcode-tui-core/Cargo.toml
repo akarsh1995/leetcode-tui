@@ -21,3 +21,4 @@ color-eyre = { workspace = true }
 regex = { workspace = true }
 indexmap = "^2"
 fuzzy-matcher = "^0"
+rand = "0.8.5"
