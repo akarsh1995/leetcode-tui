@@ -50,6 +50,10 @@ impl Questions {
         self.paginate.next_elem(self.widget_height())
     }
 
+    pub fn rand_ques(&mut self) -> bool {
+        self.paginate.rand_elem(self.widget_height())
+    }
+
     pub fn window(&self) -> &[Rc<DbQuestion>] {
         self.paginate.window(self.widget_height())
     }

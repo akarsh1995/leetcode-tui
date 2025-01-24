@@ -1,4 +1,5 @@
 use crate::emit;
+use rand::{thread_rng, Rng};
 use std::ops::Range;
 pub struct Paginate<T> {
     list: Vec<T>,
@@ -68,6 +69,31 @@ where
             self.nth_window = self.nth_window.saturating_sub(1);
         } else {
             self.cursor = self.cursor.saturating_sub(1);
+        }
+
+        self.hovered = self.window(wid_height).get(self.cursor).cloned();
+        self.cursor != old_cursor || self.nth_window != old_window
+    }
+
+    pub fn rand_elem(&mut self, wid_height: usize) -> bool {
+        if self.list.is_empty() {
+            emit!(Popup(vec!["List is empty".into()]));
+            return true;
+        }
+        self.set_cursor_range(wid_height);
+        let old_cursor = self.cursor;
+        let old_window = self.nth_window;
+
+        self.cursor = thread_rng().gen_range(0..self.cursor_upper_bound(wid_height));
+
+        let upper = self
+            .list
+            .windows(self.cursor_upper_bound(wid_height))
+            .count()
+            - 1;
+
+        if upper > 0 {
+            self.nth_window = thread_rng().gen_range(0..upper);
         }
 
         self.hovered = self.window(wid_height).get(self.cursor).cloned();

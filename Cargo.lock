@@ -1047,6 +1047,7 @@ dependencies = [
  "leetcode-tui-config",
  "leetcode-tui-db",
  "leetcode-tui-shared",
+ "rand",
  "ratatui",
  "regex",
  "thiserror",
