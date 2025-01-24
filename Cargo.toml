@@ -1,6 +1,6 @@
 #:schema https://json.schemastore.org/cargo.json
 [workspace.package]
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 authors = ["Akarsh <akarsh.1995.02@gmail.com>"]
 description = "Leetcode terminal UI. Helps you browse leetcode stats and manage your leetcode from terminal."
@@ -19,19 +19,19 @@ default-members = ["leetcode-tui-rs"]
 resolver = "2"
 
 [workspace.dependencies]
-serde = { version = "^1", features = ["derive"] }
-serde_json = "^1"
-thiserror = "^1"
-tokio = { version = "^1", features = ["full"] }
-crossterm = { version = "^0", features = ["event-stream"] }
-ratatui = { version = "^0.23", features = ["all-widgets"] }
-tokio-util = "^0"
-color-eyre = "^0"
-native_db = "^0"
-native_model = "^0"
-reqwest = { version = "^0" }
-regex = { version = "^1" }
-log = "^0"
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.107"
+thiserror = "1.0.49"
+tokio = { version = "1.32.0", features = ["full"] }
+crossterm = { version = "0.27.0", features = ["event-stream"] }
+ratatui = { version = "0.23.0", features = ["all-widgets"] }
+tokio-util = "0.7.9"
+color-eyre = "0.6.2"
+native_db = "0.5.3"
+native_model = "0.4.10"
+reqwest = { version = "0.11.20" }
+regex = { version = "1.9.5" }
+log = "0.4.20"
 
 [profile.release]
 lto = true

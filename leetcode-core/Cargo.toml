@@ -13,9 +13,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
-html2text = "^0"
-async-trait = "^0"
-strum = { version = "^0", features = ["derive"] }
+html2text = "0.6.0"
+async-trait = "0.1.73"
+strum = { version = "0.25.0", features = ["derive"] }
 serde_with = { version = "3.3.0", features = ["macros"] }
-lru = "^0"
+lru = "0.10.1"
 log = { workspace = true }

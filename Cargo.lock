@@ -854,7 +854,7 @@ dependencies = [
 
 [[package]]
 name = "hyper-tls"
-version = "0.5.0"
+version = '0.5.1'
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
 dependencies = [
@@ -997,7 +997,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "leetcode-core"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "async-trait",
  "html2text",
@@ -1013,7 +1013,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-config"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "better-panic",
@@ -1037,7 +1037,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-core"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "color-eyre",
  "crossterm",
@@ -1056,7 +1056,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-db"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "leetcode-core",
  "leetcode-tui-shared",
@@ -1069,7 +1069,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-rs"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "color-eyre",
  "crossterm",
@@ -1087,7 +1087,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-shared"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "color-eyre",
  "crossterm",

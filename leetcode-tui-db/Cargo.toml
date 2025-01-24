@@ -9,8 +9,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-leetcode-core = { path = "../leetcode-core", version = '0.5.0' }
-leetcode-tui-shared = { path = "../leetcode-tui-shared", version = '0.5.0' }
+leetcode-core = { path = "../leetcode-core", version = '0.5.1' }
+leetcode-tui-shared = { path = "../leetcode-tui-shared", version = '0.5.1' }
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
