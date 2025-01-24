@@ -1,11 +1,10 @@
-use std::fmt::Display;
-
 use super::{topic::DbTopic, *};
-
 use crate::{
     api::types::problemset_question_list::Question,
     errors::{DBResult, DbErr},
+    get_db_client, save, save_multiple,
 };
+use std::fmt::Display;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[native_model(id = 1, version = 1)]
@@ -102,38 +101,38 @@ impl DbQuestion {
         self.topics.push(DbTopic::new(slug))
     }
 
-    pub fn mark_accepted<'a>(&mut self, db: &'a Database<'a>) -> DBResult<Option<Vec<Self>>> {
+    pub fn mark_accepted<'a>(&mut self) -> DBResult<Option<Vec<Self>>> {
         if self.status.is_none() || self.status == Some("notac".into()) {
             self.status = Some("ac".into());
-            return Ok(Some(self.update_in_db(db)?));
+            return Ok(Some(self.update_in_db()?));
         }
         Ok(None)
     }
 
-    pub fn mark_attempted<'a>(&mut self, db: &'a Database<'a>) -> DBResult<Option<Vec<Self>>> {
+    pub fn mark_attempted<'a>(&mut self) -> DBResult<Option<Vec<Self>>> {
         if self.status.is_none() {
             self.status = Some("notac".into());
-            return Ok(Some(self.update_in_db(db)?));
+            return Ok(Some(self.update_in_db()?));
         }
         Ok(None)
     }
 
-    fn update_in_db<'a>(&self, db: &'a Database<'a>) -> DBResult<Vec<Self>> {
-        let rw = db.rw_transaction()?;
-        let old = Self::get_question_by_id(db, self.id)?;
+    fn update_in_db<'a>(&self) -> DBResult<Vec<Self>> {
+        let rw = get_db_client().rw_transaction()?;
+        let old = Self::get_question_by_id(self.id)?;
         rw.update(old, self.clone())?;
         rw.commit()?;
         Ok(vec![self.clone()])
     }
 
-    pub fn get_total_questions<'a>(db: &'a Database<'a>) -> DBResult<usize> {
-        let r = db.r_transaction()?;
+    pub fn get_total_questions<'a>() -> DBResult<usize> {
+        let r = get_db_client().r_transaction()?;
         let x = r.scan().primary::<Self>()?;
         Ok(x.all().count())
     }
 
-    pub fn get_question_by_id<'a>(db: &'a Database<'a>, id: u32) -> DBResult<Self> {
-        let r = db.r_transaction()?;
+    pub fn get_question_by_id<'a>(id: u32) -> DBResult<Self> {
+        let r = get_db_client().r_transaction()?;
         let x = r
             .get()
             .primary::<DbQuestion>(id)?
@@ -142,14 +141,11 @@ impl DbQuestion {
         Ok(x)
     }
 
-    fn save_all_topics<'a>(&mut self, db: &'a Database<'a>) -> DBResult<()> {
-        for topic in self.topics.iter() {
-            topic.save_to_db(db)?;
-        }
-        Ok(())
+    fn save_all_topics<'a>(&mut self) -> DBResult<()> {
+        save_multiple(&self.topics)
     }
 
-    // pub fn fetch_all_topics<'a>(&self, db: &'a Database<'a>) -> DBResult<Vec<DbTopic>> {
+    // pub fn fetch_all_topics<'a>(&self, ) -> DBResult<Vec<DbTopic>> {
     //     let q_topic_map = QuestionTopicMap::get_all_topic_slug_by_question(self, db)?;
     //     let mut topics = vec![];
 
@@ -163,25 +159,18 @@ impl DbQuestion {
         &self.topics
     }
 
-    pub fn save_to_db<'a>(&mut self, db: &'a Database<'a>) -> DBResult<bool> {
+    pub fn save_to_db<'a>(&mut self) -> DBResult<bool> {
         // save Topic -> Question Mapping
-        TopicQuestionMap::save_mapping(self, db)?;
+        TopicQuestionMap::save_mapping(self)?;
 
         // save Question -> Topic Mapping
-        QuestionTopicMap::save_mapping(self, db)?;
+        QuestionTopicMap::save_mapping(self)?;
 
         // save DbTopics for the question
-        self.save_all_topics(db)?;
+        self.save_all_topics()?;
 
         // save question
-        save(self.clone(), db)?;
+        save(self)?;
         return Ok(true);
     }
-}
-
-fn save<'a, T: Input>(item: T, db: &'a Database<'a>) -> DBResult<()> {
-    let rw = db.rw_transaction()?;
-    rw.insert(item)?;
-    rw.commit()?;
-    Ok(())
 }

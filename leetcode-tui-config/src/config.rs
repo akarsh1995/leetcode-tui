@@ -1,9 +1,8 @@
 use super::theme::Theme;
-pub use crate::clients::{DB_CLIENT, REQ_CLIENT};
 use crate::utils::{get_config_dir, get_config_file_path};
 use color_eyre::Result;
-use serde::{Deserialize, Serialize};
 use leetcode_tui_shared::RoCell;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::prelude::*;
 use std::{fs::create_dir_all, path::PathBuf};
@@ -33,10 +32,10 @@ fn get_solutions_dir_path() -> PathBuf {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
-    pub(crate) csrftoken: String,
-    pub(crate) lc_session: String,
+    pub csrftoken: String,
+    pub lc_session: String,
     #[serde(default)]
-    pub(crate) db: Database,
+    pub db: Database,
     #[serde(default = "get_solutions_dir_path")]
     pub solutions_dir: PathBuf,
     #[serde(default)]
@@ -72,13 +71,13 @@ impl Config {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Database {
-    pub(crate) path: String,
+    pub path: PathBuf,
 }
 
 impl Default for Database {
     fn default() -> Self {
         Self {
-            path: get_config_dir().join("questions.db").display().to_string(),
+            path: get_config_dir().join("questions.db"),
         }
     }
 }

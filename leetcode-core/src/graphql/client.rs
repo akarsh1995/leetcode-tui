@@ -1,6 +1,6 @@
 use crate::errors::{AppResult, LcAppError};
+use crate::get_client;
 use async_trait::async_trait;
-use leetcode_tui_config::log;
 use lru::LruCache;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
@@ -47,7 +47,7 @@ pub trait GQLLeetcodeRequest: Serialize + Sync {
         hash_string(format!("{}{}", self.get_endpoint(), self.get_body()).as_str())
     }
 
-    async fn send(&self, client: &reqwest::Client) -> AppResult<Self::T> {
+    async fn send(&self) -> AppResult<Self::T> {
         if self.use_cache() {
             let mut c = get_cache().write().unwrap();
             if let Some(value) = c.get(&self.get_query_hash()) {
@@ -56,9 +56,11 @@ pub trait GQLLeetcodeRequest: Serialize + Sync {
         }
 
         let request = if self.is_post() {
-            client.post(self.get_endpoint()).json(&self.get_body())
+            get_client()
+                .post(self.get_endpoint())
+                .json(&self.get_body())
         } else {
-            client.get(self.get_endpoint())
+            get_client().get(self.get_endpoint())
         };
         let response = request
             .header("Content-Type", "application/json")

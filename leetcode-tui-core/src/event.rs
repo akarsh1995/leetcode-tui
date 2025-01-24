@@ -1,8 +1,7 @@
-use std::path::PathBuf;
-
 use crossterm::event::KeyEvent;
 use leetcode_tui_db::{DbQuestion, DbTopic};
 use leetcode_tui_shared::RoCell;
+use std::path::PathBuf;
 
 use tokio::sync::{mpsc::UnboundedSender, oneshot};
 
@@ -17,6 +16,8 @@ pub enum Event {
     Resize(u16, u16),
     Topic(DbTopic),
     Questions(Vec<DbQuestion>),
+    AddQuestions(Vec<DbQuestion>),
+    AdhocQuestion(DbQuestion),
     QuestionFilter(Option<String>),
     Popup(Option<String>, Vec<String>),
     SelectPopup(
@@ -63,6 +64,12 @@ macro_rules! emit {
     };
     (Questions($questions:expr)) => {
         $crate::Event::Questions($questions).emit();
+    };
+    (AddQuestions($questionList:expr)) => {
+        $crate::Event::AddQuestions($questionList).emit();
+    };
+    (AdhocQuestion($question:expr)) => {
+        $crate::Event::AdhocQuestion($question).emit();
     };
     (Popup($lines:expr)) => {
         $crate::Event::Popup(None, $lines).emit();

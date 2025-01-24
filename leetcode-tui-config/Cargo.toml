@@ -9,15 +9,14 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-leetcode-tui-shared = { path = "../leetcode-tui-shared", version = "0.4.0" }
+leetcode-tui-shared = { path = "../leetcode-tui-shared", version = "0.5.0" }
 crossterm = { workspace = true }
 native_db = { workspace = true }
-reqwest = { workspace = true }
 color-eyre = { workspace = true }
 serde = { workspace = true }
 toml = "^0"
 libc = "^0"
-log = "^0"
+log = { workspace = true }
 tracing = "^0"
 tracing-error = "^0"
 directories = "^5"

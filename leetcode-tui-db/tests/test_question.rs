@@ -1,9 +1,5 @@
-mod common;
-
-use common::build_db;
 use leetcode_core::types::problemset_question_list::Root;
 use leetcode_tui_db::models::question::DbQuestion;
-use native_db::{Database, DatabaseBuilder};
 
 static JSON: &'static str = r#"{
             "data": {
@@ -55,76 +51,59 @@ static JSON: &'static str = r#"{
             }
         }"#;
 
-fn populate_db<'a>(db: &Database<'a>) {
+fn populate_db<'a>() {
     let root: Root = serde_json::from_str(JSON).unwrap();
     let mut questions = root.get_questions();
-    let db_quest1 = DbQuestion::try_from(questions.pop().unwrap()).unwrap();
-    let db_quest2 = DbQuestion::try_from(questions.pop().unwrap()).unwrap();
-    let trans = db.rw_transaction().unwrap();
-    trans.insert::<DbQuestion>(db_quest1).unwrap();
-    trans.insert::<DbQuestion>(db_quest2).unwrap();
-    trans.commit().unwrap();
+    let mut db_quest1 = DbQuestion::try_from(questions.pop().unwrap()).unwrap();
+    let mut db_quest2 = DbQuestion::try_from(questions.pop().unwrap()).unwrap();
+    db_quest1.save_to_db().unwrap();
+    db_quest2.save_to_db().unwrap();
 }
 
 #[test]
 fn test_it_should_return_the_number_of_questions_correctly() {
-    let mut db_builder = DatabaseBuilder::new();
-    // Initialize the model
+    leetcode_tui_db::init(None);
+    populate_db();
 
-    let db = build_db(&mut db_builder).unwrap();
-    populate_db(&db);
-
-    let result = DbQuestion::get_total_questions(&db).unwrap();
+    let result = DbQuestion::get_total_questions().unwrap();
     assert_eq!(result, 2)
 }
 
 #[test]
 fn test_it_should_mark_the_question_accepted_correctly() {
-    let mut db_builder = DatabaseBuilder::new();
-    // Initialize the model
+    leetcode_tui_db::init(None);
+    populate_db();
+    let mut x = DbQuestion::get_question_by_id(1).unwrap();
+    x.mark_accepted().unwrap();
 
-    let db = build_db(&mut db_builder).unwrap();
-    populate_db(&db);
-
-    let mut x = DbQuestion::get_question_by_id(&db, 1).unwrap();
-    x.mark_accepted(&db).unwrap();
-
-    let x = DbQuestion::get_question_by_id(&db, 1).unwrap();
+    let x = DbQuestion::get_question_by_id(1).unwrap();
     assert_eq!(x.status, Some("ac".into()));
 }
 
 #[test]
 fn test_it_should_mark_the_question_attempted_correctly() {
-    let mut db_builder = DatabaseBuilder::new();
-    // Initialize the model
-
-    let db = build_db(&mut db_builder).unwrap();
-    populate_db(&db);
-
-    let mut x = DbQuestion::get_question_by_id(&db, 2).unwrap();
+    leetcode_tui_db::init(None);
+    populate_db();
+    let mut x = DbQuestion::get_question_by_id(2).unwrap();
 
     assert_eq!(x.status, None);
 
-    x.mark_attempted(&db).unwrap();
+    x.mark_attempted().unwrap();
 
-    let x = DbQuestion::get_question_by_id(&db, 2).unwrap();
+    let x = DbQuestion::get_question_by_id(2).unwrap();
     assert_eq!(x.status, Some("notac".into()));
 }
 
 #[test]
 fn test_it_should_add_a_new_question_to_db() {
-    let mut db_builder = DatabaseBuilder::new();
-    // Initialize the model
-
-    let db = build_db(&mut db_builder).unwrap();
-    populate_db(&db);
-
+    leetcode_tui_db::init(None);
+    populate_db();
     let mut x = DbQuestion::new(5, "helloworld", "helloworld", "medium".into(), true, None);
-    x.save_to_db(&db).unwrap();
+    x.save_to_db().unwrap();
 
-    assert_eq!(DbQuestion::get_total_questions(&db).unwrap(), 3);
+    assert_eq!(DbQuestion::get_total_questions().unwrap(), 3);
 
-    let x = DbQuestion::get_question_by_id(&db, 5).unwrap();
+    let x = DbQuestion::get_question_by_id(5).unwrap();
     assert_eq!(x.id, 5);
     assert_eq!(x.title, "helloworld");
 }

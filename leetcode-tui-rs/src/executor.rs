@@ -33,7 +33,10 @@ impl Executor {
 
         if cx.popup.visible {
             return match key {
-                Key::Enter | Key::Esc => cx.popup.toggle(),
+                Key::Enter | Key::Esc => {
+                    cx.content.get_questions_mut().unset_adhoc();
+                    cx.popup.toggle()
+                }
                 Key::Up | Key::Char('k') => cx.popup.scroll_up(),
                 Key::Down | Key::Char('j') => cx.popup.scroll_down(),
                 _ => false,
@@ -79,6 +82,7 @@ impl Executor {
             return match key {
                 Key::Char('T') => cx.content.get_topic_mut().prev_topic(),
                 Key::Char('t') => cx.content.get_topic_mut().next_topic(),
+                Key::Char('d') => cx.content.get_questions().toggle_daily_question(),
                 Key::Char('e') => cx.content.get_questions_mut().solve_for_language(),
                 Key::Up | Key::Char('k') => cx.content.get_questions_mut().prev_ques(),
                 Key::Down | Key::Char('j') => cx.content.get_questions_mut().next_ques(),

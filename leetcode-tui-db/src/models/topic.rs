@@ -1,4 +1,4 @@
-use crate::errors::DBResult;
+use crate::{errors::DBResult, get_db_client};
 
 use super::{question::DbQuestion, *};
 
@@ -21,40 +21,33 @@ impl DbTopic {
         Self { slug: slug.into() }
     }
 
-    pub fn fetch_all<'a>(db: &'a Database<'a>) -> DBResult<Vec<DbTopic>> {
-        let r = db.r_transaction()?;
+    pub fn fetch_all<'a>() -> DBResult<Vec<DbTopic>> {
+        let r = get_db_client().r_transaction()?;
         let x = r.scan().primary::<Self>()?.all().into_iter().collect();
         Ok(x)
     }
 
-    pub fn fetch_questions<'a>(&self, db: &'a Database<'a>) -> DBResult<Vec<DbQuestion>> {
+    pub fn fetch_questions<'a>(&self) -> DBResult<Vec<DbQuestion>> {
         let q_ids = if self.slug.eq("all") {
-            (1..=DbQuestion::get_total_questions(db).unwrap())
+            (1..=DbQuestion::get_total_questions().unwrap())
                 .map(|x| x as u32)
                 .collect()
         } else {
-            TopicQuestionMap::get_all_question_by_topic(self, db)?
+            TopicQuestionMap::get_all_question_by_topic(self)?
         };
         let mut v = vec![];
         for q_id in q_ids {
-            let q = DbQuestion::get_question_by_id(db, q_id)?;
+            let q = DbQuestion::get_question_by_id(q_id)?;
             v.push(q);
         }
         Ok(v)
     }
 
-    pub fn get_topic_by_slug<'a>(slug: &str, db: &'a Database<'a>) -> DBResult<Self> {
-        let r = db.r_transaction()?;
+    pub fn get_topic_by_slug<'a>(slug: &str) -> DBResult<Self> {
+        let r = get_db_client().r_transaction()?;
 
         Ok(r.get()
             .primary(slug.to_string())?
             .ok_or(crate::errors::DbErr::TopicsNotFoundInDb(slug.to_string()))?)
-    }
-
-    pub(crate) fn save_to_db<'a>(&self, db: &'a Database<'a>) -> DBResult<()> {
-        let rw = db.rw_transaction()?;
-        rw.insert(self.clone())?;
-        rw.commit()?;
-        Ok(())
     }
 }

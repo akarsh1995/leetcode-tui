@@ -3,7 +3,7 @@ use native_model::{native_model, Model};
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 
-use crate::errors::DBResult;
+use crate::{errors::DBResult, get_db_client, save};
 
 use self::topic::DbTopic;
 pub mod question;
@@ -29,23 +29,21 @@ impl TopicQuestionMap {
         }
     }
 
-    pub(crate) fn save_mapping<'a>(question: &question::DbQuestion, db: &Database) -> DBResult<()> {
+    pub(crate) fn save_mapping<'a>(question: &question::DbQuestion) -> DBResult<()> {
         for topic in question.get_topics() {
             let topic_question_mapping = Self::new(&topic.slug, question.id);
-            topic_question_mapping.save_to_db(db)?;
+            topic_question_mapping.save_to_db()?;
         }
         Ok(())
     }
 
-    fn save_to_db<'a>(&self, db: &Database) -> DBResult<()> {
-        let rw_trans = db.rw_transaction()?;
-        rw_trans.insert(self.clone())?;
-        rw_trans.commit()?;
+    fn save_to_db<'a>(&self) -> DBResult<()> {
+        save(self)?;
         Ok(())
     }
 
-    pub(crate) fn get_all_question_by_topic(topic: &DbTopic, db: &Database) -> DBResult<Vec<u32>> {
-        let trans = db.r_transaction()?;
+    pub(crate) fn get_all_question_by_topic(topic: &DbTopic) -> DBResult<Vec<u32>> {
+        let trans = get_db_client().r_transaction()?;
         let mut quests = vec![];
         for tq_map in trans
             .scan()
@@ -78,18 +76,16 @@ impl QuestionTopicMap {
         }
     }
 
-    pub(crate) fn save_mapping<'a>(question: &question::DbQuestion, db: &Database) -> DBResult<()> {
+    pub(crate) fn save_mapping<'a>(question: &question::DbQuestion) -> DBResult<()> {
         for topic in question.get_topics() {
             let question_topic_mapping = Self::new(question.id, &topic.slug);
-            question_topic_mapping.save_to_db(db)?;
+            question_topic_mapping.save_to_db()?;
         }
         Ok(())
     }
 
-    fn save_to_db<'a>(&self, db: &Database) -> DBResult<()> {
-        let rw_trans = db.rw_transaction()?;
-        rw_trans.insert(self.clone())?;
-        rw_trans.commit()?;
+    fn save_to_db<'a>(&self) -> DBResult<()> {
+        save(self)?;
         Ok(())
     }
 }

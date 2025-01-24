@@ -1,4 +1,5 @@
 pub mod console_panel_config;
+pub mod daily_coding_challenge;
 pub mod editor_data;
 pub mod language;
 pub mod problemset_question_list;

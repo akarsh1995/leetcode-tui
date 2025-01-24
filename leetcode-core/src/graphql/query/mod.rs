@@ -1,4 +1,5 @@
 pub mod console_panel_config;
+pub mod daily_coding_challenge;
 pub mod editor_data;
 pub mod problemset_question_list;
 pub mod question_content;
@@ -16,10 +17,10 @@ pub trait RunOrSubmitCodeCheckResult<IntermediateResponse>:
 where
     IntermediateResponse: GQLLeetcodeRequest<T = RunSubmitResult> + Send,
 {
-    async fn poll_check_response(&self, client: &reqwest::Client) -> AppResult<ParsedResponse> {
-        let run_response = self.send(client).await?;
+    async fn poll_check_response(&self) -> AppResult<ParsedResponse> {
+        let run_response = self.send().await?;
         loop {
-            let status_check = run_response.send(client).await?;
+            let status_check = run_response.send().await?;
             let parsed_response = status_check.to_parsed_response()?;
             match parsed_response {
                 ParsedResponse::Pending => continue,
