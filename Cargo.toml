@@ -31,6 +31,7 @@ native_db = "^0"
 native_model = "^0"
 reqwest = { version = "^0" }
 regex = { version = "^1" }
+log = "^0"
 
 [profile.release]
 lto = true

@@ -1001,7 +1001,7 @@ version = "0.4.0"
 dependencies = [
  "async-trait",
  "html2text",
- "leetcode-tui-config",
+ "log",
  "lru",
  "reqwest",
  "serde",
@@ -1027,7 +1027,6 @@ dependencies = [
  "log",
  "native_db",
  "ratatui",
- "reqwest",
  "serde",
  "strip-ansi-escapes",
  "toml",

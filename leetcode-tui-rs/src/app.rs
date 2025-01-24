@@ -33,6 +33,8 @@ impl App {
                 Event::Key(key) => app.dispatch_key(key),
                 Event::Render(_) => app.dispatch_render(),
                 Event::Topic(topic) => app.dispatch_topic_update(topic),
+                Event::AddQuestions(qs) => app.dispatch_add_question(qs),
+                Event::AdhocQuestion(qs) => app.dispatch_adhoc_question(qs),
                 Event::Questions(qs) => app.dispatch_question_update(qs),
                 Event::Popup(title, lines) => app.dispatch_popup(title, lines),
                 Event::SelectPopup(maybe_title, lines, result_sender) => {
@@ -67,6 +69,12 @@ impl App {
     fn dispatch_question_update(&mut self, questions: Vec<DbQuestion>) {
         self.cx.content.get_questions_mut().set_questions(questions);
         emit!(Render);
+    }
+
+    fn dispatch_add_question(&mut self, questions: Vec<DbQuestion>) {
+        for ques in questions {
+            self.cx.content.get_questions_mut().add_question(ques);
+        }
     }
 
     fn dispatch_render(&mut self) {
@@ -130,5 +138,10 @@ impl App {
         self.cx.input.toggle();
         self.cx.input.reset_with(sender, default_input);
         emit!(Render);
+    }
+
+    fn dispatch_adhoc_question(&mut self, qs: DbQuestion) {
+        self.cx.content.get_questions_mut().set_adhoc(qs);
+        self.cx.content.get_questions_mut().show_question_content();
     }
 }

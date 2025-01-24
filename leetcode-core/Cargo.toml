@@ -12,10 +12,10 @@ repository.workspace = true
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-leetcode-tui-config = { path = "../leetcode-tui-config", version = '0.4.0' }
 reqwest = { workspace = true, features = ["json"] }
 html2text = "^0"
 async-trait = "^0"
 strum = { version = "^0", features = ["derive"] }
 serde_with = { version = "3.3.0", features = ["macros"] }
 lru = "^0"
+log = { workspace = true }

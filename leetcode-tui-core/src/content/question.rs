@@ -3,17 +3,15 @@ mod stats;
 
 use crate::SendError;
 use crate::{emit, utils::Paginate};
-use leetcode_tui_config::log;
-use leetcode_tui_config::DB_CLIENT;
-use leetcode_tui_config::REQ_CLIENT;
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
-use leetcode_core::graphql::query::RunOrSubmitCodeCheckResult;
+use leetcode_core::graphql::query::{daily_coding_challenge, RunOrSubmitCodeCheckResult};
 use leetcode_core::types::run_submit_response::display::CustomDisplay;
 use leetcode_core::types::run_submit_response::ParsedResponse;
 use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
+use leetcode_tui_config::log;
 use leetcode_tui_db::{DbQuestion, DbTopic};
 use leetcode_tui_shared::layout::Window;
 pub(crate) use sol_dir::init;
@@ -27,6 +25,7 @@ pub struct Questions {
     needle: Option<String>,
     matcher: SkimMatcherV2,
     show_stats: bool,
+    adhoc_question: Option<Rc<DbQuestion>>,
 }
 
 impl Default for Questions {
@@ -37,6 +36,7 @@ impl Default for Questions {
             ques_haystack: vec![],
             matcher: Default::default(),
             show_stats: Default::default(),
+            adhoc_question: Default::default(),
         }
     }
 }
@@ -55,7 +55,19 @@ impl Questions {
     }
 
     pub fn hovered(&self) -> Option<&Rc<DbQuestion>> {
+        if self.adhoc_question.is_some() {
+            return self.adhoc_question.as_ref();
+        }
         self.paginate.hovered()
+    }
+
+    pub fn unset_adhoc(&mut self) -> bool {
+        self.adhoc_question.take();
+        true
+    }
+
+    pub fn set_adhoc(&mut self, question: DbQuestion) {
+        self.adhoc_question = Some(Rc::new(question));
     }
 
     fn widget_height(&self) -> usize {
@@ -68,7 +80,7 @@ impl Questions {
 impl Questions {
     pub fn get_questions_by_topic(&mut self, topic: DbTopic) {
         tokio::spawn(async move {
-            let questions = topic.fetch_questions(DB_CLIENT.as_ref());
+            let questions = topic.fetch_questions();
             if let Ok(_questions) = questions.emit_if_error() {
                 emit!(Questions(_questions));
             }
@@ -81,7 +93,7 @@ impl Questions {
             let title = _hovered.title.clone();
             tokio::spawn(async move {
                 let qc = QuestionContentRequest::new(slug);
-                if let Ok(content) = qc.send(REQ_CLIENT.as_ref()).await.emit_if_error() {
+                if let Ok(content) = qc.send().await.emit_if_error() {
                     let lines = content
                         .data
                         .question
@@ -95,7 +107,7 @@ impl Questions {
         } else {
             log::debug!("hovered question is none");
         }
-        false
+        true
     }
 
     pub fn run_solution(&self) -> bool {
@@ -140,7 +152,7 @@ impl Questions {
                                         contents,
                                         f.title_slug,
                                     )
-                                    .poll_check_response(REQ_CLIENT.as_ref())
+                                    .poll_check_response()
                                     .await
                                 } else {
                                     let mut run_code_req = RunCodeRequest::new(
@@ -151,7 +163,7 @@ impl Questions {
                                         f.title_slug,
                                     );
                                     if let Err(e) = run_code_req
-                                        .set_sample_test_cases_if_none(REQ_CLIENT.as_ref())
+                                        .set_sample_test_cases_if_none()
                                         .await
                                         .emit_if_error()
                                     {
@@ -161,14 +173,13 @@ impl Questions {
                                         );
                                         return;
                                     } else {
-                                        run_code_req.poll_check_response(REQ_CLIENT.as_ref()).await
+                                        run_code_req.poll_check_response().await
                                     }
                                 };
 
                                 if let Ok(response) = request.emit_if_error() {
-                                    if let Ok(update_result) = cloned_quest
-                                        .mark_attempted(DB_CLIENT.as_ref())
-                                        .emit_if_error()
+                                    if let Ok(update_result) =
+                                        cloned_quest.mark_attempted().emit_if_error()
                                     {
                                         // when solution is just run against sample cases
                                         if update_result.is_some() {
@@ -181,9 +192,8 @@ impl Questions {
                                         let is_submission_accepted =
                                             matches!(response, ParsedResponse::SubmitAccepted(..));
                                         if is_submission_accepted {
-                                            if let Ok(update_result) = cloned_quest
-                                                .mark_accepted(DB_CLIENT.as_ref())
-                                                .emit_if_error()
+                                            if let Ok(update_result) =
+                                                cloned_quest.mark_accepted().emit_if_error()
                                             {
                                                 // when solution is accepted
                                                 if update_result.is_some() {
@@ -209,7 +219,7 @@ impl Questions {
             let slug = _hovered.title_slug.clone();
             tokio::spawn(async move {
                 if let Ok(editor_data) = leetcode_core::EditorDataRequest::new(slug)
-                    .send(REQ_CLIENT.as_ref())
+                    .send()
                     .await
                     .emit_if_error()
                 {
@@ -253,6 +263,33 @@ impl Questions {
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
         self.ques_haystack = questions.into_iter().map(Rc::new).collect();
         self.filter_questions();
+    }
+
+    pub fn add_question(&mut self, question: DbQuestion) {
+        self.ques_haystack.push(Rc::new(question));
+    }
+
+    pub fn toggle_daily_question(&self) -> bool {
+        tokio::spawn(async move {
+            let daily_challenge_question = daily_coding_challenge::Query::new()
+                .send()
+                .await
+                .emit_if_error()
+                .unwrap();
+
+            let mut db_question: DbQuestion = daily_challenge_question
+                .data
+                .active_daily_coding_challenge_question
+                .question
+                .try_into()
+                .emit_if_error()
+                .unwrap();
+
+            db_question.save_to_db().unwrap();
+            emit!(AdhocQuestion(db_question));
+            // emit!(AddQuestions(vec![db_question.clone()]));
+        });
+        false
     }
 }
 

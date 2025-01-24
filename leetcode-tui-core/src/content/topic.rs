@@ -1,6 +1,5 @@
 use crate::emit;
 use crate::utils::Paginate;
-use leetcode_tui_config::clients::Db;
 use leetcode_tui_db::DbTopic;
 use leetcode_tui_shared::layout::Window;
 
@@ -9,8 +8,8 @@ pub struct Topic {
 }
 
 impl<'a> Topic {
-    pub(crate) async fn new(db: &Db<'a>) -> Self {
-        let topics = DbTopic::fetch_all(db).unwrap();
+    pub(crate) async fn new() -> Self {
+        let topics = DbTopic::fetch_all().unwrap();
         let s = Self {
             paginate: Paginate::new(topics),
         };

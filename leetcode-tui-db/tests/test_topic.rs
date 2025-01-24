@@ -1,9 +1,5 @@
-mod common;
-
-use common::build_db;
 use leetcode_core::types::problemset_question_list::Root;
 use leetcode_tui_db::models::{question::DbQuestion, topic::DbTopic};
-use native_db::{Database, DatabaseBuilder};
 
 static JSON: &'static str = r#"{
             "data": {
@@ -95,40 +91,36 @@ static JSON: &'static str = r#"{
             }
         }"#;
 
-fn populate_db<'a>(db: &Database<'a>) {
+fn populate_db<'a>() {
     let root: Root = serde_json::from_str(JSON).unwrap();
     let mut questions = root.get_questions();
     while let Some(quest) = questions.pop() {
-        DbQuestion::try_from(quest).unwrap().save_to_db(db).unwrap();
+        DbQuestion::try_from(quest).unwrap().save_to_db().unwrap();
     }
 }
 
 #[test]
 fn test_should_fetch_all_topics_from_the_db() {
-    let mut db_builder = DatabaseBuilder::new();
-    // Initialize the model
-    let db = build_db(&mut db_builder).unwrap();
-
-    populate_db(&db);
-    let topics = DbTopic::fetch_all(&db).unwrap();
+    leetcode_tui_db::init(None);
+    populate_db();
+    let topics = DbTopic::fetch_all().unwrap();
     assert_eq!(topics.len(), 2);
 }
 
 #[test]
 fn test_should_fetch_all_questions_for_a_topic() {
-    let mut db_builder = DatabaseBuilder::new();
     // Initialize the model
-    let db = build_db(&mut db_builder).unwrap();
+    leetcode_tui_db::init(None);
 
-    populate_db(&db);
+    populate_db();
 
-    let topics = DbTopic::fetch_all(&db).unwrap();
+    let topics = DbTopic::fetch_all().unwrap();
 
-    let qs = topics[0].fetch_questions(&db).unwrap();
+    let qs = topics[0].fetch_questions().unwrap();
 
     assert_eq!(qs.len(), 2);
 
-    let qs = topics[1].fetch_questions(&db).unwrap();
+    let qs = topics[1].fetch_questions().unwrap();
 
     assert_eq!(qs.len(), 2);
 }

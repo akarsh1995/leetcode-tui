@@ -1,5 +1,3 @@
-use reqwest::Client;
-
 use super::{GQLLeetcodeRequest, RunOrSubmitCodeCheckResult};
 pub use crate::types::{
     run::{RunCodeIntermediateResponse, RunCodeRequest},
@@ -29,13 +27,10 @@ impl GQLLeetcodeRequest for RunCodeIntermediateResponse {
 }
 
 impl RunCodeRequest {
-    pub async fn set_sample_test_cases_if_none(
-        &mut self,
-        client: &Client,
-    ) -> Result<(), LcAppError> {
+    pub async fn set_sample_test_cases_if_none(&mut self) -> Result<(), LcAppError> {
         if self.test_cases_stdin.is_none() {
             let fetched_test_cases = console_panel_config::Query::new(self.slug.clone())
-                .send(client)
+                .send()
                 .await?
                 .data
                 .question

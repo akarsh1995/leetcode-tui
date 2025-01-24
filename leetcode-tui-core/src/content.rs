@@ -1,7 +1,7 @@
 pub mod question;
-use leetcode_tui_config::DB_CLIENT;
 use question::Questions;
 use topic::Topic;
+
 pub mod topic;
 
 pub mod questions {}
@@ -21,7 +21,7 @@ impl MainContent {
 impl MainContent {
     pub async fn new() -> Self {
         Self {
-            topic: Topic::new(DB_CLIENT.as_ref()).await,
+            topic: Topic::new().await,
             questions: Default::default(),
             visible: true,
         }
