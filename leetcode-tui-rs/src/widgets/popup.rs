@@ -1,10 +1,10 @@
 use crate::ctx::Ctx;
 use leetcode_tui_config::CONFIG;
+use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::{
     Block, Borders, Clear, List, ListItem, Paragraph, Scrollbar, StatefulWidget, Widget, Wrap,
 };
-use leetcode_tui_shared::layout::GetWindowStats;
 
 pub struct SelectPopup<'a> {
     ctx: &'a mut Ctx,
@@ -72,7 +72,7 @@ impl<'a> Popup<'a> {
 
     pub fn prepare_paragraph(&self) -> Paragraph<'_> {
         Paragraph::new(self.prepare_lines())
-            .scroll((self.ctx.popup.v_scroll, 0))
+            .scroll((self.ctx.popup.v_scroll as u16, 0))
             .wrap(Wrap { trim: true })
             .style(Style::default().fg(CONFIG.as_ref().theme.defaults.fg.into()))
     }

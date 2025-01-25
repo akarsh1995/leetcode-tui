@@ -22,7 +22,7 @@ impl<'a> Questions<'a> {
         let config = &CONFIG.as_ref().theme.question;
         let c_hovered = &config.hovered;
         let normal = &config.normal;
-        let easy_hovered = c_hovered.easy.into();
+        let easy_hovered: Style = c_hovered.easy.into();
         let medium_hovered = c_hovered.medium.into();
         let hard_hovered = c_hovered.hard.into();
         let easy = normal.easy.into();
@@ -66,10 +66,11 @@ impl<'a> Questions<'a> {
 
 impl<'a> Widget for Questions<'a> {
     fn render(self, _area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+        let medium: Style = CONFIG.as_ref().theme.border.hovered.into();
         let q_area_surrounding_block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(CONFIG.as_ref().theme.border.hovered.into())
+            .border_style(medium)
             .cyan()
             .title("Questions")
             .title_alignment(Alignment::Center);
@@ -80,7 +81,11 @@ impl<'a> Widget for Questions<'a> {
 
         if let Some(ql) = self.get_questions_list() {
             let list = List::new(ql);
-            list.render(term_window.root.center_layout.question.inner, buf);
+            ratatui::prelude::Widget::render(
+                list,
+                term_window.root.center_layout.question.inner,
+                buf,
+            );
             if self.cx.content.get_questions().is_stats_visible() {
                 stats::Stats::new(&self.cx.content.get_questions())
                     .render(term_window.root.q_stats.outer, buf);
