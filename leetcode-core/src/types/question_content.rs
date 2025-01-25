@@ -20,10 +20,6 @@ impl QuestionContent {
     pub fn html_to_text(&self) -> String {
         let string = self.content.as_bytes();
         let s: String = from_read(string, string.len());
-        s.replace("\\n\\n", "\n\n")
-            .lines()
-            .filter(|l| !l.is_empty())
-            .collect::<Vec<&str>>()
-            .join("\n")
+        s.lines().collect::<Vec<&str>>().join("\n")
     }
 }
