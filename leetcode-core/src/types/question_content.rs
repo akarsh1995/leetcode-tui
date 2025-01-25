@@ -1,4 +1,4 @@
-use html2text::from_read;
+use html2md::parse_html;
 #[derive(Debug, serde::Deserialize)]
 pub struct QueryQuestionContent {
     pub question: QuestionContent,
@@ -18,8 +18,8 @@ pub struct Data {
 
 impl QuestionContent {
     pub fn html_to_text(&self) -> String {
-        let string = self.content.as_bytes();
-        let s: String = from_read(string, string.len());
+        let string = self.content.as_str();
+        let s: String = parse_html(string);
         s.lines().collect::<Vec<&str>>().join("\n")
     }
 }
