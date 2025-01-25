@@ -1,11 +1,10 @@
-use leetcode_tui_core::{emit, Event, UBStrSender};
-
+use crate::utils::update_database_questions;
+use crate::{ctx::Ctx, executor::Executor, root::Root, signals::Signals};
 use color_eyre::Result;
 use leetcode_tui_config::{constants::EDITOR, key::Key};
+use leetcode_tui_core::{emit, Event, UBStrSender};
 use leetcode_tui_db::{DbQuestion, DbTopic};
 use leetcode_tui_shared::tui::Term;
-
-use crate::{ctx::Ctx, executor::Executor, root::Root, signals::Signals};
 
 pub struct App {
     cx: super::ctx::Ctx,
@@ -42,6 +41,10 @@ impl App {
                 }
                 Event::Error(e) => app.dispatch_popup(Some("Error".into()), vec![e]),
                 Event::Open(file_path) => app.dispatch_opener(file_path),
+                Event::SyncDb => app.dispatch_db_update().await,
+                Event::ProgressUpdate(title, progress, total) => {
+                    app.dispatch_progress_update(title, progress, total)
+                }
                 e => app.dispatch_module_event(e),
                 // Event::Paste(str) => app.dispatch_paste(str),
                 // Event::Resize(..) => app.dispatch_resize(),
@@ -143,5 +146,16 @@ impl App {
     fn dispatch_adhoc_question(&mut self, qs: DbQuestion) {
         self.cx.content.get_questions_mut().set_adhoc(qs);
         self.cx.content.get_questions_mut().show_question_content();
+    }
+
+    async fn dispatch_db_update(&mut self) {
+        tokio::spawn(async move {
+            update_database_questions(true).await.unwrap();
+        });
+    }
+
+    fn dispatch_progress_update(&mut self, title: String, progress: u32, total: u32) {
+        self.cx.progress.set_progress(title, progress, total);
+        emit!(Render);
     }
 }

@@ -1,11 +1,12 @@
 use leetcode_tui_config::CONFIG;
+use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use leetcode_tui_shared::layout::GetWindowStats;
 
 use crate::ctx::Ctx;
 use crate::help::Help;
 use crate::popup::{Popup, SelectPopup};
+use crate::progress_bar::ProgressBar;
 use crate::question::Questions;
 use crate::topic::Topic;
 
@@ -54,6 +55,10 @@ impl<'a> Widget for Root<'a> {
             }
             let line = Line::from(search_text.as_str());
             Paragraph::new(line).render(self.get_window().root.status_bar.search_area, buf);
+        }
+
+        if self.cx.progress.is_visible() {
+            ProgressBar::new(self.cx).render(self.get_window().root.top_bar, buf);
         }
     }
 }

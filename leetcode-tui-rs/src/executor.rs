@@ -96,6 +96,10 @@ impl Executor {
                     emit!(Quit);
                     false
                 }
+                Key::Char('*') => {
+                    emit!(SyncDb);
+                    true
+                }
                 _ => false,
             };
         }

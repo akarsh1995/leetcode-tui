@@ -1,7 +1,7 @@
 use leetcode_tui_config::CONFIG;
+use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, Widget};
-use leetcode_tui_shared::layout::GetWindowStats;
 
 use crate::ctx::Ctx;
 

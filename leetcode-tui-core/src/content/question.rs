@@ -291,7 +291,6 @@ impl Questions {
 
             db_question.save_to_db().unwrap();
             emit!(AdhocQuestion(db_question));
-            // emit!(AddQuestions(vec![db_question.clone()]));
         });
         false
     }

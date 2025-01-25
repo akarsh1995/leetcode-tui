@@ -7,6 +7,7 @@ pub mod errors;
 pub mod help;
 pub mod input;
 pub mod popup;
+pub mod progress;
 pub mod utils;
 
 pub type UBStrSender = tokio::sync::mpsc::UnboundedSender<Option<String>>;
