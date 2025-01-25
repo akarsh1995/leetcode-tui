@@ -4,18 +4,18 @@ use ratatui::prelude::*;
 use ratatui::widgets::*;
 
 use crate::ctx::Ctx;
-use crate::help::Help;
-use crate::popup::{Popup, SelectPopup};
-use crate::progress_bar::ProgressBar;
-use crate::question::Questions;
-use crate::topic::Topic;
+use crate::widgets::help::Help;
+use crate::widgets::popup::{Popup, SelectPopup};
+use crate::widgets::progress_bar::ProgressBar;
+use crate::widgets::question::Questions;
+use crate::widgets::topic::Topic;
 
 pub struct Root<'a> {
     cx: &'a mut Ctx,
 }
 
 impl<'a> Root<'a> {
-    pub(super) fn new(cx: &'a mut Ctx) -> Self {
+    pub fn new(cx: &'a mut Ctx) -> Self {
         Self { cx }
     }
 }

@@ -1,11 +1,9 @@
+use super::stats;
+use crate::ctx::Ctx;
 use leetcode_tui_config::CONFIG;
 use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, Widget};
-
-use crate::ctx::Ctx;
-
-pub(crate) mod stats;
 
 pub struct Questions<'a> {
     cx: &'a Ctx,
