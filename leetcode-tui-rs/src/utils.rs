@@ -2,34 +2,29 @@ use api::{GQLLeetcodeRequest, QuestionRequest};
 use color_eyre::Result;
 use kdam::BarExt;
 use leetcode_core as api;
+use leetcode_tui_config::CONFIG;
 use leetcode_tui_core::emit;
 use leetcode_tui_db::DbQuestion;
 
-pub async fn update_database_questions(runs_inside_tui: bool) -> Result<()> {
-    let mut db_question_count = 0;
+fn should_update_db(runs_inside_tui: bool) -> bool {
+    let first_time_app_start = !CONFIG.as_ref().db.path.exists() && !runs_inside_tui;
+    if runs_inside_tui || first_time_app_start {
+        return true;
+    } else {
+        return false;
+    }
+}
 
-    if let Ok(c) = DbQuestion::get_total_questions() {
-        db_question_count = c as i32;
+pub async fn update_database_questions(runs_inside_tui: bool) -> Result<()> {
+    if !should_update_db(runs_inside_tui) {
+        return Ok(());
     }
 
     let query = api::QuestionRequest::default();
     let query_response = query.send().await?;
     let total_questions = query_response.get_total_questions();
 
-    if db_question_count == total_questions && !runs_inside_tui {
-        return Ok(());
-    }
-
-    if !runs_inside_tui {
-        println!(
-            "Questions found in db: {}\nQuestions found in api: {}, Updating",
-            db_question_count, total_questions
-        );
-    }
-
     let chunk_size = 1000;
-    let mut cli_progress_bar = kdam::tqdm!(total = total_questions as usize);
-
     let total_pages = (total_questions + chunk_size - 1) / chunk_size;
 
     let mut handles = vec![];
@@ -53,22 +48,24 @@ pub async fn update_database_questions(runs_inside_tui: bool) -> Result<()> {
         handles.push(join_handle);
     }
 
+    let mut cli_progress_bar = kdam::tqdm!(total = total_questions as usize);
     let mut all_questions = vec![];
     for handle in handles {
         let questions_result = handle.await.unwrap();
         all_questions.extend(questions_result);
 
         // update progress bar
-        if !runs_inside_tui {
-            // kdam
-            cli_progress_bar.update(chunk_size as usize).unwrap();
-        } else {
-            let inside_tui_progress_bar = "Syncing db...".into();
+        if runs_inside_tui {
+            // tui progress bar
+            let inside_tui_progress_bar_title = "Syncing db...".into();
             emit!(ProgressUpdate(
-                inside_tui_progress_bar,
+                inside_tui_progress_bar_title,
                 all_questions.len() as u32,
                 total_questions as u32
             ))
+        } else {
+            // kdam
+            cli_progress_bar.update(chunk_size as usize).unwrap();
         }
     }
 
