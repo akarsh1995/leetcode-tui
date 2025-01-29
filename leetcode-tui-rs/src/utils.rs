@@ -2,21 +2,23 @@ use api::{GQLLeetcodeRequest, QuestionRequest};
 use color_eyre::Result;
 use kdam::BarExt;
 use leetcode_core as api;
-use leetcode_tui_config::CONFIG;
 use leetcode_tui_core::emit;
 use leetcode_tui_db::DbQuestion;
 
-fn should_update_db(runs_inside_tui: bool) -> bool {
-    let first_time_app_start = !CONFIG.as_ref().db.path.exists() && !runs_inside_tui;
-    if runs_inside_tui || first_time_app_start {
-        return true;
+fn should_update_db(runs_inside_tui: bool) -> Result<bool> {
+    if runs_inside_tui {
+        return Ok(true);
+    }
+
+    if DbQuestion::get_total_questions()? == 0 || !runs_inside_tui {
+        return Ok(true);
     } else {
-        return false;
+        return Ok(false);
     }
 }
 
 pub async fn update_database_questions(runs_inside_tui: bool) -> Result<()> {
-    if !should_update_db(runs_inside_tui) {
+    if !should_update_db(runs_inside_tui)? {
         return Ok(());
     }
 
