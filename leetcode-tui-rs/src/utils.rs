@@ -6,11 +6,8 @@ use leetcode_tui_core::emit;
 use leetcode_tui_db::DbQuestion;
 
 fn should_update_db(runs_inside_tui: bool) -> Result<bool> {
-    if runs_inside_tui {
-        return Ok(true);
-    }
-
-    if DbQuestion::get_total_questions()? == 0 || !runs_inside_tui {
+    let first_time_start = DbQuestion::get_total_questions()? == 0 && !runs_inside_tui;
+    if first_time_start || runs_inside_tui {
         return Ok(true);
     } else {
         return Ok(false);
