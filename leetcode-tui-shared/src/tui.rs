@@ -12,7 +12,7 @@ use std::{
 use color_eyre::eyre::Result;
 use ratatui::{prelude::CrosstermBackend as Backend, Terminal};
 
-pub type Frame<'a> = ratatui::Frame<'a, Backend<std::io::Stdout>>;
+pub type Frame<'a> = ratatui::Frame<'a>;
 
 pub struct Term {
     pub terminal: Terminal<Backend<Stdout>>,
@@ -49,7 +49,12 @@ impl Term {
     pub fn resume(&mut self) -> Result<()> {
         self.enter()?;
         let size = self.size()?;
-        self.resize(size)?;
+        self.resize(ratatui::layout::Rect {
+            x: 0,
+            y: 0,
+            width: size.width,
+            height: size.height,
+        })?;
         Ok(())
     }
 

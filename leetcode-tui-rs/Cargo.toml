@@ -28,3 +28,4 @@ color-eyre = { workspace = true }
 ratatui = { workspace = true }
 crossterm = { workspace = true }
 futures = "0.3.28"
+tui-markdown = "0.3.1"
