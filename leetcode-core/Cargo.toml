@@ -13,7 +13,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
-html2md = "0.2.15"
+html2md = { workspace = true }
 async-trait = "0.1.73"
 strum = { version = "0.25.0", features = ["derive"] }
 serde_with = { version = "3.3.0", features = ["macros"] }

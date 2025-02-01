@@ -1206,6 +1206,7 @@ dependencies = [
  "color-eyre",
  "crossterm 0.27.0",
  "fuzzy-matcher",
+ "html2md",
  "indexmap 2.7.1",
  "leetcode-core",
  "leetcode-tui-config",

@@ -32,6 +32,7 @@ native_model = "0.4.10"
 reqwest = { version = "0.11.20" }
 regex = { version = "1.9.5" }
 log = "0.4.20"
+html2md = "0.2.15"
 
 [profile.release]
 lto = true

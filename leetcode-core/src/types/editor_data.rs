@@ -18,6 +18,7 @@ pub struct Question {
     pub code_snippets: Vec<CodeSnippet>,
     pub title_slug: String,
     pub enable_run_code: bool,
+    pub content: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

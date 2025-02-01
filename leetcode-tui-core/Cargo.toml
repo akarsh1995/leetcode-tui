@@ -22,3 +22,4 @@ regex = { workspace = true }
 indexmap = "2.0.1"
 fuzzy-matcher = "0.3.7"
 rand = "0.8.5"
+html2md = { workspace = true }
