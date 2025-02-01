@@ -20,6 +20,20 @@ pub struct DbQuestion {
     pub topics: Vec<DbTopic>,
 }
 
+impl Ord for DbQuestion {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for DbQuestion {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.id.partial_cmp(&other.id)
+    }
+}
+
+impl Eq for DbQuestion {}
+
 impl Display for DbQuestion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut w = String::new();
@@ -120,8 +134,10 @@ impl DbQuestion {
     fn update_in_db<'a>(&self) -> DBResult<Vec<Self>> {
         let rw = get_db_client().rw_transaction()?;
         let old = Self::get_question_by_id(self.id)?;
-        rw.update(old, self.clone())?;
-        rw.commit()?;
+        if let Some(old_q) = old {
+            rw.update(old_q, self.clone())?;
+            rw.commit()?;
+        }
         Ok(vec![self.clone()])
     }
 
@@ -131,12 +147,9 @@ impl DbQuestion {
         Ok(x.all().count())
     }
 
-    pub fn get_question_by_id<'a>(id: u32) -> DBResult<Self> {
+    pub fn get_question_by_id<'a>(id: u32) -> DBResult<Option<Self>> {
         let r = get_db_client().r_transaction()?;
-        let x = r
-            .get()
-            .primary::<DbQuestion>(id)?
-            .ok_or(DbErr::QuestionsNotFoundInDb(id.to_string()))?;
+        let x = r.get().primary::<DbQuestion>(id)?;
         // x.topics = x.fetch_all_topics(db)?;
         Ok(x)
     }

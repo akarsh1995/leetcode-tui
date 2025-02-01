@@ -25,7 +25,6 @@ pub struct Questions {
     needle: Option<String>,
     matcher: SkimMatcherV2,
     show_stats: bool,
-    adhoc_question: Option<Rc<DbQuestion>>,
 }
 
 impl Default for Questions {
@@ -36,7 +35,6 @@ impl Default for Questions {
             ques_haystack: vec![],
             matcher: Default::default(),
             show_stats: Default::default(),
-            adhoc_question: Default::default(),
         }
     }
 }
@@ -59,19 +57,25 @@ impl Questions {
     }
 
     pub fn hovered(&self) -> Option<&Rc<DbQuestion>> {
-        if self.adhoc_question.is_some() {
-            return self.adhoc_question.as_ref();
-        }
         self.paginate.hovered()
     }
 
-    pub fn unset_adhoc(&mut self) -> bool {
-        self.adhoc_question.take();
-        true
-    }
-
-    pub fn set_adhoc(&mut self, question: DbQuestion) {
-        self.adhoc_question = Some(Rc::new(question));
+    pub fn set_adhoc(&mut self, question: DbQuestion) -> bool {
+        if let Some(id) = self.ques_haystack.iter().position(|x| x.id == question.id) {
+            self.needle = None;
+            self.filter_questions();
+            self.paginate.set_element_by_index(id, self.widget_height());
+            return true;
+        } else {
+            emit!(Popup(
+                "not",
+                vec![format!(
+                    "Question not found with id={}, title={}",
+                    question.id, question.title
+                )]
+            ));
+        };
+        return false;
     }
 
     fn widget_height(&self) -> usize {
@@ -82,15 +86,6 @@ impl Questions {
 }
 
 impl Questions {
-    pub fn get_questions_by_topic(&mut self, topic: DbTopic) {
-        tokio::spawn(async move {
-            let questions = topic.fetch_questions();
-            if let Ok(_questions) = questions.emit_if_error() {
-                emit!(Questions(_questions));
-            }
-        });
-    }
-
     pub fn show_question_content(&self) -> bool {
         if let Some(_hovered) = self.hovered() {
             let slug = _hovered.title_slug.clone();
@@ -290,6 +285,7 @@ impl Questions {
                 .unwrap();
 
             db_question.save_to_db().unwrap();
+            emit!(Topic(DbTopic { slug: "all".into() }));
             emit!(AdhocQuestion(db_question));
         });
         false
@@ -320,6 +316,7 @@ impl Questions {
     }
 
     fn filter_questions(&mut self) {
+        self.ques_haystack.sort();
         let fil_quests = if let Some(needle) = self.needle.as_ref() {
             let quests: Vec<Rc<DbQuestion>> = self
                 .ques_haystack

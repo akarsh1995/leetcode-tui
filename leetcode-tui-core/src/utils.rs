@@ -122,6 +122,29 @@ where
         }
     }
 
+    pub fn set_element_by_index(&mut self, index: usize, wid_height: usize) -> bool {
+        if self.list.is_empty() {
+            emit!(Popup(vec!["List is empty".into()]));
+            return false;
+        }
+
+        if index >= self.list.len() {
+            emit!(Popup(vec!["Index out of bounds".into()]));
+            return false;
+        }
+
+        let old_cursor = self.cursor;
+        let old_window = self.nth_window;
+
+        self.nth_window = index / self.cursor_upper_bound(wid_height);
+        self.cursor = index % self.cursor_upper_bound(wid_height);
+
+        self.set_cursor_range(wid_height);
+        self.hovered = self.window(wid_height).get(self.cursor).cloned();
+
+        self.cursor != old_cursor || self.nth_window != old_window
+    }
+
     fn cursor_upper_bound(&self, wid_height: usize) -> usize {
         wid_height.min(self.list.len())
     }

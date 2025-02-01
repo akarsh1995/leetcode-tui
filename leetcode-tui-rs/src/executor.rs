@@ -33,10 +33,7 @@ impl Executor {
 
         if cx.popup.visible {
             return match key {
-                Key::Enter | Key::Esc => {
-                    cx.content.get_questions_mut().unset_adhoc();
-                    cx.popup.toggle()
-                }
+                Key::Enter | Key::Esc => cx.popup.toggle(),
                 Key::Up | Key::Char('k') => cx.popup.scroll_up(),
                 Key::Down | Key::Char('j') => cx.popup.scroll_down(),
                 _ => false,

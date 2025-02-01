@@ -63,10 +63,9 @@ impl App {
     }
 
     fn dispatch_topic_update(&mut self, topic: DbTopic) {
-        self.cx
-            .content
-            .get_questions_mut()
-            .get_questions_by_topic(topic)
+        let questions = topic.fetch_questions().unwrap();
+        self.cx.content.get_topic_mut().set_topic(&topic);
+        self.dispatch_question_update(questions);
     }
 
     fn dispatch_question_update(&mut self, questions: Vec<DbQuestion>) {
@@ -145,12 +144,16 @@ impl App {
 
     fn dispatch_adhoc_question(&mut self, qs: DbQuestion) {
         self.cx.content.get_questions_mut().set_adhoc(qs);
-        self.cx.content.get_questions_mut().show_question_content();
+        emit!(Render);
     }
 
     async fn dispatch_db_update(&mut self) {
         tokio::spawn(async move {
             update_database_questions(true).await.unwrap();
+            emit!(Topic(DbTopic {
+                slug: "all".to_string()
+            }));
+            emit!(Render);
         });
     }
 
