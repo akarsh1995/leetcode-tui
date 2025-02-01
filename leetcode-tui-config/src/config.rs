@@ -34,7 +34,7 @@ pub fn init() -> Result<()> {
 
         if parsed_config.solutions_dir.to_str() == Some("") {
             println!(
-                "Either provide the \"solutions_dir\" path in config file or remove the field for default\n@ {}",
+                "Either provide the \"solutions_dir\" path in config file or remove the field for default setting\n@ {}",
                 config_file.display()
             );
             std::process::exit(0);
