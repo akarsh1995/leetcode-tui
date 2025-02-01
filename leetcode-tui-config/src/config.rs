@@ -1,5 +1,5 @@
 use super::theme::Theme;
-use crate::utils::{get_config_dir, get_config_file_path};
+use crate::utils::{get_config_file_path, get_default_database_file_path, get_solutions_dir_path};
 use color_eyre::Result;
 use leetcode_tui_shared::RoCell;
 use serde::{Deserialize, Serialize};
@@ -15,30 +15,57 @@ pub fn init() -> Result<()> {
             Config::create_default_config(&config_file);
             Config::create_default_solution_dir();
             println!(
-                "Please fill in leetcode_sesion and csrftoken in config file @ {}!",
+                "Please fill in leetcode_sesion and csrftoken in config file \n @ {}",
                 config_file.display()
             );
             std::process::exit(0);
         }
+
         let contents = std::fs::read_to_string(&config_file)?;
-        toml::from_str(&contents)?
+        let parsed_config: Config = toml::from_str(&contents)?;
+
+        if parsed_config.db.path.to_str() == Some("") {
+            println!(
+                "Either fill in field \"db\" in config file or remove the field for default setting\n@ {}",
+                config_file.display()
+            );
+            std::process::exit(0);
+        }
+
+        if parsed_config.solutions_dir.to_str() == Some("") {
+            println!(
+                "Either provide the \"solutions_dir\" path in config file or remove the field for default setting\n@ {}",
+                config_file.display()
+            );
+            std::process::exit(0);
+        }
+
+        if !parsed_config.solutions_dir.exists() {
+            create_dir_all(parsed_config.solutions_dir.clone())?;
+        }
+
+        if !parsed_config.db.path.exists() {
+            parsed_config
+                .db
+                .path
+                .parent()
+                .map(|parent| create_dir_all(parent));
+        }
+
+        parsed_config
     });
     Ok(())
-}
-
-fn get_solutions_dir_path() -> PathBuf {
-    get_config_dir().join("solutions")
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
     pub csrftoken: String,
     pub lc_session: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub db: Database,
-    #[serde(default = "get_solutions_dir_path")]
+    #[serde(default = "get_solutions_dir_path", skip_serializing)]
     pub solutions_dir: PathBuf,
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub theme: Theme,
 }
 
@@ -77,7 +104,7 @@ pub struct Database {
 impl Default for Database {
     fn default() -> Self {
         Self {
-            path: get_config_dir().join("questions.db"),
+            path: get_default_database_file_path(),
         }
     }
 }

@@ -1,10 +1,10 @@
 use crate::ctx::Ctx;
 use leetcode_tui_config::CONFIG;
+use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::{
     Block, Borders, Clear, List, ListItem, Paragraph, Scrollbar, StatefulWidget, Widget, Wrap,
 };
-use leetcode_tui_shared::layout::GetWindowStats;
 
 pub struct SelectPopup<'a> {
     ctx: &'a mut Ctx,
@@ -61,24 +61,6 @@ pub struct Popup<'a> {
 }
 
 impl<'a> Popup<'a> {
-    pub fn prepare_lines(&self) -> Vec<Line> {
-        self.ctx
-            .popup
-            .get_lines()
-            .iter()
-            .map(|l| Line::from(l.as_str()))
-            .collect()
-    }
-
-    pub fn prepare_paragraph(&self) -> Paragraph<'_> {
-        Paragraph::new(self.prepare_lines())
-            .scroll((self.ctx.popup.v_scroll, 0))
-            .wrap(Wrap { trim: true })
-            .style(Style::default().fg(CONFIG.as_ref().theme.defaults.fg.into()))
-    }
-}
-
-impl<'a> Popup<'a> {
     pub fn new(ctx: &'a mut Ctx) -> Self {
         Self { ctx }
     }
@@ -102,7 +84,16 @@ impl<'a> Widget for Popup<'a> {
             .split(self.get_window().root.popup.inner);
         let content_area = chunks[0];
         let scrollbar_area = chunks[1];
-        self.prepare_paragraph().render(content_area, buf);
+
+        let content = self.ctx.popup.get_lines().join("\n");
+        let text = tui_markdown::from_str(content.as_str());
+
+        Paragraph::new(text)
+            .scroll((self.ctx.popup.v_scroll as u16, 0))
+            .wrap(Wrap { trim: true })
+            .style(Style::default().fg(CONFIG.as_ref().theme.defaults.fg.into()))
+            .render(content_area, buf);
+
         Scrollbar::default()
             .orientation(ratatui::widgets::ScrollbarOrientation::VerticalRight)
             .begin_symbol(Some("↑"))

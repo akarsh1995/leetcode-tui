@@ -29,6 +29,8 @@ pub enum Event {
     Open(PathBuf),
     Error(String),
     QuestionUpdate,
+    SyncDb,
+    ProgressUpdate(String, u32, u32),
 }
 
 impl Event {
@@ -98,6 +100,9 @@ macro_rules! emit {
     }};
     (QuestionFilter($e:expr)) => {
         $crate::Event::QuestionFilter($e).emit();
+    };
+    (ProgressUpdate($title:expr, $progress:expr, $total:expr)) => {
+        $crate::Event::ProgressUpdate($title, $progress, $total).emit();
     };
     ($event:ident) => {
         $crate::Event::$event.emit();

@@ -1,10 +1,11 @@
 pub(super) mod sol_dir;
 mod stats;
-
+use crate::utils::string_ops::replace_script_tags;
 use crate::SendError;
 use crate::{emit, utils::Paginate};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
+use html2md::parse_html;
 use leetcode_core::graphql::query::{daily_coding_challenge, RunOrSubmitCodeCheckResult};
 use leetcode_core::types::run_submit_response::display::CustomDisplay;
 use leetcode_core::types::run_submit_response::ParsedResponse;
@@ -25,7 +26,6 @@ pub struct Questions {
     needle: Option<String>,
     matcher: SkimMatcherV2,
     show_stats: bool,
-    adhoc_question: Option<Rc<DbQuestion>>,
 }
 
 impl Default for Questions {
@@ -36,7 +36,6 @@ impl Default for Questions {
             ques_haystack: vec![],
             matcher: Default::default(),
             show_stats: Default::default(),
-            adhoc_question: Default::default(),
         }
     }
 }
@@ -59,19 +58,25 @@ impl Questions {
     }
 
     pub fn hovered(&self) -> Option<&Rc<DbQuestion>> {
-        if self.adhoc_question.is_some() {
-            return self.adhoc_question.as_ref();
-        }
         self.paginate.hovered()
     }
 
-    pub fn unset_adhoc(&mut self) -> bool {
-        self.adhoc_question.take();
-        true
-    }
-
-    pub fn set_adhoc(&mut self, question: DbQuestion) {
-        self.adhoc_question = Some(Rc::new(question));
+    pub fn set_adhoc(&mut self, question: DbQuestion) -> bool {
+        if let Some(id) = self.ques_haystack.iter().position(|x| x.id == question.id) {
+            self.needle = None;
+            self.filter_questions();
+            self.paginate.set_element_by_index(id, self.widget_height());
+            return true;
+        } else {
+            emit!(Popup(
+                "not",
+                vec![format!(
+                    "Question not found with id={}, title={}",
+                    question.id, question.title
+                )]
+            ));
+        };
+        return false;
     }
 
     fn widget_height(&self) -> usize {
@@ -82,13 +87,19 @@ impl Questions {
 }
 
 impl Questions {
-    pub fn get_questions_by_topic(&mut self, topic: DbTopic) {
-        tokio::spawn(async move {
-            let questions = topic.fetch_questions();
-            if let Ok(_questions) = questions.emit_if_error() {
-                emit!(Questions(_questions));
-            }
-        });
+    async fn get_question_content(slug: &str) -> Vec<String> {
+        let qc = QuestionContentRequest::new(slug.to_string());
+        if let Ok(content) = qc.send().await.emit_if_error() {
+            let lines = content
+                .data
+                .question
+                .html_to_text()
+                .lines()
+                .map(|l| replace_script_tags(l))
+                .collect::<Vec<String>>();
+            return lines;
+        }
+        return vec!["".into()];
     }
 
     pub fn show_question_content(&self) -> bool {
@@ -96,17 +107,8 @@ impl Questions {
             let slug = _hovered.title_slug.clone();
             let title = _hovered.title.clone();
             tokio::spawn(async move {
-                let qc = QuestionContentRequest::new(slug);
-                if let Ok(content) = qc.send().await.emit_if_error() {
-                    let lines = content
-                        .data
-                        .question
-                        .html_to_text()
-                        .lines()
-                        .map(|l| l.to_string())
-                        .collect::<Vec<String>>();
-                    emit!(Popup(title, lines));
-                }
+                let lines = Self::get_question_content(slug.as_str()).await;
+                emit!(Popup(title, lines));
             });
         } else {
             log::debug!("hovered question is none");
@@ -239,16 +241,28 @@ impl Questions {
                     {
                         let selected_lang = editor_data.get_languages()[selected];
                         let editor_content = editor_data.get_editor_data_by_language(selected_lang);
+                        let question_content = editor_data.data.question.content.as_str();
+
                         if let Ok(file_name) =
                             editor_data.get_filename(selected_lang).emit_if_error()
                         {
                             if let Some(e_data) = editor_content {
+                                let file_contents = format!(
+                                    "{}\n\n\n{}",
+                                    selected_lang.comment_text(&replace_script_tags(&parse_html(
+                                        question_content
+                                    ))),
+                                    e_data
+                                );
                                 if let Ok(written_path) = SOLUTION_FILE_MANAGER
                                     .get()
                                     .unwrap()
                                     .write()
                                     .unwrap()
-                                    .create_solution_file(file_name.as_str(), e_data)
+                                    .create_solution_file(
+                                        file_name.as_str(),
+                                        file_contents.as_str(),
+                                    )
                                     .emit_if_error()
                                 {
                                     emit!(Open(written_path));
@@ -290,8 +304,8 @@ impl Questions {
                 .unwrap();
 
             db_question.save_to_db().unwrap();
+            emit!(Topic(DbTopic { slug: "all".into() }));
             emit!(AdhocQuestion(db_question));
-            // emit!(AddQuestions(vec![db_question.clone()]));
         });
         false
     }
@@ -321,6 +335,7 @@ impl Questions {
     }
 
     fn filter_questions(&mut self) {
+        self.ques_haystack.sort();
         let fil_quests = if let Some(needle) = self.needle.as_ref() {
             let quests: Vec<Rc<DbQuestion>> = self
                 .ques_haystack

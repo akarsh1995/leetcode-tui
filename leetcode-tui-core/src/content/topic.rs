@@ -5,6 +5,7 @@ use leetcode_tui_shared::layout::Window;
 
 pub struct Topic {
     paginate: Paginate<DbTopic>,
+    topics: Vec<DbTopic>,
 }
 
 impl<'a> Topic {
@@ -12,7 +13,8 @@ impl<'a> Topic {
         let mut topics = vec![DbTopic::new("all")];
         topics.extend(DbTopic::fetch_all().unwrap());
         let s = Self {
-            paginate: Paginate::new(topics),
+            paginate: Paginate::new(topics.clone()),
+            topics,
         };
         s.notify_change();
         s
@@ -38,6 +40,13 @@ impl<'a> Topic {
             self.notify_change()
         };
         has_topic_changed
+    }
+
+    pub fn set_topic(&mut self, topic: &DbTopic) -> bool {
+        if let Some(id) = self.topics.iter().position(|x| x.slug == topic.slug) {
+            self.paginate.set_element_by_index(id, self.widget_height());
+        }
+        return true;
     }
 
     pub fn window(&self) -> &[DbTopic] {

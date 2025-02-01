@@ -23,7 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Invalidate questions cache through `userSessionProgress`
 
 
-## [0.5.0] - 2024-01-24
+## [0.5.2] - 2025-02-01
+
+### Added
+- Ability to view markdown styled content when viewing question
+- Ability to provide provide problem statement in the solution file
+- Adhoc daily question now gets highlighted 
+- Progress bar for explicit db sync from the ui by pressing '*'
+
+## [0.5.0] - 2025-01-24
 
 ### Fixed
 

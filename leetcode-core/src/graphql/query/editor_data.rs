@@ -7,6 +7,7 @@ query questionEditorData($titleSlug: String!) {
     questionId
     titleSlug
     questionFrontendId
+    content
     codeSnippets {
       lang
       langSlug

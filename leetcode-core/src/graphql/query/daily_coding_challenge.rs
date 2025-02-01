@@ -52,4 +52,8 @@ impl Default for Query {
 
 impl GQLLeetcodeRequest for Query {
     type T = IDailyCodingChallenge;
+
+    fn use_cache(&self) -> bool {
+        true
+    }
 }

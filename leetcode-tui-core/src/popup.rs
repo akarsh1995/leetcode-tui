@@ -8,7 +8,7 @@ pub struct Popup {
     pub visible: bool,
     lines: Vec<String>,
     pub v_scroll_state: ScrollbarState,
-    pub v_scroll: u16,
+    pub v_scroll: usize,
     title: Option<String>,
 }
 
@@ -24,7 +24,7 @@ impl Popup {
             lines,
             ..Default::default()
         };
-        p.v_scroll_state = p.v_scroll_state.content_length(p.lines.len() as u16);
+        p.v_scroll_state = p.v_scroll_state.content_length(p.lines.len());
         p
     }
 
@@ -49,7 +49,7 @@ impl Popup {
     }
 
     pub fn scroll_down(&mut self) -> bool {
-        if self.v_scroll == self.lines.len().saturating_sub(1) as u16 {
+        if self.v_scroll == self.lines.len().saturating_sub(1) {
             return false;
         }
         self.v_scroll = self.v_scroll.saturating_add(1);

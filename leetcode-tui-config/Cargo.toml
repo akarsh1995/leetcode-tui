@@ -9,7 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-leetcode-tui-shared = { path = "../leetcode-tui-shared", version = '0.5.1' }
+leetcode-tui-shared = { path = "../leetcode-tui-shared", version = '0.5.2' }
 crossterm = { workspace = true }
 native_db = { workspace = true }
 color-eyre = { workspace = true }

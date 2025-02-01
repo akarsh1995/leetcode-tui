@@ -1,7 +1,7 @@
 use leetcode_tui_core::content;
+use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Gauge, Widget};
-use leetcode_tui_shared::layout::GetWindowStats;
 
 pub(super) struct Stats<'a> {
     cx: &'a content::question::Questions,
@@ -11,27 +11,6 @@ impl<'a> Stats<'a> {
     pub(super) fn new(quests: &'a content::question::Questions) -> Self {
         Self { cx: quests }
     }
-}
-
-fn create_gauge(title: &str, val: usize, total: usize, style: Style) -> Gauge {
-    let block_title = format!("{}: {}/{}", title, val, total);
-    let percentage = if total != 0 {
-        (val as f32 / total as f32) * 100_f32
-    } else {
-        0 as f32
-    };
-    let label = Span::styled(
-        format!("{:.2}%", percentage),
-        style
-            .add_modifier(Modifier::ITALIC | Modifier::BOLD)
-            .fg(Color::White),
-    );
-
-    Gauge::default()
-        .block(Block::default().title(block_title).borders(Borders::ALL))
-        .gauge_style(style)
-        .percent(percentage as u16)
-        .label(label)
 }
 
 impl<'a> Stats<'a> {
@@ -44,6 +23,27 @@ impl<'a> Stats<'a> {
             ))
             .title_alignment(Alignment::Center)
             .cyan()
+    }
+
+    pub fn create_gauge(title: &str, val: usize, total: usize, style: Style) -> Gauge {
+        let block_title = format!("{}: {}/{}", title, val, total);
+        let percentage = if total != 0 {
+            (val as f32 / total as f32) * 100_f32
+        } else {
+            0 as f32
+        };
+        let label = Span::styled(
+            format!("{:.2}%", percentage),
+            style
+                .add_modifier(Modifier::ITALIC | Modifier::BOLD)
+                .fg(Color::White),
+        );
+
+        Gauge::default()
+            .block(Block::default().title(block_title).borders(Borders::ALL))
+            .gauge_style(style)
+            .percent(percentage as u16)
+            .label(label)
     }
 }
 
@@ -85,7 +85,7 @@ impl<'a> Widget for Stats<'a> {
                 .iter(),
             )
         {
-            create_gauge(
+            Self::create_gauge(
                 question_status.to_string().as_str(),
                 numerator,
                 denominator,

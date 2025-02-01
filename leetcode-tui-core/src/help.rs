@@ -23,6 +23,7 @@ impl Default for Help {
                 vec!["s", "Submit Solution"],
                 vec!["/", "Search"],
                 vec!["c", "Open config file"],
+                vec!["*", "Sync database!"],
             ],
             visible: Default::default(),
         };
