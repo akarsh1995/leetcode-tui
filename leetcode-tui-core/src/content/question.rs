@@ -1,5 +1,6 @@
 pub(super) mod sol_dir;
 mod stats;
+use crate::utils::string_ops::replace_script_tags;
 use crate::SendError;
 use crate::{emit, utils::Paginate};
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -94,7 +95,7 @@ impl Questions {
                 .question
                 .html_to_text()
                 .lines()
-                .map(|l| l.to_string())
+                .map(|l| replace_script_tags(l))
                 .collect::<Vec<String>>();
             return lines;
         }
@@ -248,7 +249,9 @@ impl Questions {
                             if let Some(e_data) = editor_content {
                                 let file_contents = format!(
                                     "{}\n\n\n{}",
-                                    selected_lang.comment_text(&parse_html(question_content)),
+                                    selected_lang.comment_text(&replace_script_tags(&parse_html(
+                                        question_content
+                                    ))),
                                     e_data
                                 );
                                 if let Ok(written_path) = SOLUTION_FILE_MANAGER

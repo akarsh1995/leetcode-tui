@@ -1,6 +1,9 @@
 use crate::emit;
+pub(crate) mod string_ops;
+
 use rand::{thread_rng, Rng};
 use std::ops::Range;
+
 pub struct Paginate<T> {
     list: Vec<T>,
     nth_window: usize,
