@@ -14,11 +14,35 @@ To address this, I decided to develop leetcode-tui, a Text-based User Interface,
 
 ## Installation
 
+### Using Cargo
+
 ```sh
 cargo install leetcode-tui-rs
 ```
 
-Post installation
+### Using [Nix](https://nix.dev/)
+
+You can use leetcode-tui in several ways with Nix:
+
+#### Quick Run (No Installation)
+```sh
+# Run directly without installing
+nix run github:akarsh1995/leetcode-tui
+```
+
+#### Imperative Installation
+```sh
+# Install imperatively in your user profile
+nix profile install github:akarsh1995/leetcode-tui
+```
+
+#### Development Environment
+```sh
+# Get a development shell with all dependencies
+nix shell github:akarsh1995/leetcode-tui
+```
+
+## Post Installation
 
 ```sh
 leetui
