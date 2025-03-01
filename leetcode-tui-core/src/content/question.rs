@@ -6,7 +6,9 @@ use crate::{emit, utils::Paginate};
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 use html2md::parse_html;
+use leetcode_core::errors::AppResult;
 use leetcode_core::graphql::query::{daily_coding_challenge, RunOrSubmitCodeCheckResult};
+use leetcode_core::types::language::Language;
 use leetcode_core::types::run_submit_response::display::CustomDisplay;
 use leetcode_core::types::run_submit_response::ParsedResponse;
 use leetcode_core::{
@@ -16,7 +18,7 @@ use leetcode_tui_config::log;
 use leetcode_tui_db::{DbQuestion, DbTopic};
 use leetcode_tui_shared::layout::Window;
 pub(crate) use sol_dir::init;
-use sol_dir::SOLUTION_FILE_MANAGER;
+use sol_dir::{SolutionFile, SolutionFileManager, SOLUTION_FILE_MANAGER};
 use stats::Stats;
 use std::rc::Rc;
 
@@ -69,7 +71,7 @@ impl Questions {
             return true;
         } else {
             emit!(Popup(
-                "not",
+                "Adhoc question not found",
                 vec![format!(
                     "Question not found with id={}, title={}",
                     question.id, question.title
@@ -124,93 +126,67 @@ impl Questions {
         self._run_solution(true)
     }
 
+    pub fn get_solution_language_list<'a>(
+        question_id: String,
+    ) -> Result<Vec<Language>, crate::errors::CoreError> {
+        SolutionFileManager::get_instance()
+            .get_available_languages(question_id.as_str())
+            .map(|x| x.into_iter().map(|x| x.clone()).collect())
+    }
+
     fn _run_solution(&self, is_submit: bool) -> bool {
         if let Some(_hovered) = self.hovered() {
             let mut cloned_quest = _hovered.as_ref().clone();
             let id = _hovered.id.to_string();
-            if let Ok(lang_refs) = SOLUTION_FILE_MANAGER
-                .get()
-                .unwrap()
-                .read()
-                .unwrap()
-                .get_available_languages(id.as_str())
-                .emit_if_error()
-            {
+
+            // get solution language list
+            if let Ok(lang_refs) = Self::get_solution_language_list(id.clone()).emit_if_error() {
                 let cloned_langs = lang_refs.iter().map(|v| v.to_string()).collect();
                 tokio::spawn(async move {
+                    // popup that gets the input for language to run solution in
                     if let Some(selected_lang) =
                         emit!(SelectPopup("Available solutions in", cloned_langs)).await
                     {
-                        let selected_sol_file = SOLUTION_FILE_MANAGER
-                            .get()
-                            .unwrap()
-                            .read()
-                            .unwrap()
+                        // fetch solution content
+                        let selected_sol_file = SolutionFileManager::get_instance()
                             .get_solution_file(id.as_str(), selected_lang)
                             .cloned();
+
                         if let Ok(f) = selected_sol_file.emit_if_error() {
-                            if let Ok(contents) = f.read_contents().await.emit_if_error() {
-                                let lang = f.language;
-                                let request = if is_submit {
-                                    SubmitCodeRequest::new(
-                                        lang,
-                                        f.question_id,
-                                        contents,
-                                        f.title_slug,
-                                    )
-                                    .poll_check_response()
-                                    .await
-                                } else {
-                                    let mut run_code_req = RunCodeRequest::new(
-                                        lang,
-                                        None,
-                                        f.question_id,
-                                        contents,
-                                        f.title_slug,
-                                    );
-                                    if let Err(e) = run_code_req
-                                        .set_sample_test_cases_if_none()
-                                        .await
-                                        .emit_if_error()
-                                    {
-                                        log::info!(
-                                            "error while setting the sample testcase list {}",
-                                            e
-                                        );
-                                        return;
-                                    } else {
-                                        run_code_req.poll_check_response().await
-                                    }
-                                };
+                            let request = if is_submit {
+                                Self::send_http_request_to_submit_solved_question(&f).await
+                            } else {
+                                Self::send_http_request_to_run_solved_question(&f).await
+                            };
 
-                                if let Ok(response) = request.emit_if_error() {
-                                    if let Ok(update_result) =
-                                        cloned_quest.mark_attempted().emit_if_error()
-                                    {
-                                        // when solution is just run against sample cases
-                                        if update_result.is_some() {
-                                            // fetches latest result from db
-                                            emit!(QuestionUpdate);
-                                        }
+                            if let Ok(response) = request.emit_if_error() {
+                                if let Ok(update_result) =
+                                    cloned_quest.mark_attempted().emit_if_error()
+                                {
+                                    // when solution is just run against sample cases
+                                    if update_result.is_some() {
+                                        // fetches latest result from db
+                                        emit!(QuestionUpdate);
                                     }
-
-                                    if is_submit {
-                                        let is_submission_accepted =
-                                            matches!(response, ParsedResponse::SubmitAccepted(..));
-                                        if is_submission_accepted {
-                                            if let Ok(update_result) =
-                                                cloned_quest.mark_accepted().emit_if_error()
-                                            {
-                                                // when solution is accepted
-                                                if update_result.is_some() {
-                                                    // fetches latest result from db
-                                                    emit!(QuestionUpdate);
-                                                }
-                                            };
-                                        }
-                                    }
-                                    emit!(Popup(response.get_display_lines()));
                                 }
+
+                                if is_submit {
+                                    let is_submission_accepted =
+                                        matches!(response, ParsedResponse::SubmitAccepted(..));
+                                    if is_submission_accepted {
+                                        if let Ok(update_result) =
+                                            cloned_quest.mark_accepted().emit_if_error()
+                                        {
+                                            // when solution is accepted
+                                            if update_result.is_some() {
+                                                // fetches latest result from db
+                                                emit!(QuestionUpdate);
+                                            }
+                                        };
+                                    }
+                                }
+
+                                emit!(Popup(response.get_display_lines()));
                             }
                         }
                     }
@@ -218,6 +194,38 @@ impl Questions {
             }
         }
         false
+    }
+
+    async fn send_http_request_to_submit_solved_question(
+        f: &SolutionFile,
+    ) -> AppResult<ParsedResponse> {
+        let solution_text = f.read_contents().await.expect("Cannot read file contents");
+        SubmitCodeRequest::new(
+            f.language.clone(),
+            f.question_id.clone(),
+            solution_text,
+            f.title_slug.clone(),
+        )
+        .poll_check_response()
+        .await
+    }
+
+    async fn send_http_request_to_run_solved_question(
+        f: &SolutionFile,
+    ) -> AppResult<ParsedResponse> {
+        let solution_text = f.read_contents().await.expect("Cannot read file contents");
+        let mut run_code_req = RunCodeRequest::new(
+            f.language.clone(),
+            None,
+            f.question_id.clone(),
+            solution_text,
+            f.title_slug.clone(),
+        );
+        run_code_req
+            .set_sample_test_cases_if_none()
+            .await
+            .expect("error while setting the sample testcase list");
+        run_code_req.poll_check_response().await
     }
 
     pub fn solve_for_language(&self) -> bool {
