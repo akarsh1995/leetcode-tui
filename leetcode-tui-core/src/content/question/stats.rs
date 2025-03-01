@@ -1,5 +1,5 @@
 use leetcode_tui_config::CONFIG;
-use leetcode_tui_db::DbQuestion;
+use leetcode_tui_db::{enums::Difficulty, DbQuestion};
 use ratatui::style::Style;
 use std::{fmt::Display, rc::Rc};
 
@@ -97,35 +97,35 @@ impl<'a> Stats<'a> {
     }
 
     pub fn get_easy_count(&self) -> usize {
-        self.get_diff_count("Easy")
+        self.get_diff_count(Difficulty::Easy)
     }
 
     pub fn get_medium_count(&self) -> usize {
-        self.get_diff_count("Medium")
+        self.get_diff_count(Difficulty::Medium)
     }
 
     pub fn get_hard_count(&self) -> usize {
-        self.get_diff_count("Hard")
+        self.get_diff_count(Difficulty::Hard)
     }
 
     pub fn get_easy_accepted(&self) -> usize {
-        self.get_diff_accepted("ac", "Easy")
+        self.get_diff_accepted("ac", Difficulty::Easy)
     }
 
     pub fn get_medium_accepted(&self) -> usize {
-        self.get_diff_accepted("ac", "Medium")
+        self.get_diff_accepted("ac", Difficulty::Medium)
     }
 
     pub fn get_hard_accepted(&self) -> usize {
-        self.get_diff_accepted("ac", "Hard")
+        self.get_diff_accepted("ac", Difficulty::Hard)
     }
 
-    pub fn get_diff_accepted(&self, status: &str, difficulty: &str) -> usize {
+    pub fn get_diff_accepted(&self, status: &str, difficulty: Difficulty) -> usize {
         self.qm
             .iter()
             .filter(|q| {
                 if let Some(st) = &q.status {
-                    st.as_str() == status && difficulty == q.difficulty.as_str()
+                    st.as_str() == status && difficulty == q.get_difficulty()
                 } else {
                     false
                 }
@@ -146,10 +146,10 @@ impl<'a> Stats<'a> {
             .count()
     }
 
-    fn get_diff_count(&self, difficulty: &str) -> usize {
+    fn get_diff_count(&self, difficulty: Difficulty) -> usize {
         self.qm
             .iter()
-            .filter(|q| q.difficulty.as_str() == difficulty)
+            .filter(|q| q.get_difficulty() == difficulty)
             .count()
     }
 }

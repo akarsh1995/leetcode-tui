@@ -11,9 +11,6 @@ impl Default for Help {
         let mut help = Self {
             state: TableState::default(),
             items: vec![
-                vec!["t", "Move to Next Topic"],
-                vec!["T", "Move to Previous Topic"],
-                vec!["Ctrl+s", "Show/Hide topic stats"],
                 vec!["j/Down", "Move to Next Question"],
                 vec!["k/Up", "Move to Previous Question"],
                 vec!["r", "Move to Random Question"],
@@ -21,9 +18,14 @@ impl Default for Help {
                 vec!["e", "Open Editor"],
                 vec!["R", "Run Solution"],
                 vec!["s", "Submit Solution"],
+                vec!["t", "Move to Next Topic"],
+                vec!["T", "Move to Previous Topic"],
+                vec!["Ctrl+s", "Show/Hide topic stats"],
+                vec!["Tab", "Toggle difficulty"],
                 vec!["/", "Search"],
                 vec!["c", "Open config file"],
                 vec!["*", "Sync database!"],
+                vec!["q", "quit!"],
             ],
             visible: Default::default(),
         };

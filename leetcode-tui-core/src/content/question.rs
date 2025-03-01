@@ -15,6 +15,7 @@ use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
 use leetcode_tui_config::log;
+use leetcode_tui_db::enums::Difficulty;
 use leetcode_tui_db::{DbQuestion, DbTopic};
 use leetcode_tui_shared::layout::Window;
 pub(crate) use sol_dir::init;
@@ -27,6 +28,7 @@ pub struct Questions {
     ques_haystack: Vec<Rc<DbQuestion>>,
     needle: Option<String>,
     matcher: SkimMatcherV2,
+    difficulty: Option<Difficulty>,
     show_stats: bool,
 }
 
@@ -38,6 +40,7 @@ impl Default for Questions {
             ques_haystack: vec![],
             matcher: Default::default(),
             show_stats: Default::default(),
+            difficulty: Default::default(),
         }
     }
 }
@@ -288,6 +291,7 @@ impl Questions {
 
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
         self.ques_haystack = questions.into_iter().map(Rc::new).collect();
+        self.ques_haystack.sort();
         self.filter_questions();
     }
 
@@ -343,7 +347,6 @@ impl Questions {
     }
 
     fn filter_questions(&mut self) {
-        self.ques_haystack.sort();
         let fil_quests = if let Some(needle) = self.needle.as_ref() {
             let quests: Vec<Rc<DbQuestion>> = self
                 .ques_haystack
@@ -371,6 +374,29 @@ impl Questions {
             self.ques_haystack.clone()
         };
         self.paginate.update_list(fil_quests);
+    }
+
+    pub fn toggle_difficulty(&mut self) -> bool {
+        match self.difficulty {
+            Some(Difficulty::Easy) => self.difficulty = Some(Difficulty::Medium),
+            Some(Difficulty::Medium) => self.difficulty = Some(Difficulty::Hard),
+            Some(Difficulty::Hard) => self.difficulty = None,
+            None => self.difficulty = Some(Difficulty::Easy),
+        }
+
+        let fil_quests: Vec<Rc<DbQuestion>> = self
+            .ques_haystack
+            .iter()
+            .filter(|q| {
+                self.difficulty
+                    .as_ref()
+                    .map_or(true, |d| d == &q.get_difficulty())
+            })
+            .cloned()
+            .collect();
+
+        self.paginate.update_list(fil_quests);
+        return true;
     }
 }
 
