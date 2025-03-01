@@ -1,6 +1,7 @@
 use super::{topic::DbTopic, *};
 use crate::{
     api::types::problemset_question_list::Question,
+    enums::Difficulty,
     errors::{DBResult, DbErr},
     get_db_client, save, save_multiple,
 };
@@ -14,7 +15,7 @@ pub struct DbQuestion {
     pub id: u32,
     pub title: String,
     pub title_slug: String,
-    pub difficulty: String,
+    difficulty: String,
     pub paid_only: bool,
     pub status: Option<String>,
     pub topics: Vec<DbTopic>,
@@ -51,6 +52,15 @@ impl Display for DbQuestion {
 }
 
 impl DbQuestion {
+    pub fn get_difficulty(&self) -> Difficulty {
+        match self.difficulty.as_str() {
+            "Hard" => Difficulty::Hard,
+            "Medium" => Difficulty::Medium,
+            "Easy" => Difficulty::Easy,
+            _ => panic!("Cannot parse difficulty"),
+        }
+    }
+
     pub fn is_hard(&self) -> bool {
         self.difficulty == "Hard"
     }

@@ -89,6 +89,7 @@ impl Executor {
                 Key::Char('s') => cx.content.get_questions_mut().submit_solution(),
                 Key::Ctrl('s') => cx.content.get_questions_mut().toggle_stats(),
                 Key::Char('/') => cx.content.get_questions_mut().toggle_search(),
+                Key::Tab => cx.content.get_questions_mut().toggle_difficulty(),
                 Key::Char('q') => {
                     emit!(Quit);
                     false
