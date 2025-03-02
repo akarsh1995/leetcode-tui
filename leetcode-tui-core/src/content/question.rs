@@ -1,10 +1,10 @@
+pub(crate) mod filters;
 pub(super) mod sol_dir;
 mod stats;
 use crate::utils::string_ops::replace_script_tags;
 use crate::SendError;
 use crate::{emit, utils::Paginate};
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
+use filters::{filter_by_difficulty, filter_by_text};
 use html2md::parse_html;
 use leetcode_core::errors::AppResult;
 use leetcode_core::graphql::query::{daily_coding_challenge, RunOrSubmitCodeCheckResult};
@@ -27,7 +27,6 @@ pub struct Questions {
     paginate: Paginate<Rc<DbQuestion>>,
     ques_haystack: Vec<Rc<DbQuestion>>,
     needle: Option<String>,
-    matcher: SkimMatcherV2,
     difficulty: Option<Difficulty>,
     show_stats: bool,
 }
@@ -38,7 +37,6 @@ impl Default for Questions {
             paginate: Paginate::new(vec![]),
             needle: Default::default(),
             ques_haystack: vec![],
-            matcher: Default::default(),
             show_stats: Default::default(),
             difficulty: Default::default(),
         }
@@ -339,43 +337,6 @@ impl Questions {
         false
     }
 
-    pub fn filter_by(&mut self, string: Option<String>) {
-        if self.needle != string {
-            self.needle = string;
-            self.filter_questions();
-        }
-    }
-
-    fn filter_questions(&mut self) {
-        let fil_quests = if let Some(needle) = self.needle.as_ref() {
-            let quests: Vec<Rc<DbQuestion>> = self
-                .ques_haystack
-                .iter()
-                .filter(|q| {
-                    let search_string = format!(
-                        "{} {} {}", // id, topics, title
-                        q.id,
-                        q.topics
-                            .iter()
-                            .map(|t| t.slug.as_str())
-                            .collect::<Vec<&str>>()
-                            .join(", "),
-                        q.title
-                    );
-
-                    self.matcher
-                        .fuzzy_match(search_string.as_str(), &needle)
-                        .is_some()
-                })
-                .cloned()
-                .collect();
-            quests
-        } else {
-            self.ques_haystack.clone()
-        };
-        self.paginate.update_list(fil_quests);
-    }
-
     pub fn toggle_difficulty(&mut self) -> bool {
         match self.difficulty {
             Some(Difficulty::Easy) => self.difficulty = Some(Difficulty::Medium),
@@ -383,20 +344,42 @@ impl Questions {
             Some(Difficulty::Hard) => self.difficulty = None,
             None => self.difficulty = Some(Difficulty::Easy),
         }
+        self.filter_questions();
+        return true;
+    }
 
-        let fil_quests: Vec<Rc<DbQuestion>> = self
+    pub fn filter_by(&mut self, string: Option<String>) {
+        if string == Some("".to_string()) {
+            return;
+        }
+
+        if self.needle != string {
+            self.needle = string;
+            self.filter_questions();
+        }
+    }
+
+    fn filter_questions(&mut self) {
+        let quests: Vec<Rc<DbQuestion>> = self
             .ques_haystack
             .iter()
             .filter(|q| {
-                self.difficulty
-                    .as_ref()
-                    .map_or(true, |d| d == &q.get_difficulty())
+                let mut should_be_selected = true;
+
+                if let Some(needle) = self.needle.as_ref() {
+                    should_be_selected &= filter_by_text(q, &needle);
+                }
+
+                if let Some(diff) = self.difficulty.as_ref() {
+                    should_be_selected &= filter_by_difficulty(q, diff);
+                }
+
+                should_be_selected
             })
             .cloned()
             .collect();
 
-        self.paginate.update_list(fil_quests);
-        return true;
+        self.paginate.update_list(quests);
     }
 }
 
