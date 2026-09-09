@@ -17,6 +17,7 @@ path = "src/main.rs"
 leetcode-core = { path = "../leetcode-core", version = '0.5.2' }
 leetcode-tui-db = { path = "../leetcode-tui-db", version = '0.5.2' }
 kdam = { version = "0.4.1" }
+log = { workspace = true }
 
 leetcode-tui-config = { path = "../leetcode-tui-config", version = '0.5.2' }
 leetcode-tui-core = { path = "../leetcode-tui-core", version = '0.5.2' }

@@ -1,6 +1,7 @@
 use super::{topic::DbTopic, *};
 use crate::{
     api::types::problemset_question_list::Question,
+    api::types::rest_problems_all::Problem,
     errors::{DBResult, DbErr},
     get_db_client, save, save_multiple,
 };
@@ -109,6 +110,19 @@ impl DbQuestion {
             paid_only,
             status,
         }
+    }
+
+    pub fn try_from_rest_problem(problem: &Problem) -> Result<Self, DbErr> {
+        let mut db_quest = DbQuestion::new(
+            problem.stat.frontend_question_id,
+            &problem.stat.title,
+            &problem.stat.title_slug,
+            problem.difficulty_str(),
+            problem.paid_only,
+            problem.status.clone(),
+        );
+        db_quest.add_topic("unknown");
+        Ok(db_quest)
     }
 
     fn add_topic(&mut self, slug: &str) {
