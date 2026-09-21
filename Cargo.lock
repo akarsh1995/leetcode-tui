@@ -1245,6 +1245,7 @@ dependencies = [
  "leetcode-tui-core",
  "leetcode-tui-db",
  "leetcode-tui-shared",
+ "log",
  "ratatui",
  "tokio",
  "tokio-util",
