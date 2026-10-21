@@ -8,9 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Sort questions by:
-    - likes dislikes ratio.
-
 - Scroll bar visible list
 
 - Take input directly from the user lc session
@@ -21,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - View more question details
 
 - Invalidate questions cache through `userSessionProgress`
+
+
+## [0.6.0] - 2026-10-21
+
+### Added
+- Question sorting: cycle through ID, Difficulty, Likes/Dislikes ratio, and Acceptance rate using the backtick (`` ` ``) key
+- Difficulty filter cycling using the `Tab` key
+- Status bar display showing active sorting mode and difficulty level
+- Nix flake and package support (`flake.nix`, `default.nix`, `shell.nix`)
+
+### Changed
+- Database model `DbQuestion` bumped to version 2 with `likes`, `dislikes`, `acceptance_rate`, and strongly-typed `Difficulty` enum
+- Refactored question filtering and sorting into modular components
+- Refactored solution submission and test-run logic into separate functions
+
+### Fixed
+- Database sync hang at ~10% resolved via REST API bulk sync fallback and HTTP timeouts
 
 
 ## [0.5.2] - 2025-02-01

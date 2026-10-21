@@ -1,9 +1,14 @@
 use indexmap::IndexSet;
-use std::{collections::HashMap, hash::Hash, path::PathBuf, sync::RwLock};
+use std::{
+    collections::HashMap,
+    hash::Hash,
+    path::PathBuf,
+    sync::{RwLock, RwLockReadGuard},
+};
 use tokio::fs::read_to_string;
 
-use leetcode_tui_config::CONFIG;
 use leetcode_core::types::language::Language;
+use leetcode_tui_config::CONFIG;
 use regex::Regex;
 use std::sync::OnceLock;
 
@@ -43,6 +48,10 @@ pub struct SolutionFileManager {
 }
 
 impl SolutionFileManager {
+    pub fn get_instance() -> RwLockReadGuard<'static, Self> {
+        return SOLUTION_FILE_MANAGER.get().unwrap().read().unwrap();
+    }
+
     fn add_solution_file(&mut self, file: SolutionFile) {
         self.id_language_map
             .entry(file.question_id.clone())

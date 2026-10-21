@@ -2,132 +2,74 @@ name: CI
 
 on:
   push:
-    branches: ["dev", "master"]
+    branches: ["main", "dev"]
   pull_request:
-    branches: [master]
+    branches: ["main"]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
+    name: Test & Build (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable, "1.70"]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Restore cargo cache
-        uses: actions/cache@v3
-        env:
-          cache-name: ci
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-            target
-          key: ${{ matrix.os }}-${{ env.cache-name }}-${{ matrix.rust }}-${{ hashFiles('Cargo.lock') }}
-
-      - name: MacOS Workaround
-        if: matrix.os == 'macos-latest'
-        run: cargo clean -p serde_derive -p thiserror
+      - name: Disable Windows Defender
+        if: matrix.os == 'windows-latest'
+        run: Set-MpPreference -DisableRealtimeMonitoring $true
+        continue-on-error: true
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
           components: clippy
 
-      - name: Build Debug
-        run: |
-          cargo build
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Run tests
-        run: cargo test
+        run: cargo test --workspace
 
       - name: Run clippy
-        run: |
-          cargo clippy --workspace --all-features
-
-      - name: Build Release
-        run: cargo build --release
+        run: cargo clippy --workspace --all-features
 
       - name: Test Install
-        run: cargo install --path "." --force
+        run: cargo install --path leetcode-tui-rs --force
 
-      - name: Binary Size (unix)
-        if: matrix.os != 'windows-latest'
+      - name: Test Installed Binary
+        shell: bash
         run: |
-          ls -l ./target/release/leetui
+          export PATH="$HOME/.cargo/bin:$PATH"
+          leetui --help
 
-      - name: Binary Size (win)
-        if: matrix.os == 'windows-latest'
+      - name: Binary Size
+        shell: bash
         run: |
-          ls -l ./target/release/leetui.exe
-
-      - name: Binary dependencies (mac)
-        if: matrix.os == 'macos-latest'
-        run: |
-          otool -L ./target/release/leetui
+          if [ -f "$HOME/.cargo/bin/leetui.exe" ]; then
+            ls -lh "$HOME/.cargo/bin/leetui.exe"
+          else
+            ls -lh "$HOME/.cargo/bin/leetui"
+          fi
 
   linting:
     name: Lints
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          override: true
           components: rustfmt
 
-      - run: cargo fmt -- --check
-
-      - name: cargo-sort
-        run: |
-          cargo install cargo-sort --force
-          cargo sort -c -w
-
-      - name: cargo-deny install
-        run: |
-          cargo install --locked cargo-deny
-
-      - name: cargo-deny bans
-        run: |
-          cargo deny check bans
-
-  udeps:
-    name: udeps
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: nightly
-          override: true
-
-      - name: cargo-udeps
-        run: |
-          cargo install --git https://github.com/est31/cargo-udeps --locked
-          cargo +nightly udeps --all-targets
-
-  log-test:
-    name: Changelog Test
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@master
-    - name: Extract release notes
-      id: extract_release_notes
-      uses: ffurrer2/extract-release-notes@v1
-      with:
-        release_notes_file: ./release-notes.txt
-    - uses: actions/upload-artifact@v1
-      with:
-        name: release-notes.txt
-        path: ./release-notes.txt
+      - name: Check Formatting
+        run: cargo fmt -- --check

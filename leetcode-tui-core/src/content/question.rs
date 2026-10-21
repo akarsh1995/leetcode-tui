@@ -1,22 +1,30 @@
+pub(crate) mod filters;
 pub(super) mod sol_dir;
+pub(crate) mod sorters;
 mod stats;
 use crate::utils::string_ops::replace_script_tags;
 use crate::SendError;
 use crate::{emit, utils::Paginate};
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
+use filters::{filter_by_difficulty, filter_by_text};
 use html2md::parse_html;
+use leetcode_core::errors::AppResult;
 use leetcode_core::graphql::query::{daily_coding_challenge, RunOrSubmitCodeCheckResult};
+use leetcode_core::types::language::Language;
 use leetcode_core::types::run_submit_response::display::CustomDisplay;
 use leetcode_core::types::run_submit_response::ParsedResponse;
 use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
 use leetcode_tui_config::log;
+use leetcode_tui_db::enums::{Difficulty, SortBy};
 use leetcode_tui_db::{DbQuestion, DbTopic};
 use leetcode_tui_shared::layout::Window;
 pub(crate) use sol_dir::init;
-use sol_dir::SOLUTION_FILE_MANAGER;
+use sol_dir::{SolutionFile, SolutionFileManager, SOLUTION_FILE_MANAGER};
+use sorters::{
+    sort_by_acceptance_rate, sort_by_difficulty, sort_by_id, sort_by_likes_dislikes_ratio,
+};
+
 use stats::Stats;
 use std::rc::Rc;
 
@@ -24,7 +32,8 @@ pub struct Questions {
     paginate: Paginate<Rc<DbQuestion>>,
     ques_haystack: Vec<Rc<DbQuestion>>,
     needle: Option<String>,
-    matcher: SkimMatcherV2,
+    difficulty: Option<Difficulty>,
+    sort_by: SortBy,
     show_stats: bool,
 }
 
@@ -34,8 +43,9 @@ impl Default for Questions {
             paginate: Paginate::new(vec![]),
             needle: Default::default(),
             ques_haystack: vec![],
-            matcher: Default::default(),
             show_stats: Default::default(),
+            difficulty: Default::default(),
+            sort_by: Default::default(),
         }
     }
 }
@@ -69,7 +79,7 @@ impl Questions {
             return true;
         } else {
             emit!(Popup(
-                "not",
+                "Adhoc question not found",
                 vec![format!(
                     "Question not found with id={}, title={}",
                     question.id, question.title
@@ -124,93 +134,67 @@ impl Questions {
         self._run_solution(true)
     }
 
+    pub fn get_solution_language_list<'a>(
+        question_id: String,
+    ) -> Result<Vec<Language>, crate::errors::CoreError> {
+        SolutionFileManager::get_instance()
+            .get_available_languages(question_id.as_str())
+            .map(|x| x.into_iter().map(|x| x.clone()).collect())
+    }
+
     fn _run_solution(&self, is_submit: bool) -> bool {
         if let Some(_hovered) = self.hovered() {
             let mut cloned_quest = _hovered.as_ref().clone();
             let id = _hovered.id.to_string();
-            if let Ok(lang_refs) = SOLUTION_FILE_MANAGER
-                .get()
-                .unwrap()
-                .read()
-                .unwrap()
-                .get_available_languages(id.as_str())
-                .emit_if_error()
-            {
+
+            // get solution language list
+            if let Ok(lang_refs) = Self::get_solution_language_list(id.clone()).emit_if_error() {
                 let cloned_langs = lang_refs.iter().map(|v| v.to_string()).collect();
                 tokio::spawn(async move {
+                    // popup that gets the input for language to run solution in
                     if let Some(selected_lang) =
                         emit!(SelectPopup("Available solutions in", cloned_langs)).await
                     {
-                        let selected_sol_file = SOLUTION_FILE_MANAGER
-                            .get()
-                            .unwrap()
-                            .read()
-                            .unwrap()
+                        // fetch solution content
+                        let selected_sol_file = SolutionFileManager::get_instance()
                             .get_solution_file(id.as_str(), selected_lang)
                             .cloned();
+
                         if let Ok(f) = selected_sol_file.emit_if_error() {
-                            if let Ok(contents) = f.read_contents().await.emit_if_error() {
-                                let lang = f.language;
-                                let request = if is_submit {
-                                    SubmitCodeRequest::new(
-                                        lang,
-                                        f.question_id,
-                                        contents,
-                                        f.title_slug,
-                                    )
-                                    .poll_check_response()
-                                    .await
-                                } else {
-                                    let mut run_code_req = RunCodeRequest::new(
-                                        lang,
-                                        None,
-                                        f.question_id,
-                                        contents,
-                                        f.title_slug,
-                                    );
-                                    if let Err(e) = run_code_req
-                                        .set_sample_test_cases_if_none()
-                                        .await
-                                        .emit_if_error()
-                                    {
-                                        log::info!(
-                                            "error while setting the sample testcase list {}",
-                                            e
-                                        );
-                                        return;
-                                    } else {
-                                        run_code_req.poll_check_response().await
-                                    }
-                                };
+                            let request = if is_submit {
+                                Self::send_http_request_to_submit_solved_question(&f).await
+                            } else {
+                                Self::send_http_request_to_run_solved_question(&f).await
+                            };
 
-                                if let Ok(response) = request.emit_if_error() {
-                                    if let Ok(update_result) =
-                                        cloned_quest.mark_attempted().emit_if_error()
-                                    {
-                                        // when solution is just run against sample cases
-                                        if update_result.is_some() {
-                                            // fetches latest result from db
-                                            emit!(QuestionUpdate);
-                                        }
+                            if let Ok(response) = request.emit_if_error() {
+                                if let Ok(update_result) =
+                                    cloned_quest.mark_attempted().emit_if_error()
+                                {
+                                    // when solution is just run against sample cases
+                                    if update_result.is_some() {
+                                        // fetches latest result from db
+                                        emit!(QuestionUpdate);
                                     }
-
-                                    if is_submit {
-                                        let is_submission_accepted =
-                                            matches!(response, ParsedResponse::SubmitAccepted(..));
-                                        if is_submission_accepted {
-                                            if let Ok(update_result) =
-                                                cloned_quest.mark_accepted().emit_if_error()
-                                            {
-                                                // when solution is accepted
-                                                if update_result.is_some() {
-                                                    // fetches latest result from db
-                                                    emit!(QuestionUpdate);
-                                                }
-                                            };
-                                        }
-                                    }
-                                    emit!(Popup(response.get_display_lines()));
                                 }
+
+                                if is_submit {
+                                    let is_submission_accepted =
+                                        matches!(response, ParsedResponse::SubmitAccepted(..));
+                                    if is_submission_accepted {
+                                        if let Ok(update_result) =
+                                            cloned_quest.mark_accepted().emit_if_error()
+                                        {
+                                            // when solution is accepted
+                                            if update_result.is_some() {
+                                                // fetches latest result from db
+                                                emit!(QuestionUpdate);
+                                            }
+                                        };
+                                    }
+                                }
+
+                                emit!(Popup(response.get_display_lines()));
                             }
                         }
                     }
@@ -218,6 +202,38 @@ impl Questions {
             }
         }
         false
+    }
+
+    async fn send_http_request_to_submit_solved_question(
+        f: &SolutionFile,
+    ) -> AppResult<ParsedResponse> {
+        let solution_text = f.read_contents().await.expect("Cannot read file contents");
+        SubmitCodeRequest::new(
+            f.language.clone(),
+            f.question_id.clone(),
+            solution_text,
+            f.title_slug.clone(),
+        )
+        .poll_check_response()
+        .await
+    }
+
+    async fn send_http_request_to_run_solved_question(
+        f: &SolutionFile,
+    ) -> AppResult<ParsedResponse> {
+        let solution_text = f.read_contents().await.expect("Cannot read file contents");
+        let mut run_code_req = RunCodeRequest::new(
+            f.language.clone(),
+            None,
+            f.question_id.clone(),
+            solution_text,
+            f.title_slug.clone(),
+        );
+        run_code_req
+            .set_sample_test_cases_if_none()
+            .await
+            .expect("error while setting the sample testcase list");
+        run_code_req.poll_check_response().await
     }
 
     pub fn solve_for_language(&self) -> bool {
@@ -280,6 +296,8 @@ impl Questions {
 
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
         self.ques_haystack = questions.into_iter().map(Rc::new).collect();
+        self.ques_haystack.sort();
+        self.sort();
         self.filter_questions();
     }
 
@@ -327,7 +345,22 @@ impl Questions {
         false
     }
 
+    pub fn toggle_difficulty(&mut self) -> bool {
+        match self.difficulty {
+            Some(Difficulty::Easy) => self.difficulty = Some(Difficulty::Medium),
+            Some(Difficulty::Medium) => self.difficulty = Some(Difficulty::Hard),
+            Some(Difficulty::Hard) => self.difficulty = None,
+            None => self.difficulty = Some(Difficulty::Easy),
+        }
+        self.filter_questions();
+        return true;
+    }
+
     pub fn filter_by(&mut self, string: Option<String>) {
+        if string == Some("".to_string()) {
+            return;
+        }
+
         if self.needle != string {
             self.needle = string;
             self.filter_questions();
@@ -335,34 +368,55 @@ impl Questions {
     }
 
     fn filter_questions(&mut self) {
-        self.ques_haystack.sort();
-        let fil_quests = if let Some(needle) = self.needle.as_ref() {
-            let quests: Vec<Rc<DbQuestion>> = self
-                .ques_haystack
-                .iter()
-                .filter(|q| {
-                    let search_string = format!(
-                        "{} {} {}", // id, topics, title
-                        q.id,
-                        q.topics
-                            .iter()
-                            .map(|t| t.slug.as_str())
-                            .collect::<Vec<&str>>()
-                            .join(", "),
-                        q.title
-                    );
+        let quests: Vec<Rc<DbQuestion>> = self
+            .ques_haystack
+            .iter()
+            .filter(|q| {
+                let mut should_be_selected = true;
 
-                    self.matcher
-                        .fuzzy_match(search_string.as_str(), &needle)
-                        .is_some()
-                })
-                .cloned()
-                .collect();
-            quests
-        } else {
-            self.ques_haystack.clone()
-        };
-        self.paginate.update_list(fil_quests);
+                if let Some(needle) = self.needle.as_ref() {
+                    should_be_selected &= filter_by_text(q, &needle);
+                }
+
+                if let Some(diff) = self.difficulty.as_ref() {
+                    should_be_selected &= filter_by_difficulty(q, diff);
+                }
+
+                should_be_selected
+            })
+            .cloned()
+            .collect();
+
+        self.paginate.update_list(quests);
+    }
+
+    pub fn rotate_sorting_fn(&mut self) -> bool {
+        match self.sort_by {
+            SortBy::Id => self.sort_by = SortBy::Difficulty,
+            SortBy::Difficulty => self.sort_by = SortBy::LikesDislikesRatio,
+            SortBy::LikesDislikesRatio => self.sort_by = SortBy::AcceptanceRate,
+            SortBy::AcceptanceRate => self.sort_by = SortBy::Id,
+        }
+        self.sort();
+        self.filter_questions();
+        true
+    }
+
+    pub fn sort(&mut self) {
+        match &self.sort_by {
+            SortBy::Difficulty => sort_by_difficulty(&mut self.ques_haystack),
+            SortBy::LikesDislikesRatio => sort_by_likes_dislikes_ratio(&mut self.ques_haystack),
+            SortBy::Id => sort_by_id(&mut self.ques_haystack),
+            SortBy::AcceptanceRate => sort_by_acceptance_rate(&mut self.ques_haystack),
+        }
+    }
+
+    pub fn get_question_difficulty_level(&self) -> Option<&Difficulty> {
+        self.difficulty.as_ref()
+    }
+
+    pub fn get_question_sort_by(&self) -> &SortBy {
+        &self.sort_by
     }
 }
 
