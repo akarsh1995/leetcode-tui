@@ -4,6 +4,7 @@ changelog_update = true
 git_release_enable = false
 git_tag_enable = false
 semver_check = false
+release_commits = "^(feat|fix|perf|refactor|revert)"
 
 [[package]]
 name = "leetcode-tui-rs"
