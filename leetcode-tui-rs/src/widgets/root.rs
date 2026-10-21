@@ -26,12 +26,36 @@ impl<'a> Widget for Root<'a> {
             Help::new(self.cx).render(_area, buf);
             return;
         } else {
-            let line = Line::from(vec![Span::styled(
-                " [?] Help ",
-                Style::default()
-                    .bg(CONFIG.as_ref().theme.defaults.info.into())
-                    .fg(CONFIG.as_ref().theme.defaults.terminal_black.into()),
-            )]);
+            let line = Line::from(vec![
+                Span::styled(
+                    format!(
+                        "  Sorted By: [{}]  ",
+                        self.cx.content.get_questions().get_question_sort_by()
+                    ),
+                    Style::default()
+                        .bg(CONFIG.as_ref().theme.defaults.info.into())
+                        .fg(CONFIG.as_ref().theme.defaults.terminal_black.into()),
+                ),
+                Span::styled(
+                    format!(
+                        " Difficulty : [{}]  ",
+                        self.cx
+                            .content
+                            .get_questions()
+                            .get_question_difficulty_level()
+                            .map_or("".to_string(), |x| x.to_string())
+                    ),
+                    Style::default()
+                        .bg(CONFIG.as_ref().theme.defaults.info.into())
+                        .fg(CONFIG.as_ref().theme.defaults.terminal_black.into()),
+                ),
+                Span::styled(
+                    " [?] Help ",
+                    Style::default()
+                        .bg(CONFIG.as_ref().theme.defaults.info.into())
+                        .fg(CONFIG.as_ref().theme.defaults.terminal_black.into()),
+                ),
+            ]);
             Paragraph::new(line)
                 .alignment(Alignment::Right)
                 .render(self.get_window().root.status_bar.message_area, buf);

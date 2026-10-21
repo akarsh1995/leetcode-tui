@@ -1,6 +1,7 @@
 use super::stats;
 use crate::ctx::Ctx;
 use leetcode_tui_config::CONFIG;
+use leetcode_tui_db::enums::Difficulty::{Easy, Hard, Medium};
 use leetcode_tui_shared::layout::GetWindowStats;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, BorderType, Borders, List, ListItem, Widget};
@@ -30,20 +31,16 @@ impl<'a> Questions<'a> {
         let hard = normal.hard.into();
 
         ListItem::new(q.to_string()).style(if q.id == hovered.id {
-            if q.is_easy() {
-                easy_hovered
-            } else if q.is_medium() {
-                medium_hovered
-            } else {
-                hard_hovered
+            match q.difficulty {
+                Easy => easy_hovered,
+                Medium => medium_hovered,
+                Hard => hard_hovered,
             }
         } else {
-            if q.is_easy() {
-                easy
-            } else if q.is_medium() {
-                medium
-            } else {
-                hard
+            match q.difficulty {
+                Easy => easy,
+                Medium => medium,
+                Hard => hard,
             }
         })
     }

@@ -24,5 +24,5 @@ pub(crate) fn filter_by_text(q: &DbQuestion, fuzzy_text: &str) -> bool {
 }
 
 pub(crate) fn filter_by_difficulty(q: &DbQuestion, difficulty: &Difficulty) -> bool {
-    &q.get_difficulty() == difficulty
+    &q.difficulty == difficulty
 }

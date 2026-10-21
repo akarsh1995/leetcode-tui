@@ -22,6 +22,8 @@ query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $fi
             status
             title
             titleSlug
+            likes
+            dislikes
             topicTags {
                 name
                 id

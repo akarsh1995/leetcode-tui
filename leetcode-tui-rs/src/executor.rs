@@ -90,6 +90,7 @@ impl Executor {
                 Key::Ctrl('s') => cx.content.get_questions_mut().toggle_stats(),
                 Key::Char('/') => cx.content.get_questions_mut().toggle_search(),
                 Key::Tab => cx.content.get_questions_mut().toggle_difficulty(),
+                Key::Char('`') => cx.content.get_questions_mut().rotate_sorting_fn(),
                 Key::Char('q') => {
                     emit!(Quit);
                     false

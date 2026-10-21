@@ -24,6 +24,8 @@ pub struct Question {
     pub has_solution: Option<bool>,
     pub has_video_solution: Option<bool>,
     pub topic_tags: Option<Vec<TopicTag>>,
+    pub likes: u32,
+    pub dislikes: u32,
 }
 
 #[derive(Debug, Deserialize)]

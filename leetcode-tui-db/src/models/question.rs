@@ -8,17 +8,20 @@ use crate::{
 use std::fmt::Display;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-#[native_model(id = 1, version = 1)]
+#[native_model(id = 1, version = 2)]
 #[native_db]
 pub struct DbQuestion {
     #[primary_key]
     pub id: u32,
     pub title: String,
     pub title_slug: String,
-    difficulty: String,
+    pub difficulty: Difficulty,
     pub paid_only: bool,
     pub status: Option<String>,
     pub topics: Vec<DbTopic>,
+    pub likes: u32,
+    pub dislikes: u32,
+    pub acceptance_rate: Option<f64>,
 }
 
 impl Ord for DbQuestion {
@@ -51,29 +54,6 @@ impl Display for DbQuestion {
     }
 }
 
-impl DbQuestion {
-    pub fn get_difficulty(&self) -> Difficulty {
-        match self.difficulty.as_str() {
-            "Hard" => Difficulty::Hard,
-            "Medium" => Difficulty::Medium,
-            "Easy" => Difficulty::Easy,
-            _ => panic!("Cannot parse difficulty"),
-        }
-    }
-
-    pub fn is_hard(&self) -> bool {
-        self.difficulty == "Hard"
-    }
-
-    pub fn is_medium(&self) -> bool {
-        self.difficulty == "Medium"
-    }
-
-    pub fn is_easy(&self) -> bool {
-        self.difficulty == "Easy"
-    }
-}
-
 impl TryFrom<Question> for DbQuestion {
     type Error = DbErr;
 
@@ -87,6 +67,9 @@ impl TryFrom<Question> for DbQuestion {
             value.difficulty,
             value.paid_only,
             value.status,
+            value.likes,
+            value.dislikes,
+            value.ac_rate,
         );
         if let Some(tts) = value.topic_tags {
             if !tts.is_empty() {
@@ -109,15 +92,26 @@ impl DbQuestion {
         difficulty: String,
         paid_only: bool,
         status: Option<String>,
+        likes: u32,
+        dislikes: u32,
+        acceptance_rate: Option<f64>,
     ) -> Self {
         Self {
             id,
             title: title.into(),
             title_slug: title_slug.into(),
             topics: Default::default(),
-            difficulty,
+            difficulty: match difficulty.as_str() {
+                "Hard" => Difficulty::Hard,
+                "Medium" => Difficulty::Medium,
+                "Easy" => Difficulty::Easy,
+                _ => panic!("Cannot parse difficulty"),
+            },
             paid_only,
             status,
+            likes,
+            dislikes,
+            acceptance_rate,
         }
     }
 

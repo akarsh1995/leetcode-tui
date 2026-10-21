@@ -1,5 +1,6 @@
 pub(crate) mod filters;
 pub(super) mod sol_dir;
+pub(crate) mod sorters;
 mod stats;
 use crate::utils::string_ops::replace_script_tags;
 use crate::SendError;
@@ -15,11 +16,15 @@ use leetcode_core::{
     GQLLeetcodeRequest, QuestionContentRequest, RunCodeRequest, SubmitCodeRequest,
 };
 use leetcode_tui_config::log;
-use leetcode_tui_db::enums::Difficulty;
+use leetcode_tui_db::enums::{Difficulty, SortBy};
 use leetcode_tui_db::{DbQuestion, DbTopic};
 use leetcode_tui_shared::layout::Window;
 pub(crate) use sol_dir::init;
 use sol_dir::{SolutionFile, SolutionFileManager, SOLUTION_FILE_MANAGER};
+use sorters::{
+    sort_by_acceptance_rate, sort_by_difficulty, sort_by_id, sort_by_likes_dislikes_ratio,
+};
+
 use stats::Stats;
 use std::rc::Rc;
 
@@ -28,6 +33,7 @@ pub struct Questions {
     ques_haystack: Vec<Rc<DbQuestion>>,
     needle: Option<String>,
     difficulty: Option<Difficulty>,
+    sort_by: SortBy,
     show_stats: bool,
 }
 
@@ -39,6 +45,7 @@ impl Default for Questions {
             ques_haystack: vec![],
             show_stats: Default::default(),
             difficulty: Default::default(),
+            sort_by: Default::default(),
         }
     }
 }
@@ -290,6 +297,7 @@ impl Questions {
     pub fn set_questions(&mut self, questions: Vec<DbQuestion>) {
         self.ques_haystack = questions.into_iter().map(Rc::new).collect();
         self.ques_haystack.sort();
+        self.sort();
         self.filter_questions();
     }
 
@@ -380,6 +388,35 @@ impl Questions {
             .collect();
 
         self.paginate.update_list(quests);
+    }
+
+    pub fn rotate_sorting_fn(&mut self) -> bool {
+        match self.sort_by {
+            SortBy::Id => self.sort_by = SortBy::Difficulty,
+            SortBy::Difficulty => self.sort_by = SortBy::LikesDislikesRatio,
+            SortBy::LikesDislikesRatio => self.sort_by = SortBy::AcceptanceRate,
+            SortBy::AcceptanceRate => self.sort_by = SortBy::Id,
+        }
+        self.sort();
+        self.filter_questions();
+        true
+    }
+
+    pub fn sort(&mut self) {
+        match &self.sort_by {
+            SortBy::Difficulty => sort_by_difficulty(&mut self.ques_haystack),
+            SortBy::LikesDislikesRatio => sort_by_likes_dislikes_ratio(&mut self.ques_haystack),
+            SortBy::Id => sort_by_id(&mut self.ques_haystack),
+            SortBy::AcceptanceRate => sort_by_acceptance_rate(&mut self.ques_haystack),
+        }
+    }
+
+    pub fn get_question_difficulty_level(&self) -> Option<&Difficulty> {
+        self.difficulty.as_ref()
+    }
+
+    pub fn get_question_sort_by(&self) -> &SortBy {
+        &self.sort_by
     }
 }
 

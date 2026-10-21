@@ -125,7 +125,7 @@ impl<'a> Stats<'a> {
             .iter()
             .filter(|q| {
                 if let Some(st) = &q.status {
-                    st.as_str() == status && difficulty == q.get_difficulty()
+                    st.as_str() == status && difficulty == q.difficulty
                 } else {
                     false
                 }
@@ -149,7 +149,7 @@ impl<'a> Stats<'a> {
     fn get_diff_count(&self, difficulty: Difficulty) -> usize {
         self.qm
             .iter()
-            .filter(|q| q.get_difficulty() == difficulty)
+            .filter(|q| q.difficulty == difficulty)
             .count()
     }
 }
