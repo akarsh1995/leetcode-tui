@@ -1396,7 +1396,7 @@ checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
 name = "leetcode-core"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "async-trait",
  "html2md",
@@ -1412,7 +1412,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-config"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "better-panic",
@@ -1435,7 +1435,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-core"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "color-eyre",
  "crossterm",
@@ -1455,7 +1455,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-db"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "leetcode-core",
  "leetcode-tui-shared",
@@ -1469,7 +1469,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-rs"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "color-eyre",
  "crossterm",
@@ -1489,7 +1489,7 @@ dependencies = [
 
 [[package]]
 name = "leetcode-tui-shared"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "color-eyre",
  "crossterm",
