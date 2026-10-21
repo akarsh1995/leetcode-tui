@@ -21,17 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore cargo cache
-        uses: actions/cache@v4
-        env:
-          cache-name: ci
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-            target
-          key: ${{ matrix.os }}-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
+      - name: Disable Windows Defender
+        if: matrix.os == 'windows-latest'
+        run: Set-MpPreference -DisableRealtimeMonitoring $true
+        continue-on-error: true
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -39,28 +32,32 @@ jobs:
           toolchain: stable
           components: clippy
 
-      - name: Build Debug
-        run: cargo build
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Run tests
-        run: cargo test
+        run: cargo test --workspace
 
       - name: Run clippy
         run: cargo clippy --workspace --all-features
 
-      - name: Build Release
-        run: cargo build --release
-
       - name: Test Install
         run: cargo install --path leetcode-tui-rs --force
 
-      - name: Binary Size (unix)
-        if: matrix.os != 'windows-latest'
-        run: ls -lh ./target/release/leetui
+      - name: Test Installed Binary
+        shell: bash
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          leetui --help
 
-      - name: Binary Size (win)
-        if: matrix.os == 'windows-latest'
-        run: ls -lh ./target/release/leetui.exe
+      - name: Binary Size
+        shell: bash
+        run: |
+          if [ -f "$HOME/.cargo/bin/leetui.exe" ]; then
+            ls -lh "$HOME/.cargo/bin/leetui.exe"
+          else
+            ls -lh "$HOME/.cargo/bin/leetui"
+          fi
 
   linting:
     name: Lints

@@ -35,5 +35,5 @@ log = "0.4.20"
 html2md = "0.2.15"
 
 [profile.release]
-lto = true
+lto = "thin"
 opt-level = "z" # Optimize for size.
