@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -32,10 +32,6 @@ jobs:
             ~/.cargo/bin
             target
           key: ${{ matrix.os }}-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
-
-      - name: MacOS Workaround
-        if: matrix.os == 'macos-latest'
-        run: cargo clean -p serde_derive -p thiserror
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -65,10 +61,6 @@ jobs:
       - name: Binary Size (win)
         if: matrix.os == 'windows-latest'
         run: ls -lh ./target/release/leetui.exe
-
-      - name: Binary dependencies (mac)
-        if: runner.os == 'macOS'
-        run: otool -L ./target/release/leetui
 
   linting:
     name: Lints

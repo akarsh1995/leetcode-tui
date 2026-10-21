@@ -18,14 +18,6 @@ jobs:
             target: x86_64-unknown-linux-gnu
             binary_name: leetui
             archive_ext: tar.gz
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            binary_name: leetui
-            archive_ext: tar.gz
-          - os: macos-13
-            target: x86_64-apple-darwin
-            binary_name: leetui
-            archive_ext: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary_name: leetui.exe
