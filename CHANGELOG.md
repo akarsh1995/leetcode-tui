@@ -12,6 +12,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Other
 
+- release v0.6.1
+
+## [0.6.1](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-core-v0.6.0...leetcode-tui-core-v0.6.1) - 2026-10-21
+
+### Fixed
+
+- *(deps)* bump dependencies to resolve security advisories
+
+### Other
+
+- release v0.6.1
+
+## [0.6.1](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-db-v0.6.0...leetcode-tui-db-v0.6.1) - 2026-10-21
+
+### Added
+
+- *(db)* migrate embedded database from native_db to libsql
+
+### Other
+
+- release v0.6.1
+
+## [0.6.1](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-config-v0.6.0...leetcode-tui-config-v0.6.1) - 2026-10-21
+
+### Added
+
+- *(db)* migrate embedded database from native_db to libsql
+
+### Fixed
+
+- *(deps)* bump dependencies to resolve security advisories
+
+### Other
+
+- release v0.6.1
+
+## [0.6.1](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-shared-v0.6.0...leetcode-tui-shared-v0.6.1) - 2026-10-21
+
+### Other
+
+- update Cargo.toml dependencies
+
+## [0.6.1](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-core-v0.6.0...leetcode-core-v0.6.1) - 2026-10-21
+
+### Fixed
+
+- *(deps)* bump dependencies to resolve security advisories
+
+## [0.6.1](https://github.com/akarsh1995/leetcode-tui/compare/v0.6.0...v0.6.1) - 2026-10-21
+
+### Other
+
 - update Cargo.toml dependencies
 
 ## [0.6.1](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-core-v0.6.0...leetcode-tui-core-v0.6.1) - 2026-10-21
