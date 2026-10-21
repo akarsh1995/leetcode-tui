@@ -1,68 +1,107 @@
 pub mod enums;
 pub mod errors;
 pub mod models;
-use errors::DBResult;
+
 use leetcode_core as api;
+use libsql::{Builder, Connection};
 pub use models::{question::DbQuestion, topic::DbTopic};
-use models::{QuestionTopicMap, TopicQuestionMap};
-use native_db::Database;
-use native_db::DatabaseBuilder;
-use native_db::Input;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
-pub type Db<'a> = Database<'a>;
+pub static DB_CONN: OnceLock<Connection> = OnceLock::new();
 
-pub static DB_BUILDER: OnceLock<DatabaseBuilder> = OnceLock::new();
-pub static DB_CLIENT: OnceLock<Db> = OnceLock::new();
-
-pub(crate) fn get_db_client() -> &'static Database<'static> {
-    DB_CLIENT.get().expect("Database client is not initialized")
+pub(crate) fn get_conn() -> Connection {
+    DB_CONN
+        .get()
+        .expect("Database connection is not initialized")
+        .clone()
 }
 
-pub fn define_schema(db_builder: &mut DatabaseBuilder) -> errors::DBResult<&mut DatabaseBuilder> {
-    db_builder.define::<DbQuestion>()?;
-    db_builder.define::<DbTopic>()?;
-    db_builder.define::<QuestionTopicMap>()?;
-    db_builder.define::<TopicQuestionMap>()?;
-    Ok(db_builder)
+pub(crate) fn run_sync<F, R>(f: F) -> R
+where
+    F: std::future::Future<Output = R>,
+{
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        tokio::task::block_in_place(|| handle.block_on(f))
+    } else {
+        tokio::runtime::Runtime::new()
+            .expect("Failed to create tokio runtime for DB operation")
+            .block_on(f)
+    }
 }
+
+const SCHEMA: &str = "
+CREATE TABLE IF NOT EXISTS questions (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    title_slug TEXT NOT NULL,
+    difficulty TEXT NOT NULL,
+    paid_only INTEGER NOT NULL,
+    status TEXT,
+    likes INTEGER NOT NULL DEFAULT 0,
+    dislikes INTEGER NOT NULL DEFAULT 0,
+    acceptance_rate REAL
+);
+
+CREATE TABLE IF NOT EXISTS topics (
+    slug TEXT PRIMARY KEY
+);
+
+CREATE TABLE IF NOT EXISTS question_topics (
+    question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    topic_slug TEXT NOT NULL REFERENCES topics(slug) ON DELETE CASCADE,
+    PRIMARY KEY (question_id, topic_slug)
+);
+
+CREATE INDEX IF NOT EXISTS idx_qt_topic ON question_topics(topic_slug);
+";
 
 pub fn init(db_path: Option<&PathBuf>) {
-    let mut database_builder = DatabaseBuilder::new();
-    define_schema(&mut database_builder).expect("DB schema initialization failed.");
+    DB_CONN.get_or_init(|| {
+        run_sync(async {
+            let db = if let Some(path) = db_path {
+                if let Some(parent) = path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
 
-    DB_BUILDER.get_or_init(|| database_builder);
+                // Check if existing file is not a valid SQLite database (e.g. legacy native_db file)
+                if path.exists() {
+                    use std::io::Read;
+                    let is_valid_sqlite = if let Ok(mut f) = std::fs::File::open(path) {
+                        let mut magic = [0u8; 16];
+                        f.read_exact(&mut magic).is_ok() && &magic == b"SQLite format 3\0"
+                    } else {
+                        false
+                    };
 
-    DB_CLIENT.get_or_init(|| {
-        if let Some(path) = db_path {
-            DB_BUILDER
-                .get()
-                .unwrap()
-                .create(path)
-                .expect("Error while creating db conn.")
-        } else {
-            DB_BUILDER
-                .get()
-                .unwrap()
-                .create_in_memory()
-                .expect("Error while creating db conn in memory.")
-        }
+                    if !is_valid_sqlite {
+                        let backup_path = path.with_extension("db.native_db.bak");
+                        log::warn!(
+                            "Existing database at {} is not a valid SQLite database (legacy native_db format). Backing up to {} and creating a new SQLite database.",
+                            path.display(),
+                            backup_path.display()
+                        );
+                        let _ = std::fs::rename(path, backup_path);
+                    }
+                }
+
+                Builder::new_local(path.to_str().expect("Invalid DB path"))
+                    .build()
+                    .await
+                    .expect("Error while creating db connection.")
+            } else {
+                Builder::new_local(":memory:")
+                    .build()
+                    .await
+                    .expect("Error while creating db connection in memory.")
+            };
+
+            let conn = db.connect().expect("Failed to connect to database");
+            conn.execute_batch(SCHEMA)
+                .await
+                .expect("Failed to initialize database schema");
+
+            conn
+        })
     });
-}
-
-fn save<'a, T: Input + Clone>(item: &T) -> DBResult<()> {
-    let rw = get_db_client().rw_transaction()?;
-    rw.insert(item.clone())?;
-    rw.commit()?;
-    Ok(())
-}
-
-fn save_multiple<'a, T: Input + Clone>(items: &Vec<T>) -> DBResult<()> {
-    let rw = get_db_client().rw_transaction()?;
-    for item in items {
-        rw.insert(item.clone())?;
-    }
-    rw.commit()?;
-    Ok(())
 }
