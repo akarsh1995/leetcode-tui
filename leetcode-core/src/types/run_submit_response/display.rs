@@ -244,7 +244,7 @@ impl std::fmt::Display for ParsedResponse {
             ParsedResponse::SubmitAccepted(sa) => sa.to_string(),
             ParsedResponse::RunWrongAnswer(rwa) => rwa.to_string(),
             ParsedResponse::SubmitWrongAnswer(swa) => swa.to_string(),
-            ParsedResponse::Pending => self.to_string(),
+            ParsedResponse::Pending => "Pending".to_string(),
             ParsedResponse::CompileError(ce) => ce.to_string(),
             ParsedResponse::RuntimeError(re) => re.to_string(),
             ParsedResponse::MemoryLimitExceeded(mle) => mle.to_string(),

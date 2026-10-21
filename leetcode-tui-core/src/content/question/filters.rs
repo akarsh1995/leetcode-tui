@@ -1,9 +1,9 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use leetcode_tui_db::{enums::Difficulty, DbQuestion};
 
-use std::cell::OnceCell;
+use std::sync::OnceLock;
 
-pub const FUZZY_MATCHER_CLIENT: OnceCell<SkimMatcherV2> = OnceCell::new();
+pub static FUZZY_MATCHER_CLIENT: OnceLock<SkimMatcherV2> = OnceLock::new();
 
 pub(crate) fn filter_by_text(q: &DbQuestion, fuzzy_text: &str) -> bool {
     let search_string = format!(
