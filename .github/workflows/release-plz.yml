@@ -13,6 +13,9 @@ jobs:
   release-plz:
     name: Release-plz
     runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release-plz.outputs.releases_created }}
+      tag_name: ${{ steps.tag.outputs.tag_name }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,7 +27,25 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run release-plz
+        id: release-plz
         uses: release-plz/action@v0.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Determine release tag
+        id: tag
+        if: steps.release-plz.outputs.releases_created == 'true'
+        shell: bash
+        run: |
+          VERSION=$(grep -m1 '^version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "tag_name=v$VERSION" >> "$GITHUB_OUTPUT"
+
+  upload-assets:
+    name: Upload Assets
+    needs: release-plz
+    if: needs.release-plz.outputs.releases_created == 'true'
+    uses: ./.github/workflows/release-assets.yml
+    with:
+      tag_name: ${{ needs.release-plz.outputs.tag_name }}
+    secrets: inherit
