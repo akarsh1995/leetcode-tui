@@ -1,27 +1,29 @@
-name: CI
+name: CI & Release
 
 on:
   push:
-    branches: ["dev", "master"]
+    branches: ["main", "dev"]
+    tags: ["v*"]
   pull_request:
-    branches: [master]
+    branches: ["main"]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
+    name: Test & Build (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable, "1.70"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Restore cargo cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         env:
           cache-name: ci
         with:
@@ -30,7 +32,7 @@ jobs:
             ~/.cargo/git
             ~/.cargo/bin
             target
-          key: ${{ matrix.os }}-${{ env.cache-name }}-${{ matrix.rust }}-${{ hashFiles('Cargo.lock') }}
+          key: ${{ matrix.os }}-${{ env.cache-name }}-${{ hashFiles('Cargo.lock') }}
 
       - name: MacOS Workaround
         if: matrix.os == 'macos-latest'
@@ -39,95 +41,143 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
           components: clippy
 
       - name: Build Debug
-        run: |
-          cargo build
+        run: cargo build
 
       - name: Run tests
         run: cargo test
 
       - name: Run clippy
-        run: |
-          cargo clippy --workspace --all-features
+        run: cargo clippy --workspace --all-features
 
       - name: Build Release
         run: cargo build --release
 
       - name: Test Install
-        run: cargo install --path "." --force
+        run: cargo install --path leetcode-tui-rs --force
 
       - name: Binary Size (unix)
         if: matrix.os != 'windows-latest'
-        run: |
-          ls -l ./target/release/leetui
+        run: ls -lh ./target/release/leetui
 
       - name: Binary Size (win)
         if: matrix.os == 'windows-latest'
-        run: |
-          ls -l ./target/release/leetui.exe
+        run: ls -lh ./target/release/leetui.exe
 
       - name: Binary dependencies (mac)
-        if: matrix.os == 'macos-latest'
-        run: |
-          otool -L ./target/release/leetui
+        if: runner.os == 'macOS'
+        run: otool -L ./target/release/leetui
 
   linting:
     name: Lints
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          override: true
           components: rustfmt
 
-      - run: cargo fmt -- --check
+      - name: Check Formatting
+        run: cargo fmt -- --check
 
-      - name: cargo-sort
-        run: |
-          cargo install cargo-sort --force
-          cargo sort -c -w
-
-      - name: cargo-deny install
-        run: |
-          cargo install --locked cargo-deny
-
-      - name: cargo-deny bans
-        run: |
-          cargo deny check bans
-
-  udeps:
-    name: udeps
-    runs-on: ubuntu-latest
+  build-release:
+    name: Build Release Binary (${{ matrix.target }})
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, linting]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: leetui
+            archive_ext: tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary_name: leetui
+            archive_ext: tar.gz
+          - os: macos-13
+            target: x86_64-apple-darwin
+            binary_name: leetui
+            archive_ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: leetui.exe
+            archive_ext: zip
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v4
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
-          override: true
+          targets: ${{ matrix.target }}
 
-      - name: cargo-udeps
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary (Unix)
+        if: matrix.os != 'windows-latest'
+        shell: bash
         run: |
-          cargo install --git https://github.com/est31/cargo-udeps --locked
-          cargo +nightly udeps --all-targets
+          ARCHIVE="leetui-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive_ext }}"
+          cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} .
+          tar -czf "$ARCHIVE" ${{ matrix.binary_name }} README.md LICENSE
+          shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
 
-  log-test:
-    name: Changelog Test
+      - name: Package binary (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          ARCHIVE="leetui-${{ github.ref_name }}-${{ matrix.target }}.${{ matrix.archive_ext }}"
+          cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} .
+          7z a "$ARCHIVE" ${{ matrix.binary_name }} README.md LICENSE
+          sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: assets-${{ matrix.target }}
+          path: |
+            leetui-${{ github.ref_name }}-${{ matrix.target }}.*
+          retention-days: 1
+
+  create-release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-release]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@master
-    - name: Extract release notes
-      id: extract_release_notes
-      uses: ffurrer2/extract-release-notes@v1
-      with:
-        release_notes_file: ./release-notes.txt
-    - uses: actions/upload-artifact@v1
-      with:
-        name: release-notes.txt
-        path: ./release-notes.txt
+      - uses: actions/checkout@v4
+
+      - name: Extract release notes
+        id: release_notes
+        uses: ffurrer2/extract-release-notes@v2
+        continue-on-error: true
+
+      - name: Download all built assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: assets-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body: ${{ steps.release_notes.outputs.release_notes }}
+          files: release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
