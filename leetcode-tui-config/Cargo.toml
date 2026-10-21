@@ -11,7 +11,6 @@ repository.workspace = true
 [dependencies]
 leetcode-tui-shared = { path = "../leetcode-tui-shared", version = '0.6.0' }
 crossterm = { workspace = true }
-native_db = { workspace = true }
 color-eyre = { workspace = true }
 serde = { workspace = true }
 toml = "0.7.8"

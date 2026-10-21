@@ -1,18 +1,17 @@
-use super::{topic::DbTopic, *};
+use super::topic::DbTopic;
 use crate::{
     api::types::problemset_question_list::Question,
     api::types::rest_problems_all::Problem,
     enums::Difficulty,
     errors::{DBResult, DbErr},
-    get_db_client, save, save_multiple,
+    get_conn, run_sync,
 };
+use libsql::params;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-#[native_model(id = 1, version = 2)]
-#[native_db]
 pub struct DbQuestion {
-    #[primary_key]
     pub id: u32,
     pub title: String,
     pub title_slug: String,
@@ -33,7 +32,7 @@ impl Ord for DbQuestion {
 
 impl PartialOrd for DbQuestion {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.id.partial_cmp(&other.id)
+        Some(self.cmp(other))
     }
 }
 
@@ -141,104 +140,247 @@ impl DbQuestion {
         self.topics.push(DbTopic::new(slug))
     }
 
-    pub fn mark_accepted<'a>(&mut self) -> DBResult<Option<Vec<Self>>> {
+    pub fn mark_accepted(&mut self) -> DBResult<Option<Vec<Self>>> {
         if self.status.is_none() || self.status == Some("notac".into()) {
             self.status = Some("ac".into());
-            return Ok(Some(self.update_in_db()?));
+            self.update_status_in_db()?;
+            return Ok(Some(vec![self.clone()]));
         }
         Ok(None)
     }
 
-    pub fn mark_attempted<'a>(&mut self) -> DBResult<Option<Vec<Self>>> {
+    pub fn mark_attempted(&mut self) -> DBResult<Option<Vec<Self>>> {
         if self.status.is_none() {
             self.status = Some("notac".into());
-            return Ok(Some(self.update_in_db()?));
+            self.update_status_in_db()?;
+            return Ok(Some(vec![self.clone()]));
         }
         Ok(None)
     }
 
-    fn update_in_db<'a>(&self) -> DBResult<Vec<Self>> {
-        let rw = get_db_client().rw_transaction()?;
-        let old = Self::get_question_by_id(self.id)?;
-        if let Some(old_q) = old {
-            rw.update(old_q, self.clone())?;
-            rw.commit()?;
-        }
-        Ok(vec![self.clone()])
+    fn update_status_in_db(&self) -> DBResult<()> {
+        run_sync(async {
+            let conn = get_conn();
+            conn.execute(
+                "UPDATE questions SET status = ?1 WHERE id = ?2;",
+                params![self.status.clone(), self.id as i64],
+            )
+            .await?;
+            Ok(())
+        })
     }
 
-    pub fn get_total_questions<'a>() -> DBResult<usize> {
-        let r = get_db_client().r_transaction()?;
-        let x = r.scan().primary::<Self>()?;
-        Ok(x.all().count())
+    pub fn get_total_questions() -> DBResult<usize> {
+        run_sync(async {
+            let conn = get_conn();
+            let mut rows = conn.query("SELECT COUNT(*) FROM questions;", ()).await?;
+            if let Some(row) = rows.next().await? {
+                let count: i64 = row.get(0)?;
+                Ok(count as usize)
+            } else {
+                Ok(0)
+            }
+        })
     }
 
-    pub fn get_question_by_id<'a>(id: u32) -> DBResult<Option<Self>> {
-        let r = get_db_client().r_transaction()?;
-        let x = r.get().primary::<DbQuestion>(id)?;
-        // x.topics = x.fetch_all_topics(db)?;
-        Ok(x)
+    pub fn get_question_by_id(id: u32) -> DBResult<Option<Self>> {
+        run_sync(async {
+            let conn = get_conn();
+            let mut rows = conn
+                .query(
+                    "SELECT q.id, q.title, q.title_slug, q.difficulty, q.paid_only, q.status, q.likes, q.dislikes, q.acceptance_rate, \
+                     (SELECT GROUP_CONCAT(topic_slug, ',') FROM question_topics WHERE question_id = q.id) AS topic_slugs \
+                     FROM questions q WHERE q.id = ?1;",
+                    params![id as i64],
+                )
+                .await?;
+
+            if let Some(row) = rows.next().await? {
+                Ok(Some(Self::from_row(&row)?))
+            } else {
+                Ok(None)
+            }
+        })
     }
 
-    fn save_all_topics<'a>(&mut self) -> DBResult<()> {
-        save_multiple(&self.topics)
-    }
-
-    pub(crate) fn get_topics(&self) -> &Vec<DbTopic> {
+    pub fn get_topics(&self) -> &[DbTopic] {
         &self.topics
     }
 
-    fn get_topic_question_mapping(&self) -> Vec<TopicQuestionMap> {
-        self.get_topics()
-            .iter()
-            .map(|q| TopicQuestionMap::new(&q.slug, self.id))
-            .collect::<Vec<_>>()
+    pub fn fetch_by_topic(topic_slug: &str) -> DBResult<Vec<Self>> {
+        run_sync(async {
+            let conn = get_conn();
+            let mut rows = if topic_slug == "all" {
+                conn.query(
+                    "SELECT q.id, q.title, q.title_slug, q.difficulty, q.paid_only, q.status, q.likes, q.dislikes, q.acceptance_rate, \
+                     (SELECT GROUP_CONCAT(topic_slug, ',') FROM question_topics WHERE question_id = q.id) AS topic_slugs \
+                     FROM questions q ORDER BY q.id ASC;",
+                    (),
+                )
+                .await?
+            } else {
+                conn.query(
+                    "SELECT q.id, q.title, q.title_slug, q.difficulty, q.paid_only, q.status, q.likes, q.dislikes, q.acceptance_rate, \
+                     (SELECT GROUP_CONCAT(topic_slug, ',') FROM question_topics WHERE question_id = q.id) AS topic_slugs \
+                     FROM questions q \
+                     JOIN question_topics qt ON q.id = qt.question_id \
+                     WHERE qt.topic_slug = ?1 \
+                     ORDER BY q.id ASC;",
+                    params![topic_slug],
+                )
+                .await?
+            };
+
+            let mut questions = Vec::new();
+            while let Some(row) = rows.next().await? {
+                questions.push(Self::from_row(&row)?);
+            }
+            Ok(questions)
+        })
     }
 
-    fn get_question_topic_mapping(&self) -> Vec<QuestionTopicMap> {
-        self.get_topics()
-            .iter()
-            .map(|q| QuestionTopicMap::new(self.id, &q.slug))
-            .collect::<Vec<_>>()
+    fn from_row(row: &libsql::Row) -> DBResult<Self> {
+        let id: i64 = row.get(0)?;
+        let title: String = row.get(1)?;
+        let title_slug: String = row.get(2)?;
+        let difficulty_str: String = row.get(3)?;
+        let paid_only: i64 = row.get(4)?;
+        let status: Option<String> = row.get(5)?;
+        let likes: i64 = row.get(6)?;
+        let dislikes: i64 = row.get(7)?;
+        let acceptance_rate: Option<f64> = row.get(8)?;
+        let topic_slugs: Option<String> = row.get(9)?;
+
+        let topics = topic_slugs
+            .map(|s| {
+                s.split(',')
+                    .filter(|t| !t.is_empty())
+                    .map(DbTopic::new)
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let difficulty = match difficulty_str.as_str() {
+            "Hard" => Difficulty::Hard,
+            "Medium" => Difficulty::Medium,
+            "Easy" => Difficulty::Easy,
+            _ => Difficulty::Easy,
+        };
+
+        Ok(DbQuestion {
+            id: id as u32,
+            title,
+            title_slug,
+            difficulty,
+            paid_only: paid_only != 0,
+            status,
+            topics,
+            likes: likes as u32,
+            dislikes: dislikes as u32,
+            acceptance_rate,
+        })
+    }
+
+    pub fn save_to_db(&mut self) -> DBResult<bool> {
+        run_sync(async {
+            let conn = get_conn();
+            conn.execute(
+                "INSERT INTO questions (id, title, title_slug, difficulty, paid_only, status, likes, dislikes, acceptance_rate) \
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
+                 ON CONFLICT(id) DO UPDATE SET \
+                     title = excluded.title, \
+                     title_slug = excluded.title_slug, \
+                     difficulty = excluded.difficulty, \
+                     paid_only = excluded.paid_only, \
+                     status = excluded.status, \
+                     likes = excluded.likes, \
+                     dislikes = excluded.dislikes, \
+                     acceptance_rate = excluded.acceptance_rate;",
+                params![
+                    self.id as i64,
+                    self.title.clone(),
+                    self.title_slug.clone(),
+                    self.difficulty.to_string(),
+                    if self.paid_only { 1i64 } else { 0i64 },
+                    self.status.clone(),
+                    self.likes as i64,
+                    self.dislikes as i64,
+                    self.acceptance_rate,
+                ],
+            )
+            .await?;
+
+            for topic in &self.topics {
+                conn.execute(
+                    "INSERT OR IGNORE INTO topics (slug) VALUES (?1);",
+                    params![topic.slug.clone()],
+                )
+                .await?;
+                conn.execute(
+                    "INSERT OR IGNORE INTO question_topics (question_id, topic_slug) VALUES (?1, ?2);",
+                    params![self.id as i64, topic.slug.clone()],
+                )
+                .await?;
+            }
+
+            Ok(true)
+        })
     }
 
     pub fn save_multiple_to_db(questions: Vec<Self>) {
-        let topic_question_map = questions
-            .iter()
-            .map(|q| q.get_topic_question_mapping())
-            .flatten()
-            .collect::<Vec<_>>();
+        run_sync(async {
+            let conn = get_conn();
+            conn.execute("BEGIN TRANSACTION;", ())
+                .await
+                .expect("Failed to begin transaction");
 
-        let question_topic_map = questions
-            .iter()
-            .map(|q| q.get_question_topic_mapping())
-            .flatten()
-            .collect::<Vec<_>>();
+            for q in questions {
+                conn.execute(
+                    "INSERT INTO questions (id, title, title_slug, difficulty, paid_only, status, likes, dislikes, acceptance_rate) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) \
+                     ON CONFLICT(id) DO UPDATE SET \
+                         title = excluded.title, \
+                         title_slug = excluded.title_slug, \
+                         difficulty = excluded.difficulty, \
+                         paid_only = excluded.paid_only, \
+                         status = excluded.status, \
+                         likes = excluded.likes, \
+                         dislikes = excluded.dislikes, \
+                         acceptance_rate = excluded.acceptance_rate;",
+                    params![
+                        q.id as i64,
+                        q.title.clone(),
+                        q.title_slug.clone(),
+                        q.difficulty.to_string(),
+                        if q.paid_only { 1i64 } else { 0i64 },
+                        q.status.clone(),
+                        q.likes as i64,
+                        q.dislikes as i64,
+                        q.acceptance_rate,
+                    ],
+                )
+                .await
+                .expect("Failed to insert question");
 
-        let topics = questions
-            .iter()
-            .map(|q| q.get_topics().iter().map(|t| t.clone()))
-            .flatten()
-            .collect::<Vec<_>>();
+                for topic in &q.topics {
+                    conn.execute(
+                        "INSERT OR IGNORE INTO topics (slug) VALUES (?1);",
+                        params![topic.slug.clone()],
+                    )
+                    .await
+                    .expect("Failed to insert topic");
+                    conn.execute(
+                        "INSERT OR IGNORE INTO question_topics (question_id, topic_slug) VALUES (?1, ?2);",
+                        params![q.id as i64, topic.slug.clone()],
+                    )
+                    .await
+                    .expect("Failed to insert question_topic");
+                }
+            }
 
-        save_multiple(&topic_question_map).unwrap();
-        save_multiple(&question_topic_map).unwrap();
-        save_multiple(&topics).unwrap();
-        save_multiple(&questions).unwrap();
-    }
-
-    pub fn save_to_db<'a>(&mut self) -> DBResult<bool> {
-        // save Topic -> Question Mapping
-        TopicQuestionMap::save_mapping(self)?;
-
-        // save Question -> Topic Mapping
-        QuestionTopicMap::save_mapping(self)?;
-
-        // save DbTopics for the question
-        self.save_all_topics()?;
-
-        // save question
-        save(self)?;
-        return Ok(true);
+            conn.execute("COMMIT;", ())
+                .await
+                .expect("Failed to commit transaction");
+        });
     }
 }

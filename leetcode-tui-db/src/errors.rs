@@ -1,12 +1,11 @@
 use std::num::ParseIntError;
 
-use native_db::db_type;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum DbErr {
-    #[error("NativeDbError encountered {0}")]
-    NativeDbError(#[from] db_type::Error),
+    #[error("LibSqlError encountered: {0}")]
+    LibSqlError(#[from] libsql::Error),
 
     #[error("Could not create topic {0}")]
     TopicCreateError(String),
