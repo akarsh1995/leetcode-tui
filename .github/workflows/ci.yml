@@ -56,7 +56,7 @@ jobs:
         run: cargo build --release
 
       - name: Test Install
-        run: cargo install --path leetcode-tui-rs --locked --force
+        run: cargo install --path leetcode-tui-rs --force
 
       - name: Binary Size (unix)
         if: matrix.os != 'windows-latest'
