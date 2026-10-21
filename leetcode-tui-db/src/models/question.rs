@@ -1,6 +1,7 @@
 use super::{topic::DbTopic, *};
 use crate::{
     api::types::problemset_question_list::Question,
+    api::types::rest_problems_all::Problem,
     enums::Difficulty,
     errors::{DBResult, DbErr},
     get_db_client, save, save_multiple,
@@ -113,6 +114,27 @@ impl DbQuestion {
             dislikes,
             acceptance_rate,
         }
+    }
+
+    pub fn try_from_rest_problem(problem: &Problem) -> Result<Self, DbErr> {
+        let acceptance_rate = if problem.stat.total_submitted > 0 {
+            Some((problem.stat.total_acs as f64 / problem.stat.total_submitted as f64) * 100.0)
+        } else {
+            None
+        };
+        let mut db_quest = DbQuestion::new(
+            problem.stat.frontend_question_id,
+            &problem.stat.title,
+            &problem.stat.title_slug,
+            problem.difficulty_str(),
+            problem.paid_only,
+            problem.status.clone(),
+            0,
+            0,
+            acceptance_rate,
+        );
+        db_quest.add_topic("unknown");
+        Ok(db_quest)
     }
 
     fn add_topic(&mut self, slug: &str) {
