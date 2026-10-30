@@ -13,6 +13,29 @@ pub fn save(credentials: &Credentials) -> AuthResult<()> {
     save_to(&get_config_file_path(), credentials)
 }
 
+/// Removes the stored session from the config file.
+pub fn clear() -> AuthResult<()> {
+    clear_at(&get_config_file_path())
+}
+
+pub fn clear_at(path: &Path) -> AuthResult<()> {
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let existing = std::fs::read_to_string(path)?;
+    let mut document = existing
+        .parse::<DocumentMut>()
+        .map_err(|error| AuthError::Persist(error.to_string()))?;
+
+    document.remove("lc_session");
+    document.remove("csrftoken");
+
+    std::fs::write(path, document.to_string())?;
+    restrict_permissions(path);
+    Ok(())
+}
+
 pub fn save_to(path: &Path, credentials: &Credentials) -> AuthResult<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -102,5 +125,20 @@ mod tests {
 
         let mode = std::fs::metadata(&path).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o600);
+    }
+
+    #[test]
+    fn clear_removes_only_the_credentials() {
+        let path = temp_config("clear");
+        std::fs::write(&path, "solutions_dir = \"/tmp/leetui-solutions\"\n").unwrap();
+
+        let credentials = Credentials::new("session-value", "csrf-value", Source::Webview);
+        save_to(&path, &credentials).unwrap();
+        clear_at(&path).unwrap();
+
+        let written = std::fs::read_to_string(&path).unwrap();
+        assert!(!written.contains("lc_session"));
+        assert!(!written.contains("csrftoken"));
+        assert!(written.contains("solutions_dir = \"/tmp/leetui-solutions\""));
     }
 }

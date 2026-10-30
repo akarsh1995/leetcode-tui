@@ -57,6 +57,12 @@ session expires.
 # Sign in again / refresh an expired session
 leetui login
 
+# Open the login window even though the stored session is still valid
+leetui login --force
+
+# Switch accounts: forget the stored session and the embedded browser profile
+leetui login --reset
+
 # Sign in using the session of a browser you are already signed in with
 leetui login --from-browser
 leetui login --from-browser --browser firefox
@@ -64,6 +70,11 @@ leetui login --from-browser --browser firefox
 # Check the stored session
 leetui auth
 ```
+
+The window captures the session as soon as it changes, and closing it also
+finishes the flow. Cookies that match the session you already have are ignored,
+so an already signed-in window stays open until you actually sign in or close
+it.
 
 Inside the TUI, `L` re-opens the login window.
 

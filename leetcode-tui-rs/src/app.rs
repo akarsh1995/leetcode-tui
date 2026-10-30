@@ -141,6 +141,7 @@ impl App {
                 .and_then(|exe| {
                     std::process::Command::new(exe)
                         .arg("login")
+                        .arg("--force")
                         .status()
                         .map_err(color_eyre::eyre::Report::from)
                 });

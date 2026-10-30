@@ -162,6 +162,21 @@ pub fn from_browser(browsers: &[String]) -> AuthResult<Option<Credentials>> {
     }
 }
 
+/// Removes the embedded browser profile so the next login starts signed out.
+/// Needed to sign in with a different account: while the webview profile has a
+/// session, LeetCode redirects the login page straight to the dashboard.
+pub fn reset_webview_profile(auth_config: &AuthConfig) -> AuthResult<()> {
+    #[cfg(feature = "webview-login")]
+    {
+        webview::reset_profile(auth_config)
+    }
+    #[cfg(not(feature = "webview-login"))]
+    {
+        let _ = auth_config;
+        Ok(())
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct LoginOptions {
     /// Skip the login window and read the session from a local browser.
@@ -172,7 +187,11 @@ pub struct LoginOptions {
 
 /// Opens the login window (or reads browser cookies) and returns the captured
 /// credentials. The credentials are *not* persisted, see [`persist::save`].
-pub fn login(options: LoginOptions) -> AuthResult<Credentials> {
+///
+/// `previous` is the session that was stored before this attempt. Cookies that
+/// match it are ignored, so a webview profile that is still signed in does not
+/// get captured before the user can interact with the page.
+pub fn login(options: LoginOptions, previous: Option<&Credentials>) -> AuthResult<Credentials> {
     let auth_config = CONFIG.as_ref().auth.clone();
 
     if options.from_browser {
@@ -182,7 +201,7 @@ pub fn login(options: LoginOptions) -> AuthResult<Credentials> {
     #[cfg(feature = "webview-login")]
     {
         if auth_config.webview {
-            match webview::run(&auth_config) {
+            match webview::run(&auth_config, previous) {
                 Ok(credentials) => return Ok(credentials),
                 // The user closed the window on purpose, do not silently fall
                 // back to something else.

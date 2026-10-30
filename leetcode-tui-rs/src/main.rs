@@ -25,9 +25,17 @@ enum Command {
         /// opening the login window.
         #[arg(long)]
         from_browser: bool,
-        /// Browser to read the session from (chrome, firefox, safari, ...).
+        /// Browser to read the session from when `--from-browser` is set
+        /// (chrome, firefox, safari, ...).
         #[arg(long, value_name = "BROWSER")]
         browser: Option<String>,
+        /// Open the login window even when the stored session is still valid.
+        #[arg(long)]
+        force: bool,
+        /// Forget the stored session and the embedded browser profile first, so
+        /// you can sign in with a different account.
+        #[arg(long)]
+        reset: bool,
     },
     /// Show the stored LeetCode session and whether it is still valid.
     Auth,
@@ -41,7 +49,9 @@ fn main() -> Result<()> {
         Some(Command::Login {
             from_browser,
             browser,
-        }) => run_login(from_browser, browser),
+            force,
+            reset,
+        }) => run_login(from_browser, browser, force, reset),
         Some(Command::Auth) => run_auth_status(),
         None => {
             let runtime = tokio::runtime::Runtime::new()?;
@@ -50,13 +60,43 @@ fn main() -> Result<()> {
     }
 }
 
-fn run_login(from_browser: bool, browser: Option<String>) -> Result<()> {
-    let credentials = auth::login(LoginOptions {
-        from_browser,
-        browser,
-    })?;
+fn run_login(from_browser: bool, browser: Option<String>, force: bool, reset: bool) -> Result<()> {
+    // Captured before a reset clears it, so a webview profile that still holds
+    // the old session is not captured again straight away.
+    let previous = auth::stored();
+
+    if reset {
+        auth::persist::clear()?;
+        auth::reset_webview_profile(&CONFIG.as_ref().auth)?;
+        println!("Cleared the stored session and the embedded browser profile.");
+    }
 
     let runtime = tokio::runtime::Runtime::new()?;
+
+    // Do not open a window just to capture the session we already have: a
+    // signed-in webview profile would be picked up before the page is visible.
+    if !from_browser && !force && !reset {
+        if let Some(existing) = auth::stored() {
+            if matches!(runtime.block_on(validate(&existing)), Ok(Some(true))) {
+                println!(
+                    "Already signed in using the session from {}.",
+                    existing.source
+                );
+                println!("Use `leetui login --reset` to sign in with a different account,");
+                println!("or `leetui login --force` to open the login window anyway.");
+                return Ok(());
+            }
+        }
+    }
+
+    let credentials = auth::login(
+        LoginOptions {
+            from_browser,
+            browser,
+        },
+        previous.as_ref(),
+    )?;
+
     match runtime.block_on(validate(&credentials))? {
         Some(true) => {}
         Some(false) => bail!(
@@ -73,6 +113,17 @@ fn run_login(from_browser: bool, browser: Option<String>) -> Result<()> {
         "Signed in to LeetCode using the session from {}.",
         credentials.source
     );
+
+    if !from_browser {
+        // The login window is a one-shot process and tearing a webview down
+        // after the event loop returns can hang; exit explicitly once the
+        // session is safely stored.
+        use std::io::Write;
+        let _ = std::io::stdout().flush();
+        let _ = std::io::stderr().flush();
+        std::process::exit(0);
+    }
+
     Ok(())
 }
 
@@ -154,7 +205,8 @@ async fn run_tui() -> Result<()> {
 /// captured session.
 async fn sign_in() -> Result<Credentials> {
     eprintln!("No valid LeetCode session found, opening the login window...");
-    let credentials = auth::login(LoginOptions::default())?;
+    let previous = auth::stored();
+    let credentials = auth::login(LoginOptions::default(), previous.as_ref())?;
 
     match validate(&credentials).await {
         Ok(Some(true)) => {}
