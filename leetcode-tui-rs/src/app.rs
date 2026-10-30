@@ -40,6 +40,7 @@ impl App {
                     app.dispatch_select_popup(maybe_title, lines, result_sender)
                 }
                 Event::Error(e) => app.dispatch_popup(Some("Error".into()), vec![e]),
+                Event::Login => app.dispatch_login(),
                 Event::Open(file_path) => app.dispatch_opener(file_path),
                 Event::SyncDb => app.dispatch_db_update().await,
                 Event::ProgressUpdate(title, progress, total) => {
@@ -125,6 +126,53 @@ impl App {
             emit!(Render);
         }
         self.signals.start_looking_for_io_events();
+    }
+
+    /// Opens the login window in a child process (the webview needs the main
+    /// thread of its own process) and swaps in the new credentials.
+    fn dispatch_login(&mut self) {
+        self.signals.stop_looking_for_io_events();
+
+        if let Some(term) = &mut self.term {
+            let _ = term.suspend();
+
+            let result = std::env::current_exe()
+                .map_err(color_eyre::eyre::Report::from)
+                .and_then(|exe| {
+                    std::process::Command::new(exe)
+                        .arg("login")
+                        .status()
+                        .map_err(color_eyre::eyre::Report::from)
+                });
+
+            let _ = term.resume();
+
+            match result {
+                Ok(status) if status.success() => match leetcode_tui_auth::stored() {
+                    Some(credentials) => {
+                        match leetcode_core::reinit(&credentials.csrf, &credentials.session) {
+                            Ok(()) => self.dispatch_popup(
+                                Some("Signed in".into()),
+                                vec![format!("Session source: {}", credentials.source)],
+                            ),
+                            Err(error) => emit!(Error(format!(
+                                "Could not refresh the LeetCode client: {error}"
+                            ))),
+                        }
+                    }
+                    None => emit!(Error(
+                        "The login process finished but no session was found.".into()
+                    )),
+                },
+                Ok(_) => emit!(Error(
+                    "Sign in was cancelled or failed. Run `leetui login` for details.".into()
+                )),
+                Err(error) => emit!(Error(format!("Could not start the login process: {error}"))),
+            }
+        }
+
+        self.signals.start_looking_for_io_events();
+        emit!(Render);
     }
 
     fn dispatch_module_event(&mut self, e: Event) {

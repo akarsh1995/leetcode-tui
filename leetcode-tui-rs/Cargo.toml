@@ -15,9 +15,11 @@ path = "src/main.rs"
 
 [dependencies]
 leetcode-core = { path = "../leetcode-core", version = "0.6.1" }
+leetcode-tui-auth = { path = "../leetcode-tui-auth", version = "0.6.1" }
 leetcode-tui-db = { path = "../leetcode-tui-db", version = "0.6.1" }
 kdam = { version = "0.4.1" }
 log = { workspace = true }
+clap = { version = "4.4.6", features = ["derive"] }
 
 leetcode-tui-config = { path = "../leetcode-tui-config", version = "0.6.1" }
 leetcode-tui-core = { path = "../leetcode-tui-core", version = "0.6.1" }

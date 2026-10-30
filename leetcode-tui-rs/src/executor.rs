@@ -99,6 +99,10 @@ impl Executor {
                     emit!(SyncDb);
                     true
                 }
+                Key::Char('L') => {
+                    emit!(Login);
+                    true
+                }
                 _ => false,
             };
         }

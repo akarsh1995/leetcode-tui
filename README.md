@@ -46,13 +46,45 @@ nix shell github:akarsh1995/leetcode-tui
 
 ```sh
 leetui
+```
 
-# This is going to create a config file depending on your os.
+On first run a config file is created (its path is printed) and a LeetCode
+login window opens. Sign in there — the session cookies are captured and saved
+to the config file (`chmod 600`), so you only need to do this again when the
+session expires.
 
-# Get the Cookies from the browser `LEETCODE_SESSION` and `csrftoken` and paste it in the config file
+```sh
+# Sign in again / refresh an expired session
+leetui login
 
-# run the command again to populate db
-leetui
+# Sign in using the session of a browser you are already signed in with
+leetui login --from-browser
+leetui login --from-browser --browser firefox
+
+# Check the stored session
+leetui auth
+```
+
+Inside the TUI, `L` re-opens the login window.
+
+> **Note**
+> Google refuses to complete sign-in inside embedded browsers. If you normally
+> sign in with Google or GitHub, set a password via "Forgot Password?" on
+> leetcode.com first, then use the login window. Alternatively, use
+> `leetui login --from-browser` to reuse the session from your regular browser.
+
+Credentials can also be provided through the `LEETCODE_SESSION` and
+`LEETCODE_CSRFTOKEN` environment variables, which take precedence over the
+config file.
+
+The login behaviour can be tuned in the config file:
+
+```toml
+[auth]
+# Open the embedded login window when no valid session is found.
+webview = true
+# Browsers used as a fallback when the login window cannot be used, in order.
+browsers = ["chrome", "firefox", "safari"]
 ```
 
 ## Features

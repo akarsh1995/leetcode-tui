@@ -28,6 +28,7 @@ pub enum Event {
     Input(super::UBStrSender, Option<String>),
     Open(PathBuf),
     Error(String),
+    Login,
     QuestionUpdate,
     SyncDb,
     ProgressUpdate(String, u32, u32),

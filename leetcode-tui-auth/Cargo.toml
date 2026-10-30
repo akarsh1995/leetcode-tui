@@ -1,0 +1,28 @@
+[package]
+name = "leetcode-tui-auth"
+description = "LeetCode authentication helpers for the leetui terminal UI"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+leetcode-core = { path = "../leetcode-core", version = "0.6.1" }
+leetcode-tui-config = { path = "../leetcode-tui-config", version = "0.6.1" }
+log = { workspace = true }
+thiserror = { workspace = true }
+toml_edit = "0.22"
+
+# Embedded login window (runs LeetCode's own login page in a real web engine).
+wry = { version = "0.57", optional = true }
+tao = { version = "0.37", optional = true }
+
+# Fallback: read the session from an already signed in local browser.
+rookie-cookies = { version = "0.6", optional = true }
+
+[features]
+default = ["webview-login", "browser-cookies"]
+webview-login = ["dep:wry", "dep:tao"]
+browser-cookies = ["dep:rookie-cookies"]
