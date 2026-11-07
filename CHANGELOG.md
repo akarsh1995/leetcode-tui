@@ -8,6 +8,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-db-v0.6.1...leetcode-tui-db-v0.6.2) - 2026-11-07
+
+### Other
+
+- updated the following local packages: leetcode-core, leetcode-tui-shared
+
+## [0.6.2](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-auth-v0.6.1...leetcode-tui-auth-v0.6.2) - 2026-11-07
+
+### Other
+
+- updated the following local packages: leetcode-core, leetcode-tui-config
+
+## [0.6.2](https://github.com/akarsh1995/leetcode-tui/compare/v0.6.1...v0.6.2) - 2026-11-07
+
+### Added
+
+- *(auth)* sign in through an embedded login window
+
+### Fixed
+
+- *(main)* fix closing brace syntax and update Cargo.lock
+- *(auth)* remove rookie-cookies to resolve sqlite conflict and fix ci onig build
+- *(auth)* retry invalid webview session and isolate login process
+- *(auth)* stop the login window from closing before you can use it
+
+### Other
+
+- display instruction to run leetui after successful login ([#31](https://github.com/akarsh1995/leetcode-tui/pull/31))
+
+## [0.6.2](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-core-v0.6.1...leetcode-tui-core-v0.6.2) - 2026-11-07
+
+### Added
+
+- *(auth)* sign in through an embedded login window
+
+## [0.6.2](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-tui-config-v0.6.1...leetcode-tui-config-v0.6.2) - 2026-11-07
+
+### Added
+
+- *(auth)* sign in through an embedded login window
+
+## [0.6.2](https://github.com/akarsh1995/leetcode-tui/compare/leetcode-core-v0.6.1...leetcode-core-v0.6.2) - 2026-11-07
+
+### Added
+
+- *(auth)* sign in through an embedded login window
+
 ## [0.6.1](https://github.com/akarsh1995/leetcode-tui/compare/v0.6.0...v0.6.1) - 2026-10-21
 
 ### Other
