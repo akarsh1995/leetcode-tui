@@ -24,14 +24,6 @@ struct Cli {
 enum Command {
     /// Sign in to LeetCode and store the session in the config file.
     Login {
-        /// Read the session from an already signed in local browser instead of
-        /// opening the login window.
-        #[arg(long)]
-        from_browser: bool,
-        /// Browser to read the session from when `--from-browser` is set
-        /// (chrome, firefox, safari, ...).
-        #[arg(long, value_name = "BROWSER")]
-        browser: Option<String>,
         /// Open the login window even when the stored session is still valid.
         #[arg(long)]
         force: bool,
@@ -49,12 +41,7 @@ fn main() -> Result<()> {
     leetcode_tui_config::init()?;
 
     match cli.command {
-        Some(Command::Login {
-            from_browser,
-            browser,
-            force,
-            reset,
-        }) => run_login(from_browser, browser, force, reset),
+        Some(Command::Login { force, reset }) => run_login(force, reset),
         Some(Command::Auth) => run_auth_status(),
         None => {
             let runtime = tokio::runtime::Runtime::new()?;
@@ -63,7 +50,7 @@ fn main() -> Result<()> {
     }
 }
 
-fn run_login(from_browser: bool, browser: Option<String>, force: bool, reset: bool) -> Result<()> {
+fn run_login(force: bool, reset: bool) -> Result<()> {
     // Captured before a reset clears it, so a webview profile that still holds
     // the old session is not captured again straight away.
     let previous = auth::stored();
@@ -78,7 +65,7 @@ fn run_login(from_browser: bool, browser: Option<String>, force: bool, reset: bo
 
     // Do not open a window just to capture the session we already have: a
     // signed-in webview profile would be picked up before the page is visible.
-    if !from_browser && !force && !reset {
+    if !force && !reset {
         if let Some(existing) = auth::stored() {
             if matches!(runtime.block_on(validate(&existing)), Ok(Some(true))) {
                 println!(
@@ -97,21 +84,11 @@ fn run_login(from_browser: bool, browser: Option<String>, force: bool, reset: bo
     // once more.
     let mut retried = false;
     let credentials = loop {
-        let credentials = auth::login(
-            LoginOptions {
-                from_browser,
-                browser: browser.clone(),
-            },
-            previous.as_ref(),
-        )?;
+        let credentials = auth::login(LoginOptions::default(), previous.as_ref())?;
 
         match runtime.block_on(validate(&credentials))? {
             Some(true) => break credentials,
-            Some(false)
-                if !retried
-                    && !from_browser
-                    && credentials.source == auth::Source::Webview =>
-            {
+            Some(false) if !retried && credentials.source == auth::Source::Webview => {
                 retried = true;
                 eprintln!("That session is no longer valid, starting a fresh sign-in...");
                 auth::reset_webview_profile(&CONFIG.as_ref().auth)?;
@@ -135,9 +112,8 @@ fn run_login(from_browser: bool, browser: Option<String>, force: bool, reset: bo
         credentials.source
     );
 
-    if !from_browser {
-        // The login window is a one-shot process and tearing a webview down
-        // after the event loop returns can hang; exit explicitly once the
+    // The login window is a one-shot process and tearing a webview down
+    // after the event loop returns can hang; exit explicitly once the
         // session is safely stored.
         use std::io::Write;
         let _ = std::io::stdout().flush();

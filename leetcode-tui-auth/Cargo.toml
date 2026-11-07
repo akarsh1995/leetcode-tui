@@ -19,10 +19,6 @@ toml_edit = "0.22"
 wry = { version = "0.57", optional = true }
 tao = { version = "0.37", optional = true }
 
-# Fallback: read the session from an already signed in local browser.
-rookie-cookies = { version = "0.6", optional = true }
-
 [features]
-default = ["webview-login", "browser-cookies"]
+default = ["webview-login"]
 webview-login = ["dep:wry", "dep:tao"]
-browser-cookies = ["dep:rookie-cookies"]

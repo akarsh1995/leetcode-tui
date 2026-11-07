@@ -3,16 +3,11 @@
 //! LeetCode's login page is protected by reCAPTCHA v3 and Cloudflare Turnstile,
 //! so a plain HTTP POST with an email and password cannot work. Instead we run
 //! the real login page inside an embedded webview and capture the session
-//! cookies it produces. When that is not possible (for example because Google
-//! refuses to sign in inside an embedded browser) we fall back to reading the
-//! cookies of an already signed in local browser.
+//! cookies it produces.
 
 use leetcode_tui_config::{AuthConfig, CONFIG};
 
 pub mod persist;
-
-#[cfg(feature = "browser-cookies")]
-pub mod browser;
 
 #[cfg(feature = "webview-login")]
 pub mod webview;
@@ -24,7 +19,6 @@ pub const CSRF_COOKIE: &str = "csrftoken";
 pub enum Source {
     Env,
     Config,
-    Browser(String),
     Webview,
     None,
 }
@@ -34,7 +28,6 @@ impl Source {
         match self {
             Source::Env => "environment variables",
             Source::Config => "config file",
-            Source::Browser(browser) => browser,
             Source::Webview => "login window",
             Source::None => "none",
         }
@@ -85,9 +78,6 @@ pub enum AuthError {
 
     #[error("Could not open the login window: {0}")]
     Webview(String),
-
-    #[error("Could not read cookies from your browser: {0}")]
-    Browser(String),
 
     #[error("Could not save the session: {0}")]
     Persist(String),
@@ -140,28 +130,6 @@ pub fn stored() -> Option<Credentials> {
     from_env().or_else(from_config_file).or_else(from_config)
 }
 
-/// Tries to read a LeetCode session from the local browsers listed in the
-/// config, in order.
-pub fn from_browser(browsers: &[String]) -> AuthResult<Option<Credentials>> {
-    #[cfg(feature = "browser-cookies")]
-    {
-        for browser in browsers {
-            match browser::read(browser) {
-                Ok(Some(credentials)) => return Ok(Some(credentials)),
-                Ok(None) => log::debug!("no LeetCode cookies found in {browser}"),
-                Err(error) => log::warn!("could not read cookies from {browser}: {error}"),
-            }
-        }
-        Ok(None)
-    }
-
-    #[cfg(not(feature = "browser-cookies"))]
-    {
-        let _ = browsers;
-        Ok(None)
-    }
-}
-
 /// Removes the embedded browser profile so the next login starts signed out.
 /// Needed to sign in with a different account: while the webview profile has a
 /// session, LeetCode redirects the login page straight to the dashboard.
@@ -178,69 +146,30 @@ pub fn reset_webview_profile(auth_config: &AuthConfig) -> AuthResult<()> {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct LoginOptions {
-    /// Skip the login window and read the session from a local browser.
-    pub from_browser: bool,
-    /// Browser to read the session from when `from_browser` is set.
-    pub browser: Option<String>,
-}
+pub struct LoginOptions;
 
-/// Opens the login window (or reads browser cookies) and returns the captured
-/// credentials. The credentials are *not* persisted, see [`persist::save`].
+/// Opens the login window and returns the captured credentials.
+/// The credentials are *not* persisted, see [`persist::save`].
 ///
 /// `previous` is the session that was stored before this attempt. Cookies that
 /// match it are ignored, so a webview profile that is still signed in does not
 /// get captured before the user can interact with the page.
-pub fn login(options: LoginOptions, previous: Option<&Credentials>) -> AuthResult<Credentials> {
+pub fn login(_options: LoginOptions, previous: Option<&Credentials>) -> AuthResult<Credentials> {
     let auth_config = CONFIG.as_ref().auth.clone();
-
-    if options.from_browser {
-        return login_from_browser(&auth_config, options.browser.as_deref());
-    }
 
     #[cfg(feature = "webview-login")]
     {
         if auth_config.webview {
-            match webview::run(&auth_config, previous) {
-                Ok(credentials) => return Ok(credentials),
-                // The user closed the window on purpose, do not silently fall
-                // back to something else.
-                Err(AuthError::LoginCancelled) => return Err(AuthError::LoginCancelled),
+            return match webview::run(&auth_config, previous) {
+                Ok(credentials) => Ok(credentials),
+                Err(AuthError::LoginCancelled) => Err(AuthError::LoginCancelled),
                 Err(error) => {
                     log::warn!("login window failed: {error}");
-                    eprintln!("The login window could not be used: {error}");
-                    eprintln!("Falling back to your local browser session...");
+                    Err(AuthError::Webview(error.to_string()))
                 }
-            }
+            };
         }
     }
 
-    match login_from_browser(&auth_config, None) {
-        Ok(credentials) => Ok(credentials),
-        Err(error) => {
-            log::warn!("browser fallback failed: {error}");
-            eprintln!(
-                "Could not sign in automatically.\n\
-                 If you sign in with Google or GitHub, set a password via \
-                 \"Forgot Password?\" on leetcode.com and try again, or export \
-                 your session with `LEETCODE_SESSION`/`LEETCODE_CSRFTOKEN`."
-            );
-            Err(error)
-        }
-    }
-}
-
-fn login_from_browser(auth_config: &AuthConfig, browser: Option<&str>) -> AuthResult<Credentials> {
-    let browsers = match browser {
-        Some(browser) => vec![browser.to_string()],
-        None => auth_config.browsers.clone(),
-    };
-
-    match from_browser(&browsers)? {
-        Some(credentials) => Ok(credentials),
-        None => Err(AuthError::Browser(format!(
-            "no signed in LeetCode session found in: {}",
-            browsers.join(", ")
-        ))),
-    }
+    Err(AuthError::NoCredentials)
 }
