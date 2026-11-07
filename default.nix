@@ -1,31 +1,50 @@
-{ pkgs ? import <nixpkgs> {} }:
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  pkg-config,
+  openssl,
+  glib,
+  gtk3,
+  libsoup_3,
+  webkitgtk_4_1,
+  darwin,
+}:
 
 let
-  # Common dependencies for Rust crates
-  commonDeps = attrs: {
-    buildInputs = [ pkgs.pkg-config pkgs.openssl ];
-    nativeBuildInputs = [ 
-      pkgs.pkg-config 
-      pkgs.openssl
-      pkgs.rustc
-      pkgs.cargo
-    ];
-  };
-
-  # Crate-specific configurations
-  crateConfigs = {
-    leetcode-tui-config = attrs: {
-      CARGO_CRATE_NAME = "leetcode_tui_config";
-    };
-    leetcode-tui-rs = attrs: (commonDeps attrs // {
-      CARGO_CRATE_NAME = "leetcode_tui_rs";
-    });
-  };
-
-  # Import and configure the workspace
-  cargoNix = import ./Cargo.nix {
-    inherit pkgs;
-    defaultCrateOverrides = pkgs.defaultCrateOverrides // crateConfigs;
-  };
+  cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
 in
-cargoNix.workspaceMembers."leetcode-tui-rs".build 
+rustPlatform.buildRustPackage {
+  pname = "leetui";
+  inherit (cargoToml.workspace.package) version;
+
+  src = lib.cleanSource ./.;
+
+  cargoLock = {
+    lockFile = ./Cargo.lock;
+  };
+
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [
+    openssl
+  ]
+  ++ lib.optionals stdenv.isLinux [
+    glib
+    gtk3
+    libsoup_3
+    webkitgtk_4_1
+  ]
+  ++ lib.optionals stdenv.isDarwin [
+    darwin.apple_sdk.frameworks.Security
+    darwin.apple_sdk.frameworks.SystemConfiguration
+    darwin.apple_sdk.frameworks.WebKit
+  ];
+
+  meta = with lib; {
+    description = cargoToml.workspace.package.description;
+    homepage = cargoToml.workspace.package.homepage;
+    license = licenses.mit;
+    mainProgram = "leetui";
+  };
+}
