@@ -111,6 +111,7 @@ fn run_login(force: bool, reset: bool) -> Result<()> {
         "Signed in to LeetCode using the session from {}.",
         credentials.source
     );
+    println!("Run `leetui` to launch the application.");
 
     // The login window is a one-shot process and tearing a webview down
     // after the event loop returns can hang; exit explicitly once the
