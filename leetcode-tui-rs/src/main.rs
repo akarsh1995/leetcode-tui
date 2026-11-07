@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
-use color_eyre::{eyre::bail, Result};
+use color_eyre::{
+    eyre::{bail, eyre},
+    Result,
+};
 use leetcode_tui_auth::{self as auth, Credentials, LoginOptions};
 use leetcode_tui_config::CONFIG;
 use leetcode_tui_rs::app::App;
@@ -89,24 +92,42 @@ fn run_login(from_browser: bool, browser: Option<String>, force: bool, reset: bo
         }
     }
 
-    let credentials = auth::login(
-        LoginOptions {
-            from_browser,
-            browser,
-        },
-        previous.as_ref(),
-    )?;
+    // A webview profile can hold a session that LeetCode no longer accepts.
+    // Rather than failing, throw that profile away and let the user sign in
+    // once more.
+    let mut retried = false;
+    let credentials = loop {
+        let credentials = auth::login(
+            LoginOptions {
+                from_browser,
+                browser: browser.clone(),
+            },
+            previous.as_ref(),
+        )?;
 
-    match runtime.block_on(validate(&credentials))? {
-        Some(true) => {}
-        Some(false) => bail!(
-            "LeetCode rejected the captured session. Please sign in again, or set a password \
-             via \"Forgot Password?\" on leetcode.com if you normally sign in with Google or GitHub."
-        ),
-        None => eprintln!(
-            "Could not verify the session (network error or Cloudflare challenge), saving it anyway."
-        ),
-    }
+        match runtime.block_on(validate(&credentials))? {
+            Some(true) => break credentials,
+            Some(false)
+                if !retried
+                    && !from_browser
+                    && credentials.source == auth::Source::Webview =>
+            {
+                retried = true;
+                eprintln!("That session is no longer valid, starting a fresh sign-in...");
+                auth::reset_webview_profile(&CONFIG.as_ref().auth)?;
+            }
+            Some(false) => bail!(
+                "LeetCode rejected the captured session. Please sign in again, or set a password \
+                 via \"Forgot Password?\" on leetcode.com if you normally sign in with Google or GitHub."
+            ),
+            None => {
+                eprintln!(
+                    "Could not verify the session (network error or Cloudflare challenge), saving it anyway."
+                );
+                break credentials;
+            }
+        }
+    };
 
     auth::persist::save(&credentials)?;
     println!(
@@ -201,27 +222,29 @@ async fn run_tui() -> Result<()> {
     App::run().await
 }
 
-/// Opens the login window (must be called from the main thread) and stores the
-/// captured session.
+/// Opens the login window in a child process and returns the session it stored.
+///
+/// The webview must own the main thread of its own process: running it inside
+/// the TUI process leaves an NSWindow behind that can only be torn down when
+/// the TUI exits.
 async fn sign_in() -> Result<Credentials> {
     eprintln!("No valid LeetCode session found, opening the login window...");
-    let previous = auth::stored();
-    let credentials = auth::login(LoginOptions::default(), previous.as_ref())?;
 
-    match validate(&credentials).await {
-        Ok(Some(true)) => {}
-        Ok(Some(false)) => bail!("LeetCode did not accept the captured session."),
-        Ok(None) | Err(_) => eprintln!(
-            "Could not verify the session (network error or Cloudflare challenge), saving it anyway."
-        ),
+    let exe = std::env::current_exe()?;
+    let status = std::process::Command::new(exe)
+        .arg("login")
+        .arg("--force")
+        .status()?;
+
+    if !status.success() {
+        bail!("Sign in failed or the login window was closed.");
     }
 
-    auth::persist::save(&credentials)?;
-    eprintln!(
-        "Signed in to LeetCode using the session from {}.",
-        credentials.source
-    );
-    Ok(credentials)
+    // Read the file the child just wrote rather than `stored()`, which prefers
+    // environment variables that may be the expired ones we are replacing.
+    auth::from_config_file()
+        .or_else(auth::stored)
+        .ok_or_else(|| eyre!("The login window finished without storing a session."))
 }
 
 async fn validate(credentials: &Credentials) -> Result<Option<bool>> {
