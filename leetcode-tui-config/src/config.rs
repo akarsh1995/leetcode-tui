@@ -15,10 +15,9 @@ pub fn init() -> Result<()> {
             Config::create_default_config(&config_file);
             Config::create_default_solution_dir();
             println!(
-                "Please fill in leetcode_sesion and csrftoken in config file \n @ {}",
+                "Created a default config file @ {}\nYou will be asked to sign in to LeetCode on first run.",
                 config_file.display()
             );
-            std::process::exit(0);
         }
 
         let contents = std::fs::read_to_string(&config_file)?;
@@ -59,14 +58,18 @@ pub fn init() -> Result<()> {
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Config {
-    pub csrftoken: String,
-    pub lc_session: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub csrftoken: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lc_session: Option<String>,
     #[serde(default, skip_serializing)]
     pub db: Database,
     #[serde(default = "get_solutions_dir_path", skip_serializing)]
     pub solutions_dir: PathBuf,
     #[serde(default, skip_serializing)]
     pub theme: Theme,
+    #[serde(default)]
+    pub auth: AuthConfig,
 }
 
 impl Config {
@@ -93,6 +96,16 @@ impl Config {
             )
             .as_str(),
         );
+        restrict_permissions(config_file);
+    }
+}
+
+/// Restricts the config file to the current user, it stores a session token.
+fn restrict_permissions(path: &PathBuf) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
     }
 }
 
@@ -106,5 +119,71 @@ impl Default for Database {
         Self {
             path: get_default_database_file_path(),
         }
+    }
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_browsers() -> Vec<String> {
+    vec![
+        "chrome".to_string(),
+        "firefox".to_string(),
+        "safari".to_string(),
+    ]
+}
+
+/// Authentication related settings.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AuthConfig {
+    /// Open the embedded login window when no valid session is found.
+    #[serde(default = "default_true")]
+    pub webview: bool,
+    /// Browsers used as a fallback when the embedded login window cannot be
+    /// used (for example when Google refuses to sign in inside a webview).
+    #[serde(default = "default_browsers")]
+    pub browsers: Vec<String>,
+    /// Optional directory used to persist the embedded login window profile.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webview_data_dir: Option<PathBuf>,
+}
+
+impl Default for AuthConfig {
+    fn default() -> Self {
+        Self {
+            webview: default_true(),
+            browsers: default_browsers(),
+            webview_data_dir: None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_legacy_credentials() {
+        let config: Config = toml::from_str("lc_session = \"s\"\ncsrftoken = \"c\"").unwrap();
+        assert_eq!(config.lc_session.as_deref(), Some("s"));
+        assert_eq!(config.csrftoken.as_deref(), Some("c"));
+    }
+
+    #[test]
+    fn credentials_are_optional() {
+        let config: Config = toml::from_str("").unwrap();
+        assert!(config.lc_session.is_none());
+        assert!(config.csrftoken.is_none());
+        assert!(config.auth.webview);
+        assert_eq!(config.auth.browsers, ["chrome", "firefox", "safari"]);
+    }
+
+    #[test]
+    fn default_config_roundtrips() {
+        let serialized = toml::to_string(&Config::default()).unwrap();
+        let parsed: Config = toml::from_str(&serialized).unwrap();
+        assert!(parsed.auth.webview);
+        assert!(parsed.lc_session.is_none());
     }
 }

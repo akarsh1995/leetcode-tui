@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LcAppError {
-    #[error("Looks like your cookies has been expired kindly update your cookies in config.toml Look for help to edit the config file.")]
+    #[error("Your LeetCode session has expired. Press 'L' in the TUI or run `leetui login` to sign in again.")]
     CookiesExpiredError,
 
     #[error("Deserialization/serialization failed: {0}")]

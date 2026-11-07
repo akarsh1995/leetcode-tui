@@ -6,11 +6,11 @@ pub mod key;
 pub mod theme;
 pub mod utils;
 
-pub use crate::config::CONFIG;
+pub use crate::config::{AuthConfig, CONFIG};
 use color_eyre::Result;
 pub use log;
 
-pub async fn init() -> Result<()> {
+pub fn init() -> Result<()> {
     constants::init();
     config::init()?;
     error_handling::initialize_logging()?;

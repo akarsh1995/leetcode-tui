@@ -24,6 +24,7 @@ impl Default for Help {
                 vec!["Tab", "Toggle difficulty"],
                 vec!["/", "Search"],
                 vec!["c", "Open config file"],
+                vec!["L", "Sign in / refresh session"],
                 vec!["*", "Sync database!"],
                 vec!["q", "quit!"],
             ],
