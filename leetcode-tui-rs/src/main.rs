@@ -114,14 +114,11 @@ fn run_login(force: bool, reset: bool) -> Result<()> {
 
     // The login window is a one-shot process and tearing a webview down
     // after the event loop returns can hang; exit explicitly once the
-        // session is safely stored.
-        use std::io::Write;
-        let _ = std::io::stdout().flush();
-        let _ = std::io::stderr().flush();
-        std::process::exit(0);
-    }
-
-    Ok(())
+    // session is safely stored.
+    use std::io::Write;
+    let _ = std::io::stdout().flush();
+    let _ = std::io::stderr().flush();
+    std::process::exit(0);
 }
 
 fn run_auth_status() -> Result<()> {
