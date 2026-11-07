@@ -9,8 +9,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-leetcode-core = { path = "../leetcode-core", version = "0.6.1" }
-leetcode-tui-config = { path = "../leetcode-tui-config", version = "0.6.1" }
+leetcode-core = { path = "../leetcode-core", version = "0.6.2" }
+leetcode-tui-config = { path = "../leetcode-tui-config", version = "0.6.2" }
 log = { workspace = true }
 thiserror = { workspace = true }
 toml_edit = "0.22"
